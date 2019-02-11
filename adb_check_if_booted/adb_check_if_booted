@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -e
+#set -x
+
+# adb shell getprop init.svc.bootanim
+
+#while [ "`adb shell getprop sys.boot_completed | tr -d '\r' `" != "1" ] ; do sleep 1; done
+
+#if adb shell 'getprop sys.boot_completed' | grep -q 'string'; then
+#   echo "matched"
+#fi
+
+### guide to boot props
+# from earliest to latest
+# 1: init.svc.bootanim
+# 2: sys.boot_completed
+# 3: service.bootanim.exit
+
+PROP_1="init.svc.bootanim"
+PROP_2="sys.boot_completed"
+PROP_3="service.bootanim.exit"
+OUTPUT=`adb shell getprop ${PROP_3} 2>&1 || true`
+
+if [[ "$OUTPUT" == *"error: no devices/emulators found"* ]]; then
+	echo "NOT booted (no device)"
+elif [ "`echo "$OUTPUT" | tr -d '\r' `" != "1" ]; then
+        echo "NOT booted (${PROP_3} false)"
+else
+	echo "booted (${PROP_3} true)"
+fi
+
