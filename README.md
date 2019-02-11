@@ -1,6 +1,8 @@
 # android-tools
 
-## overview
+tools for working with Android things at Mozilla
+
+## tool information
 
 ### bitbar_tc_queue_monitor
 
