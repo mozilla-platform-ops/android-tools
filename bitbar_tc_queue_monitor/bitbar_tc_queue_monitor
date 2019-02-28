@@ -27,6 +27,7 @@ URLS = [
     "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-unit-g5",
     "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-perf-g5",
     "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-batt-g5",
+    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-test-g5",
 ]
 
 if __name__ == "__main__":
