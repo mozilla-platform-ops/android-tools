@@ -14,7 +14,7 @@ import gzip
 try:
     from tqdm import tqdm, trange
 except:
-    print("Please `pip install tqdm`.")
+    print("Please `pip3 install tqdm`.")
     sys.exit(1)
 
 LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
