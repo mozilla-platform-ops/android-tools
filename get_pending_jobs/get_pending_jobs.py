@@ -1,18 +1,9 @@
 #!/usr/bin/env python
 
-#
-# what bc does:
-#   on treeherder, for mozilla-central, try, mozilla-inbound, autoland (big 4)
-#     scan jobs, looking for jobs that use android-hw that are still pending
-#       for each, add 1 to counter
-#  sum per repo/project
-#
-#
-#
-
 import sys
 import logging
 import json
+
 # import requests under python 2 or 3
 try:
     import urllib.request as urllib_request  # for Python 3
