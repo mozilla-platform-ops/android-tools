@@ -12,6 +12,10 @@ Display the Taskcluster Bitbar job queues.
 
 Display if ADB finds a device booting and it's state in the process. `monitor_device` runs `adb_check_if_booted` regularly and prints it's output with a timestamp.
 
+## get_pending_jobs
+
+Scans treeherder for pending jobs. Accepts filters for matching only certain jobs.
+
 ## installation
 
 Symlink the scripts you'd like to use somewhere into your path.
