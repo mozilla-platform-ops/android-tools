@@ -12,7 +12,7 @@ Display if ADB finds a device booting and it's state in the process. `monitor_de
 
 Display the Taskcluster Bitbar job queues.
 
-## get_pending_jobs
+### get_pending_jobs
 
 Scans treeherder for pending jobs. Accepts filters for matching only certain jobs.
 
