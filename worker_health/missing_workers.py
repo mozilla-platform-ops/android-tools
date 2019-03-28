@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import os
 import yaml
 import json
@@ -133,14 +134,17 @@ class WorkerHealth:
                 # print(worker['workerId'])
                 self.tc_workers[item].append(worker["workerId"])
 
-    def calculate_utilization_and_dead_hosts(self):
+    def calculate_utilization_and_dead_hosts(self, show_all=False):
+        difference_found = False
+        print("missing workers (present in config, but not on tc):")
         for item in self.devicepool_queues_and_workers:
             # wh.tc_workers
-            print("  %s: " % item)
-            print(
-                "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
-                % item
-            )
+            if show_all:
+                print("  %s: " % item)
+                print(
+                    "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
+                    % item
+                )
             # if item in self.tc_workers:
             #     print(self.tc_workers[item])
             # if item in self.devicepool_queues_and_workers:
@@ -149,13 +153,31 @@ class WorkerHealth:
                 difference = set(self.devicepool_queues_and_workers[item]) - set(
                     self.tc_workers[item]
                 )
-                if difference:
-                    print("    %s" % difference)
+                if show_all:
+                    if difference:
+                        difference_found = True
+                        print("    %s" % difference)
+                    else:
+                        print("    none")
                 else:
-                    print("    none")
+                    if difference:
+                        difference_found = True
+                        print("  %s: " % item)
+                        print(
+                            "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
+                            % item
+                        )
+                        print("    %s" % difference)
+
+        if not difference_found and not show_all:
+            print("  none")
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--all', action='store_true', default=False, help="list all worker-types on TC even if not missing workers")
+    args = parser.parse_args()
+
     wh = WorkerHealth()
     # print("devicepool config data:")
     wh.set_configured_worker_counts()
@@ -170,8 +192,7 @@ def main():
     # print(wh.tc_workers)
     # print()
 
-    print("missing workers (present in config, but not on tc):")
-    wh.calculate_utilization_and_dead_hosts()
+    wh.calculate_utilization_and_dead_hosts(show_all=args.all)
 
 
 if __name__ == "__main__":
