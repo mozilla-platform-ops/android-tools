@@ -198,6 +198,7 @@ def main():
     # print(wh.tc_workers)
     # print()
 
+    # TODO: output https://tools.taskcluster.net/provisioners/proj-autophone/worker-types?
     wh.calculate_utilization_and_dead_hosts(show_all=args.all)
 
 
