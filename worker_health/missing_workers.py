@@ -175,7 +175,13 @@ class WorkerHealth:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--all', action='store_true', default=False, help="list all worker-types on TC even if not missing workers")
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        default=False,
+        help="list all worker-types on TC even if not missing workers",
+    )
     args = parser.parse_args()
 
     wh = WorkerHealth()
