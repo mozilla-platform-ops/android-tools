@@ -169,7 +169,7 @@ class WorkerHealth:
                         "    devicepool: %s" % self.devicepool_queues_and_workers[item]
                     )
                 if item in self.tc_workers:
-                    print("    taskcluster: " % self.tc_workers[item])
+                    print("    taskcluster: %s" % self.tc_workers[item])
             if item in self.devicepool_queues_and_workers and item in self.tc_workers:
                 difference = set(self.devicepool_queues_and_workers[item]) - set(
                     self.tc_workers[item]
@@ -228,6 +228,8 @@ def main():
     wh.set_configured_worker_counts()
     wh.set_current_worker_types()
     wh.set_current_workers()
+    # print(wh.tc_current_worker_types)
+    # print(wh.devicepool_queues_and_workers)
 
     # TODO: output https://tools.taskcluster.net/provisioners/proj-autophone/worker-types?
     wh.calculate_utilization_and_dead_hosts(show_all=args.all, verbose=args.verbose)
