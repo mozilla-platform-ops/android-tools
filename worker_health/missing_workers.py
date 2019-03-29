@@ -6,7 +6,10 @@ import yaml
 import json
 import subprocess
 import pprint
+import sys
+import time
 
+REPO_UPDATE_SECONDS = 300
 
 try:
     import urllib.request as urllib_request  # for Python 3
@@ -36,19 +39,34 @@ class WorkerHealth:
         # clone or update repo
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
 
-    def clone_or_update(self, repo_url, repo_path):
-        FNULL = open(os.devnull, "w")
+    def clone_or_update(self, repo_url, repo_path, force_update=False):
+        devnull_fh = open(os.devnull, "w")
+        last_updated_file = os.path.join(
+            repo_path, ".git", "missing_workers_last_updated"
+        )
+
         if os.path.exists(repo_path):
+            # return if it hasn't been long enough and force_update is false
+            now = time.time()
+            statbuf = os.stat(last_updated_file)
+            mod_time = statbuf.st_mtime
+            diff = now - mod_time
+            if not force_update and diff < REPO_UPDATE_SECONDS:
+                return
+
             # update
             os.chdir(repo_path)
             cmd = "git pull --rebase"
             args = cmd.split(" ")
-            subprocess.check_call(args, stdout=FNULL, stderr=subprocess.STDOUT)
+            subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
         else:
             # clone
             cmd = "git clone %s %s" % (repo_url, repo_path)
             args = cmd.split(" ")
-            subprocess.check_call(args, stdout=FNULL, stderr=subprocess.STDOUT)
+            subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+        # touch the last updated file
+        open(last_updated_file, "a").close()
+        os.utime(last_updated_file, None)
 
     def get_json(self, an_url):
         req = urllib_request.Request(
@@ -134,7 +152,7 @@ class WorkerHealth:
                 # print(worker['workerId'])
                 self.tc_workers[item].append(worker["workerId"])
 
-    def calculate_utilization_and_dead_hosts(self, show_all=False):
+    def calculate_utilization_and_dead_hosts(self, show_all=False, verbose=False):
         difference_found = False
         print("missing workers (present in config, but not on tc):")
         for item in self.devicepool_queues_and_workers:
@@ -145,10 +163,13 @@ class WorkerHealth:
                     "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
                     % item
                 )
-            # if item in self.tc_workers:
-            #     print(self.tc_workers[item])
-            # if item in self.devicepool_queues_and_workers:
-            #     print(self.devicepool_queues_and_workers[item])
+            if verbose:
+                if item in self.devicepool_queues_and_workers:
+                    print(
+                        "    devicepool: %s" % self.devicepool_queues_and_workers[item]
+                    )
+                if item in self.tc_workers:
+                    print("    taskcluster: " % self.tc_workers[item])
             if item in self.devicepool_queues_and_workers and item in self.tc_workers:
                 difference = set(self.devicepool_queues_and_workers[item]) - set(
                     self.tc_workers[item]
@@ -156,9 +177,9 @@ class WorkerHealth:
                 if show_all:
                     if difference:
                         difference_found = True
-                        print("    %s" % difference)
+                        print("    difference: %s" % difference)
                     else:
-                        print("    none")
+                        print("    difference: none")
                 else:
                     if difference:
                         difference_found = True
@@ -167,13 +188,17 @@ class WorkerHealth:
                             "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
                             % item
                         )
-                        print("    %s" % difference)
+                        print("    difference: %s" % difference)
 
         if not difference_found and not show_all:
-            print("  none")
+            print("  differences: none")
+            print(
+                "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
+            )
 
 
 def main():
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-a",
@@ -182,24 +207,30 @@ def main():
         default=False,
         help="list all worker-types on TC even if not missing workers",
     )
+    parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        default=False,
+        help="force an update to the devicepool repository (normally updated every %s seconds)"
+        % REPO_UPDATE_SECONDS,
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="print additional information",
+    )
     args = parser.parse_args()
 
     wh = WorkerHealth()
-    # print("devicepool config data:")
     wh.set_configured_worker_counts()
-    # print(wh.devicepool_bitbar_device_groups)
-    # print(wh.devicepool_queues_and_workers)
-    # print()
-
-    # print("tc current data:")
     wh.set_current_worker_types()
-    # print(wh.tc_current_worker_types)
     wh.set_current_workers()
-    # print(wh.tc_workers)
-    # print()
 
     # TODO: output https://tools.taskcluster.net/provisioners/proj-autophone/worker-types?
-    wh.calculate_utilization_and_dead_hosts(show_all=args.all)
+    wh.calculate_utilization_and_dead_hosts(show_all=args.all, verbose=args.verbose)
 
 
 if __name__ == "__main__":
