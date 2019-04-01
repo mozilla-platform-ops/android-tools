@@ -13,7 +13,7 @@ try:
     import requests
     from tqdm import tqdm, trange
 except:
-    print("Please `pip3 install tqdm requests` or use the Pipfile.")
+    print("Please `pip3 install tqdm requests requests-cache` or use the Pipfile.")
     sys.exit(1)
 
 LOG_LEVELS = ["BONKERS", "INTENSE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -21,11 +21,6 @@ DEFAULT_LOG_LEVEL = "WARNING"
 
 REQUEST_DEBUGGING = False
 REQUEST_CACHING = False
-
-if REQUEST_CACHING:
-    import requests_cache
-
-    requests_cache.install_cache()
 
 if REQUEST_DEBUGGING:
     # These two lines enable debugging at httplib level (requests->urllib3->http.client)
@@ -209,10 +204,6 @@ class PendingJobs:
             jobs_inspected_per_project = 0
             early_exit_string = ""
 
-            # TODO: integrate this into each line vs printing it here
-            # if self.log_level <= 3:
-            #     tqdm.write("-- %s project" % project)
-
             push_pbar = tqdm(
                 total=page_size * pages,
                 desc="jobs",
@@ -309,11 +300,7 @@ class PendingJobs:
                 )
                 tqdm.write(
                     "%s: pending %stasks: %s"
-                    % (
-                        project,
-                        filter_string,
-                        results_dict[project],
-                    )
+                    % (project, filter_string, results_dict[project])
                 )
                 # display oldest task
                 if project in self.oldest_task_dict:
@@ -326,7 +313,7 @@ class PendingJobs:
                                 seconds=diff_epoch_to_now(
                                     self.oldest_task_dict[project]
                                 )
-                            )
+                            ),
                         )
                     )
             push_pbar.close()
@@ -369,6 +356,8 @@ if __name__ == "__main__":
 
     PAGE_SIZE = 20
     PAGES = 3
+    # TODO: make this longer? configurable?
+    CACHE_EXPIRY_SECONDS = 300
 
     parser = argparse.ArgumentParser(
         usage="%(prog)s [options]",
@@ -382,6 +371,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--filter", "-f", help="require pending jobs to match this string"
+    )
+    parser.add_argument(
+        "-c",
+        "--caching",
+        dest="caching",
+        action="store_true",
+        help="enable request caching",
     )
     parser.add_argument(
         "-d",
@@ -412,10 +408,23 @@ if __name__ == "__main__":
     )
     # handle multiple -v args (like -vvv)
     parser.add_argument(
-        "--verbose", "-v", action="append_const", dest="log_level", const=-1
+        "--verbose",
+        "-v",
+        action="append_const",
+        dest="log_level",
+        const=-1,
+        help="specify multiple times for more verbosity",
     )
-    # TODO: reqeusts-cache behind an arg
     args = parser.parse_args()
+
+    if args.caching:
+        try:
+            import requests_cache
+        except:
+            print("Please `pip3 install requests-cache`.")
+            sys.exit(1)
+        requests_cache.install_cache(expire_after=CACHE_EXPIRY_SECONDS)
+        print("Using request-cache (expiration of %s seconds)." % CACHE_EXPIRY_SECONDS)
 
     early_exit = True
     if args.no_early_exit:
@@ -483,9 +492,6 @@ if __name__ == "__main__":
                 % (key, filter_string, results_dict[key], human_time(seconds=diff))
             )
         else:
-            print(
-                "%s: pending %stasks: %s"
-                % (key, filter_string, results_dict[key])
-            )
+            print("%s: pending %stasks: %s" % (key, filter_string, results_dict[key]))
     if len(projects) > 1:
         print("total: pending %stasks: %s" % (filter_string, grand_total))
