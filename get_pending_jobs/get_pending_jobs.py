@@ -247,6 +247,7 @@ class PendingJobs:
                         )
                         self.oldest_job_dict[project] = result["push_timestamp"]
 
+                    # TODO: shorten the sha1 (treeherder can still load shortened ones)
                     if self.log_level <= 3 and count >= 1:
                         tqdm.write(
                             "%s:%s (%s): %s pending jobs %s"
