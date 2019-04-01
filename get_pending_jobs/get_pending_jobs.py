@@ -281,6 +281,8 @@ class PendingJobs:
                     early_exit_string = ", exited early"
                     break
                 pending_jobs_this_page = 0
+            # TODO: display the date of the oldest scanned job
+            # - help reveal how far back we scanned (currently not clear/visible)
             if self.log_level <= 3:
                 # display pending job total
                 filter_string = ""
