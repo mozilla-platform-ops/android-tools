@@ -297,7 +297,7 @@ class PendingJobs:
                 if args.filter:
                     filter_string = "'%s' " % filter
                 tqdm.write(
-                    "%s %spending tasks (inspected %s jobs%s)"
+                    "%s %spending tasks, inspected %s jobs%s"
                     % (
                         results_dict[project],
                         filter_string,
@@ -465,7 +465,7 @@ if __name__ == "__main__":
         if key in pj.oldest_task_dict:
             diff = diff_epoch_to_now(pj.oldest_task_dict[key])
             print(
-                "%s project: pending %stasks: %s (oldest pending task submitted %s ago)"
+                "%s project: pending %stasks: %s, oldest pending submitted %s ago"
                 % (key, filter_string, results_dict[key], human_time(seconds=diff))
             )
         else:
