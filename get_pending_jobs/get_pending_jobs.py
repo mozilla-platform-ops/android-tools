@@ -177,7 +177,7 @@ class PendingJobs:
         return pending_jobs, oldest_task_timestamp
 
     def get_pending_jobs(
-        self, projects, filter=None, pages=4, page_size=50, early_exit=True
+        self, projects, filter=None, pages=4, page_size=50, early_exit=True, progress_disabled=False
     ):
         # phase 1: get try pushes
 
@@ -190,7 +190,7 @@ class PendingJobs:
             leave_progressbars = True
 
         # TODO: multithread?
-        proj_iterator = tqdm(projects, desc="projects", leave=leave_progressbars)
+        proj_iterator = tqdm(projects, desc="projects", leave=leave_progressbars, disable=progress_disabled)
         for project in proj_iterator:
             proj_iterator.set_postfix(project=project)
             pending_job_total = 0
@@ -202,7 +202,7 @@ class PendingJobs:
                 tqdm.write("-- %s project" % project)
 
             push_pbar = tqdm(
-                total=page_size * pages, desc="jobs", leave=leave_progressbars
+                total=page_size * pages, desc="jobs", leave=leave_progressbars, disable=progress_disabled
             )
             for i in range(0, pages):
                 pending_jobs_this_page = 0
@@ -364,7 +364,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--filter", "-f", help="require pending jobs to match this string"
     )
-    # TODO: add an arg to disable the progress bar
+    parser.add_argument(
+        "-d",
+        "-disable-progress-bars",
+        dest="no_progress",
+        action="store_true",
+        help="don't display progress bars",
+    )
     parser.add_argument(
         "--page-size",
         default=PAGE_SIZE,
@@ -418,11 +424,11 @@ if __name__ == "__main__":
 
     if args.filter:
         results_dict = pj.get_pending_jobs(
-            projects, args.filter, args.pages, args.page_size, early_exit
+            projects, args.filter, args.pages, args.page_size, early_exit, args.no_progress
         )
     else:
         results_dict = pj.get_pending_jobs(
-            projects, args.filter, args.pages, args.page_size, early_exit
+            projects, args.filter, args.pages, args.page_size, early_exit, args.no_progress
         )
 
     # display a final summary of results
