@@ -256,7 +256,7 @@ class PendingJobs:
                         # diff = diff_epoch_to_now(result["push_timestamp"])
                         diff_task = diff_epoch_to_now(oldest_task_timestamp)
                         since_string = (
-                            "(oldest pending task submitted %s ago)"
+                            "(oldest pending submitted %s ago)"
                             % human_time(seconds=diff_task)
                         )
                         self.oldest_job_dict[project] = result["push_timestamp"]
@@ -264,7 +264,7 @@ class PendingJobs:
                     # TODO: shorten the sha1 (treeherder can still load shortened ones)
                     if self.log_level <= 3 and count >= 1:
                         tqdm.write(
-                            "%s:%s (%s): %s pending jobs %s"
+                            "%s:%s (%s): %s pending tasks %s"
                             % (
                                 result["id"],
                                 result["revision"],
@@ -275,7 +275,7 @@ class PendingJobs:
                         )
                     elif self.log_level <= 1:
                         tqdm.write(
-                            "%s:%s (%s): %s pending jobs %s"
+                            "%s:%s (%s): %s pending tasks %s"
                             % (
                                 result["id"],
                                 result["revision"],
