@@ -209,6 +209,7 @@ class PendingJobs:
             jobs_inspected_per_project = 0
             early_exit_string = ""
 
+            # TODO: integrate this into each line vs printing it here
             if self.log_level <= 3:
                 tqdm.write("-- %s project" % project)
 
@@ -255,35 +256,27 @@ class PendingJobs:
                             tqdm.write(self.pp.pformat(result))
                         # diff = diff_epoch_to_now(result["push_timestamp"])
                         diff_task = diff_epoch_to_now(oldest_task_timestamp)
-                        since_string = (
-                            "(oldest pending submitted %s ago)"
-                            % human_time(seconds=diff_task)
+                        since_string = ", oldest submitted %s ago" % human_time(
+                            seconds=diff_task
                         )
                         self.oldest_job_dict[project] = result["push_timestamp"]
 
-                    # TODO: shorten the sha1 (treeherder can still load shortened ones)
+                    push_time = datetime.datetime.fromtimestamp(
+                        result["push_timestamp"]
+                    )
+                    push_time_str = push_time.strftime("%Y/%m/%d %H:%M")
+
+                    output_string = "%s:%s:%s: %s pending tasks%s" % (
+                        push_time_str,
+                        result["revision"][0:6],
+                        result["author"],
+                        count,
+                        since_string,
+                    )
                     if self.log_level <= 3 and count >= 1:
-                        tqdm.write(
-                            "%s:%s (%s): %s pending tasks %s"
-                            % (
-                                result["id"],
-                                result["revision"],
-                                result["author"],
-                                count,
-                                since_string,
-                            )
-                        )
+                        tqdm.write(output_string)
                     elif self.log_level <= 1:
-                        tqdm.write(
-                            "%s:%s (%s): %s pending tasks %s"
-                            % (
-                                result["id"],
-                                result["revision"],
-                                result["author"],
-                                count,
-                                since_string,
-                            )
-                        )
+                        tqdm.write(output_string)
 
                 results_dict[project] += pending_jobs_this_page
 
@@ -465,7 +458,6 @@ if __name__ == "__main__":
         filter_string = "'%s' " % args.filter
 
     if log_level <= 3:
-        print()
         print("-- summary")
 
     for key in results_dict:
