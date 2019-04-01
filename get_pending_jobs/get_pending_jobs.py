@@ -177,7 +177,13 @@ class PendingJobs:
         return pending_jobs, oldest_task_timestamp
 
     def get_pending_jobs(
-        self, projects, filter=None, pages=4, page_size=50, early_exit=True, progress_disabled=False
+        self,
+        projects,
+        filter=None,
+        pages=4,
+        page_size=50,
+        early_exit=True,
+        progress_disabled=False,
     ):
         # phase 1: get try pushes
 
@@ -190,7 +196,12 @@ class PendingJobs:
             leave_progressbars = True
 
         # TODO: multithread?
-        proj_iterator = tqdm(projects, desc="projects", leave=leave_progressbars, disable=progress_disabled)
+        proj_iterator = tqdm(
+            projects,
+            desc="projects",
+            leave=leave_progressbars,
+            disable=progress_disabled,
+        )
         for project in proj_iterator:
             proj_iterator.set_postfix(project=project)
             pending_job_total = 0
@@ -202,7 +213,10 @@ class PendingJobs:
                 tqdm.write("-- %s project" % project)
 
             push_pbar = tqdm(
-                total=page_size * pages, desc="jobs", leave=leave_progressbars, disable=progress_disabled
+                total=page_size * pages,
+                desc="jobs",
+                leave=leave_progressbars,
+                disable=progress_disabled,
             )
             for i in range(0, pages):
                 pending_jobs_this_page = 0
@@ -419,16 +433,29 @@ if __name__ == "__main__":
         if args.project in projects:
             projects = [args.project]
         else:
-            print("invalid project specified. valid projects are: %s" % (', '.join(projects)))
+            print(
+                "invalid project specified. valid projects are: %s"
+                % (", ".join(projects))
+            )
             sys.exit(1)
 
     if args.filter:
         results_dict = pj.get_pending_jobs(
-            projects, args.filter, args.pages, args.page_size, early_exit, args.no_progress
+            projects,
+            args.filter,
+            args.pages,
+            args.page_size,
+            early_exit,
+            args.no_progress,
         )
     else:
         results_dict = pj.get_pending_jobs(
-            projects, args.filter, args.pages, args.page_size, early_exit, args.no_progress
+            projects,
+            args.filter,
+            args.pages,
+            args.page_size,
+            early_exit,
+            args.no_progress,
         )
 
     # display a final summary of results
