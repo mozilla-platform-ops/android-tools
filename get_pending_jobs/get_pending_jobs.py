@@ -210,8 +210,8 @@ class PendingJobs:
             early_exit_string = ""
 
             # TODO: integrate this into each line vs printing it here
-            if self.log_level <= 3:
-                tqdm.write("-- %s project" % project)
+            # if self.log_level <= 3:
+            #     tqdm.write("-- %s project" % project)
 
             push_pbar = tqdm(
                 total=page_size * pages,
@@ -266,7 +266,9 @@ class PendingJobs:
                     )
                     push_time_str = push_time.strftime("%Y/%m/%d %H:%M")
 
-                    output_string = "%s:%s:%s: %s pending tasks%s" % (
+                    # TODO: mention filter here?
+                    output_string = "%s:%s:%s:%s: %s pending tasks%s" % (
+                        project,
                         push_time_str,
                         result["revision"][0:6],
                         result["author"],
@@ -297,8 +299,9 @@ class PendingJobs:
                 if args.filter:
                     filter_string = "'%s' " % filter
                 tqdm.write(
-                    "%s %spending tasks, inspected %s jobs%s"
+                    "%s: %s %spending tasks, inspected %s jobs%s"
                     % (
+                        project,
                         results_dict[project],
                         filter_string,
                         jobs_inspected_per_project,
@@ -308,8 +311,9 @@ class PendingJobs:
                 # display oldest task
                 if project in self.oldest_task_dict:
                     tqdm.write(
-                        "oldest pending task submitted %s ago"
+                        "%s: oldest pending task submitted %s ago"
                         % (
+                            project,
                             human_time(
                                 seconds=diff_epoch_to_now(
                                     self.oldest_task_dict[project]
@@ -458,20 +462,22 @@ if __name__ == "__main__":
         filter_string = "'%s' " % args.filter
 
     if log_level <= 3:
-        print("-- summary")
+        print("")
+    if not args.no_progress:
+        print("")
 
     for key in results_dict:
         grand_total += results_dict[key]
         if key in pj.oldest_task_dict:
             diff = diff_epoch_to_now(pj.oldest_task_dict[key])
             print(
-                "%s project: pending %stasks: %s, oldest pending submitted %s ago"
+                "%s: pending %stasks: %s, oldest pending submitted %s ago"
                 % (key, filter_string, results_dict[key], human_time(seconds=diff))
             )
         else:
             print(
-                "%s project: pending %stasks: %s"
+                "%s: pending %stasks: %s"
                 % (key, filter_string, results_dict[key])
             )
     if len(projects) > 1:
-        print("total pending %stasks: %s" % (filter_string, grand_total))
+        print("total: pending %stasks: %s" % (filter_string, grand_total))
