@@ -299,10 +299,11 @@ class PendingJobs:
                 if args.filter:
                     filter_string = "'%s' " % filter
                 tqdm.write(
-                    "%s: inspected: %s jobs%s"
+                    "%s: %s/%s jobs inspected%s"
                     % (
                         project,
                         jobs_inspected_per_project,
+                        page_size * pages,
                         early_exit_string,
                     )
                 )
