@@ -264,10 +264,10 @@ class PendingJobs:
                     push_time = datetime.datetime.fromtimestamp(
                         result["push_timestamp"]
                     )
-                    push_time_str = push_time.strftime("%Y/%m/%d %H:%M")
+                    push_time_str = push_time.strftime("%Y/%m/%d-%H.%M")
 
                     # TODO: mention filter here?
-                    output_string = "%s:%s:%s:%s: %s pending tasks%s" % (
+                    output_string = "%s:%s:%s:%s: pending tasks: %s%s" % (
                         project,
                         push_time_str,
                         result["revision"][0:6],
@@ -299,21 +299,28 @@ class PendingJobs:
                 if args.filter:
                     filter_string = "'%s' " % filter
                 tqdm.write(
-                    "%s: %s %spending tasks, inspected %s jobs%s"
+                    "%s: inspected: %s jobs%s"
                     % (
                         project,
-                        results_dict[project],
-                        filter_string,
                         jobs_inspected_per_project,
                         early_exit_string,
+                    )
+                )
+                tqdm.write(
+                    "%s: pending %stasks: %s"
+                    % (
+                        project,
+                        filter_string,
+                        results_dict[project],
                     )
                 )
                 # display oldest task
                 if project in self.oldest_task_dict:
                     tqdm.write(
-                        "%s: oldest pending task submitted %s ago"
+                        "%s: oldest pending %stask submitted: %s ago"
                         % (
                             project,
+                            filter_string,
                             human_time(
                                 seconds=diff_epoch_to_now(
                                     self.oldest_task_dict[project]
