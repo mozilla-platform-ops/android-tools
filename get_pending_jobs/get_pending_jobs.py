@@ -340,7 +340,7 @@ def handler(sig, frame):
 def human_time(*args, **kwargs):
     secs = float(datetime.timedelta(*args, **kwargs).total_seconds())
     # units = [("day", 86400), ("hour", 3600), ("minute", 60), ("second", 1)]
-    units = [("day", 86400), ("hour", 3600), ("minute", 60)]
+    units = [("d", 86400), ("h", 3600), ("m", 60)]
     parts = []
     for unit, mul in units:
         if secs / mul >= 1 or mul == 1:
@@ -349,7 +349,7 @@ def human_time(*args, **kwargs):
                 secs -= n * mul
             else:
                 n = secs if secs != int(secs) else int(secs)
-            parts.append("%s %s%s" % (n, unit, "" if n == 1 else "s"))
+            parts.append("%s%s%s" % (n, unit, ""))
     return ", ".join(parts)
 
 
