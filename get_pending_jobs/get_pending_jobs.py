@@ -385,7 +385,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-d",
-        "-disable-progress-bars",
+        "--disable-progress-bars",
         dest="no_progress",
         action="store_true",
         help="don't display progress bars",
