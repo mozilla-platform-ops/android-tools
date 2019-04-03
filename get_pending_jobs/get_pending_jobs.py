@@ -61,7 +61,7 @@ class PendingJobs:
     def get_json(self, an_url):
         headers = {
             "accept-encoding": "gzip,deflate",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:65.0) Gecko/20100101 Firefox/65.0",
+            "User-Agent": "get_pending_jobs.py (github.com/mozilla-platform-ops/android-tools)",
         }
         if self.log_level <= 0:
             tqdm.write("Fetching %s... " % an_url)
