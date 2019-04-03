@@ -244,7 +244,7 @@ class PendingJobs:
                     # set oldest_record
                     since_string = ""
                     if count >= 1:
-                        if self.log_level <= 1:
+                        if self.log_level <= 0:
                             tqdm.write(self.pp.pformat(result))
                         # diff = diff_epoch_to_now(result["push_timestamp"])
                         diff_task = diff_epoch_to_now(oldest_task_timestamp)
