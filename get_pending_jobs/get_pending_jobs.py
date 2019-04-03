@@ -100,17 +100,18 @@ class PendingJobs:
         while True:
             if iteration == 0:
                 res = self.get_json(
-                    "https://treeherder.mozilla.org/api/project/%s/jobs/?return_type=list&count=2000&push_id=%s"
+                    "https://treeherder.mozilla.org/api/project/%s/jobs/?return_type=list&count=2000&push_id=%s&state=pending"
                     % (project, push_id)
                 )
             else:
                 offset = iteration * 2000
                 res = self.get_json(
-                    "https://treeherder.mozilla.org/api/project/%s/jobs/?return_type=list&count=2000&offset=%s&push_id=%s"
+                    "https://treeherder.mozilla.org/api/project/%s/jobs/?return_type=list&count=2000&offset=%s&push_id=%s&state=pending"
                     % (project, offset, push_id)
                 )
             result_count = len(res["results"])
             for item in res["results"]:
+                # TODO: take this check out now, since the URL request filters on it
                 if item[key_state] == "pending":
                     if platform_filter:
                         if platform_filter in item[key_platform]:
