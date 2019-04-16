@@ -54,8 +54,13 @@ class WorkerHealth:
             if not force_update and diff < REPO_UPDATE_SECONDS:
                 return
 
-            # update
             os.chdir(repo_path)
+            # reset
+            cmd = "git reset --hard"
+            args = cmd.split(" ")
+            subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+
+            # update
             cmd = "git pull --rebase"
             args = cmd.split(" ")
             subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
