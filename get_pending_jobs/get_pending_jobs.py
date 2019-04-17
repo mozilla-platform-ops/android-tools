@@ -146,7 +146,7 @@ class PendingJobs:
                         # TODO: print this at the end, not for each task. also provide sorted count
                         # TODO: do we need platform (item[key_platform) here?
                         output_string = "  %s |" % (item[key_job_type_name])
-                        if inspect:
+                        if inspect and self.log_level <= 2:
                             # step 1:
                             #   https://treeherder.mozilla.org/api/project/try/jobs/241048999/
                             s1_url = (
