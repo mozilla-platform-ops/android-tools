@@ -68,7 +68,9 @@ class PendingJobs:
         r = requests.get(an_url, headers=headers)
         return r.json()
 
-    def get_push_pending_jobs(self, project, push_id, platform_filter=None):
+    def get_push_pending_jobs(
+        self, project, push_id, platform_filter=None, inspect=True
+    ):
         # phase 2: get jobs for each push
 
         # TODO: check push health, if complete, we can exit here.
@@ -83,6 +85,7 @@ class PendingJobs:
         #       23 is pushid
         # field 26 is result (success, ???)
         # field 30 is state (completed, ???)
+        key_id = 7
         key_pushid = 23
         key_platform = 22
         key_start_timestamp = 29
@@ -111,38 +114,16 @@ class PendingJobs:
                 )
             result_count = len(res["results"])
             for item in res["results"]:
+                matched = False
                 # TODO: take this check out now, since the URL request filters on it
                 if item[key_state] == "pending":
                     if platform_filter:
                         if platform_filter in item[key_platform]:
-                            pending_jobs += 1
-                            # update oldest_task_timestamp
-                            if (
-                                not oldest_task_timestamp
-                                or item[key_submit_timestamp] < oldest_task_timestamp
-                            ):
-                                oldest_task_timestamp = item[key_submit_timestamp]
-                            # update self.oldest_task_dict
-                            if project in self.oldest_task_dict:
-                                if (
-                                    item[key_submit_timestamp]
-                                    < self.oldest_task_dict[project]
-                                ):
-                                    self.oldest_task_dict[project] = item[
-                                        key_submit_timestamp
-                                    ]
-                            else:
-                                self.oldest_task_dict[project] = item[
-                                    key_submit_timestamp
-                                ]
-                            # print the job platform and job type name
-                            # TODO: print this at the end, not for each task. also provide sorted count
-                            if self.log_level <= 2:
-                                tqdm.write(
-                                    "  %s: %s |"
-                                    % (item[key_platform], item[key_job_type_name])
-                                )
+                            matched = True
                     else:
+                        matched = True
+
+                    if matched == True:
                         pending_jobs += 1
                         # update oldest_task_timestamp
                         if (
@@ -161,11 +142,35 @@ class PendingJobs:
                                 ]
                         else:
                             self.oldest_task_dict[project] = item[key_submit_timestamp]
-                        if self.log_level <= 2:
-                            tqdm.write(
-                                "  %s: %s |"
-                                % (item[key_platform], item[key_job_type_name])
+                        # print the job platform and job type name
+                        # TODO: print this at the end, not for each task. also provide sorted count
+                        # TODO: do we need platform (item[key_platform) here?
+                        output_string = "  %s |" % (item[key_job_type_name])
+                        if inspect:
+                            # step 1:
+                            #   https://treeherder.mozilla.org/api/project/try/jobs/241048999/
+                            s1_url = (
+                                "https://treeherder.mozilla.org/api/project/try/jobs/%s/"
+                                % item[key_id]
                             )
+                            s1_res = self.get_json(s1_url)
+                            # TODO: figure out why this happens (purged?)
+                            if "No job with id" not in s1_res:
+                                tc_id = s1_res["taskcluster_metadata"]["task_id"]
+
+                                # step 2:
+                                #   https://queue.taskcluster.net/v1/task/N96nO0GqT7KohTC9MrVZlQ
+                                s2_url = (
+                                    "https://queue.taskcluster.net/v1/task/%s" % tc_id
+                                )
+                                s2_res = self.get_json(s2_url)
+
+                                output_string = "  %s: %s |" % (
+                                    item[key_job_type_name],
+                                    s2_res["workerType"],
+                                )
+                        if self.log_level <= 2:
+                            tqdm.write(output_string)
             iteration += 1
             if result_count != 2000:
                 return pending_jobs, oldest_task_timestamp
@@ -180,6 +185,7 @@ class PendingJobs:
         page_size=50,
         early_exit=True,
         progress_disabled=False,
+        inspect=True,
     ):
         # phase 1: get try pushes
 
@@ -235,7 +241,7 @@ class PendingJobs:
                     jobs_inspected_per_project += 1
                     last_seen_commit = result["revision"]
                     count, oldest_task_timestamp = self.get_push_pending_jobs(
-                        project, result["id"], filter
+                        project, result["id"], filter, inspect
                     )
                     pending_jobs_this_page += count
                     pending_job_total += count
@@ -358,7 +364,7 @@ if __name__ == "__main__":
     PAGE_SIZE = 20
     PAGES = 3
     # TODO: make this longer? configurable?
-    CACHE_EXPIRY_SECONDS = 300
+    CACHE_EXPIRY_SECONDS = 28800
 
     parser = argparse.ArgumentParser(
         usage="%(prog)s [options]",
@@ -386,6 +392,12 @@ if __name__ == "__main__":
         dest="no_progress",
         action="store_true",
         help="don't display progress bars",
+    )
+    parser.add_argument(
+        "-i",
+        "--inspect",
+        action="store_true",
+        help="inspect tasks in more detail (shows workerType for each task)",
     )
     parser.add_argument(
         "--page-size",
@@ -462,6 +474,7 @@ if __name__ == "__main__":
             args.page_size,
             early_exit,
             args.no_progress,
+            args.inspect,
         )
     else:
         results_dict = pj.get_pending_jobs(
@@ -471,6 +484,7 @@ if __name__ == "__main__":
             args.page_size,
             early_exit,
             args.no_progress,
+            args.inspect,
         )
 
     # display a final summary of results
