@@ -150,8 +150,8 @@ class PendingJobs:
                             # step 1:
                             #   https://treeherder.mozilla.org/api/project/try/jobs/241048999/
                             s1_url = (
-                                "https://treeherder.mozilla.org/api/project/try/jobs/%s/"
-                                % item[key_id]
+                                "https://treeherder.mozilla.org/api/project/%s/jobs/%s/"
+                                % (project, item[key_id])
                             )
                             s1_res = self.get_json(s1_url)
                             # TODO: figure out why this happens (purged?)
