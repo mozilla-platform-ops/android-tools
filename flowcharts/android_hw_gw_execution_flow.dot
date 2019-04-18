@@ -1,0 +1,34 @@
+digraph {
+    label=<<BR/><B>android hardware (bitbar) g-w execution flow</B>>
+ 
+    // start[shape="box", style=rounded];
+    // end[shape="box", style=rounded];
+    m1[shape="box", style=rounded, label="task is enqueued"];
+    m2[shape="box", style="", label=<<B>mozilla-devicepool</B><BR/>sees queued jobs and starts bitbar run via api<BR/>(credentials provided by env vars)>]
+    m3[shape="box", style="", label=<<B>bitbar api &amp; framework</B><BR/>starts a mozilla-docker container>]
+    m4[shape="box", style="", label=<<B>mozilla-docker container</B>   <BR/>entrypoint starts g-w>]
+    m5[shape="doubleoctagon", style="", label=<<B>generic-worker</B><BR/>runs payload-specified wrapper script>]
+    m6[shape="box", style="", label=<<B>mozilla-docker wrapper script</B>   <BR/>runs test command wrapped with bitbar-specific device checks>]
+    m7[shape="doubleoctagon", style="", label=<<B>generic-worker</B><BR/>uploads artifacts and exits after one task>]
+    m8[shape="box", style="", label=<<B>bitbar api &amp; framework</B>   <BR/>deletes container and reboots device>]
+
+ 
+    // start -> m1;
+    m1 -> m2;
+    m2 -> m3;
+    m3 -> m4;
+    m4 -> m5;
+    m5 -> m6;
+
+    m6 -> m7;
+    m7 -> m8;
+
+    // m6 -> m2;
+    // m6 -> end;
+    // end -> m2;
+    
+    // if_valid -> message[label="no"];
+    // if_valid -> end[label="yes"];
+    // message -> input;
+ 
+}
