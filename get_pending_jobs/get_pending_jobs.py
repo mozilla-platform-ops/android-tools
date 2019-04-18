@@ -361,8 +361,8 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, handler)
 
-    PAGE_SIZE = 20
-    PAGES = 3
+    PAGE_SIZE = 100
+    PAGES = 4
     # TODO: make this longer? configurable?
     CACHE_EXPIRY_SECONDS = 28800
 
