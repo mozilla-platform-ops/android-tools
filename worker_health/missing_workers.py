@@ -4,6 +4,7 @@ import argparse
 import os
 import yaml
 import json
+import shutil
 import subprocess
 import pprint
 import sys
@@ -63,7 +64,15 @@ class WorkerHealth:
             # update
             cmd = "git pull --rebase"
             args = cmd.split(" ")
-            subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+            try:
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError:
+                # os x has whacked the repo, reclone
+                os.chdir("..")
+                shutil.rmtree(repo_path)
+                cmd = "git clone %s %s" % (repo_url, repo_path)
+                args = cmd.split(" ")
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
         else:
             # clone
             cmd = "git clone %s %s" % (repo_url, repo_path)
