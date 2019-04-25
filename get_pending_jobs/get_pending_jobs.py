@@ -125,6 +125,9 @@ class PendingJobs:
 
                     if matched == True:
                         pending_jobs += 1
+                        # TODO: we know that jobs will be dropped at 24 hours,
+                        # anything still around is due to pulse bugs...
+                        #
                         # update oldest_task_timestamp
                         if (
                             not oldest_task_timestamp
