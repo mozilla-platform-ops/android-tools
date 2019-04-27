@@ -458,7 +458,7 @@ if __name__ == "__main__":
     pj = PendingJobs(log_level=log_level)
 
     # sanity check args.project
-    projects = ["try", "mozilla-inbound", "autoland", "mozilla-central"]
+    projects = ["try", "mozilla-inbound", "autoland", "mozilla-central", "mozilla-beta", "mozilla-release"]
     if args.project:
         if args.project in projects:
             projects = [args.project]
