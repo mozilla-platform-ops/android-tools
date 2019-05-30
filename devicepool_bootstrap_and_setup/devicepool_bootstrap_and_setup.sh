@@ -35,6 +35,8 @@ ssh "$the_host" sudo ~relops/bootstrap_bitbar_devicepool.sh
 scp "$bitbar_env_file_path" "$the_host":bitbar.env
 ssh "$the_host" 'sudo mv bitbar.env /etc/bitbar/ && sudo chown root:bitbar /etc/bitbar/bitbar.env && sudo chmod 660 /etc/bitbar/bitbar.env'
 
+# TODO: create venv
+
 cat << 'EOF'
 
  _                 _       _
