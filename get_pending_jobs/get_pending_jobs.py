@@ -457,6 +457,8 @@ if __name__ == "__main__":
 
     pj = PendingJobs(log_level=log_level)
 
+    # TODO: if -i and not -vv or greater, warn that results won't be visible
+
     # sanity check args.project
     projects = ["try", "mozilla-inbound", "autoland", "mozilla-central", "mozilla-beta", "mozilla-release"]
     if args.project:
