@@ -4,6 +4,7 @@ import argparse
 import os
 import yaml
 import json
+import requests
 import shutil
 import subprocess
 import pprint
@@ -11,11 +12,9 @@ import sys
 import time
 
 REPO_UPDATE_SECONDS = 300
-
-try:
-    import urllib.request as urllib_request  # for Python 3
-except ImportError:
-    import urllib2 as urllib_request  # for Python 2
+MAX_WORKER_TYPES = 50
+MAX_WORKER_COUNT = 50
+USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-tools/tree/master/worker_health)"
 
 
 class WorkerHealth:
@@ -82,18 +81,19 @@ class WorkerHealth:
         open(last_updated_file, "a").close()
         os.utime(last_updated_file, None)
 
-    def get_json(self, an_url):
-        req = urllib_request.Request(
-            an_url,
-            data=None,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:65.0) Gecko/20100101 Firefox/65.0"
-            },
-        )
+    # handles continuationToken
+    def get_jsonc(self, an_url):
+        headers = {"User-Agent": USER_AGENT_STRING}
 
-        response = urllib_request.urlopen(req)
-        result = response.read().decode("utf-8")
+        response = requests.get(an_url, headers=headers)
+        result = response.text
         output = json.loads(result)
+
+        if "continuationToken" in output:
+            payload = {"continuationToken": output["continuationToken"]}
+            response = requests.get(an_url, headers=headers, params=payload)
+            result = response.text
+            output = json.loads(result)
         return output
 
     def set_configured_worker_counts(self):
@@ -142,9 +142,11 @@ class WorkerHealth:
     def set_current_worker_types(self):
         # get the queues with data
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
-        json_1 = self.get_json(
-            "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100"
+        url = (
+            "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=%s"
+            % MAX_WORKER_TYPES
         )
+        json_1 = self.get_jsonc(url)
         # self.pp.pprint(json_1)
         for item in json_1["workerTypes"]:
             # self.pp.pprint(item['workerType'])
@@ -156,10 +158,11 @@ class WorkerHealth:
         pass
 
         for item in self.tc_current_worker_types:
-            json_result = self.get_json(
-                "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=50"
-                % item
+            url = (
+                "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
+                % (item, MAX_WORKER_COUNT)
             )
+            json_result = self.get_jsonc(url)
             self.tc_workers[item] = []
             # self.pp.pprint(json_result)
             for worker in json_result["workers"]:
@@ -191,7 +194,7 @@ class WorkerHealth:
                 if show_all:
                     if difference:
                         difference_found = True
-                        print("    difference: %s" % difference)
+                        print("    difference: %s" % sorted(difference))
                     else:
                         print("    difference: none")
                 else:
@@ -202,13 +205,24 @@ class WorkerHealth:
                             "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
                             % item
                         )
-                        print("    difference: %s" % difference)
+                        print("    difference: %s" % sorted(difference))
 
         if not difference_found and not show_all:
             print("  differences: none")
             print(
                 "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
             )
+
+    def show_report(self, show_all=False, verbose=False):
+        # TODO: handle queues that are present with 0 tasks
+        # - have recently had jobs, but none currently and workers entries have dropped off/expired.
+        # - solution: check count and only add if non-zero
+        self.set_configured_worker_counts()
+        self.set_current_worker_types()
+        self.set_current_workers()
+        # print(wh.tc_current_worker_types)
+        # print(wh.devicepool_queues_and_workers)
+        self.calculate_utilization_and_dead_hosts(show_all, verbose)
 
 
 def main():
@@ -239,14 +253,7 @@ def main():
     args = parser.parse_args()
 
     wh = WorkerHealth()
-    wh.set_configured_worker_counts()
-    wh.set_current_worker_types()
-    wh.set_current_workers()
-    # print(wh.tc_current_worker_types)
-    # print(wh.devicepool_queues_and_workers)
-
-    # TODO: output https://tools.taskcluster.net/provisioners/proj-autophone/worker-types?
-    wh.calculate_utilization_and_dead_hosts(show_all=args.all, verbose=args.verbose)
+    wh.show_report(args.all, args.verbose)
 
 
 if __name__ == "__main__":
