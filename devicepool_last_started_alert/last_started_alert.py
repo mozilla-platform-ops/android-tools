@@ -99,6 +99,9 @@ class LastStarted:
 
     #     self.pp.pprint(incidents)
 
+    # searches for any incidents created by this program and closes
+    # def resolve_incidents(self):
+    #     pass
 
     def set_currently_alerting(self, currently_alerting=True):
         if currently_alerting == False:
@@ -110,8 +113,6 @@ class LastStarted:
         self.state_dict['alert_state']['current_dedup_key'] = key
         self.write_toml(self.state_dict)
 
-    # TODO: writing this boilerplate sucks... just store key names as constants? how to store multi-dimensional?
-
     # TODO: get rid of need for get_new_if_not_set arg
     #       - add a new function - get_or_create_dedup_key(). cleaner?
     def get_dedup_key(self, get_new_if_not_set=True):
@@ -120,7 +121,6 @@ class LastStarted:
         except KeyError:
             # should we ever be here?
             raise Exception("shouldn't ever be here with default toml")
-            # dk = self.create_dedup_key()
         # handle empty string
         if not dk:
             if get_new_if_not_set:
@@ -142,7 +142,6 @@ class LastStarted:
 
     # opens a new incident
     def trigger_event(self):
-
         # docs:
         #   https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
         #   https://pagerduty.github.io/pdpyras/#pdpyras.EventsAPISession.trigger
@@ -169,10 +168,6 @@ class LastStarted:
         self.pd_session.resolve(self.get_dedup_key(get_new_if_not_set=False))
         self.set_currently_alerting(False)
 
-    # searches for any incidents created by this program and closes
-    # def resolve_incidents(self):
-    #     pass
-
     def started_lines_present(self):
         output = self.get_journalctl_output()
         if re.search(STARTED_REGEX, output):
@@ -193,10 +188,7 @@ class LastStarted:
         # - X lines minimum?
 
         lines = res.split("\n")
-        # for line in lines:
-            # print(line)
         self.journalctl_lines_of_output = len(lines)
-        # if line_count <
 
         return res
 
@@ -290,6 +282,3 @@ if __name__ == "__main__":
 
     else:
         print("Alerting is _not_ enabled.")
-
-    # print(ls.create_dedup_key())
-    # ls.open_incidents_already()
