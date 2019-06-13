@@ -2,23 +2,33 @@
 
 import argparse
 import os
-import yaml
 import json
-import requests
 import shutil
 import subprocess
 import pprint
 import sys
 import time
 
+# TODO: add requests caching for dev
+
+try:
+    import requests
+    import yaml
+    import pendulum
+except ImportError:
+    print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
+    sys.exit(1)
+
 REPO_UPDATE_SECONDS = 300
 MAX_WORKER_TYPES = 50
 MAX_WORKER_COUNT = 50
 USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-tools/tree/master/worker_health)"
+# for last started report: if no limit specified, still warn at this limit
+ALERT_MINUTES = 60
 
 
 class WorkerHealth:
-    def __init__(self):
+    def __init__(self, verbosity=0):
         self.devicepool_client_dir = os.path.join(
             "/", "tmp", "worker_health", "mozilla-bitbar-devicepool"
         )
@@ -26,13 +36,17 @@ class WorkerHealth:
             "https://github.com/bclary/mozilla-bitbar-devicepool.git"
         )
         self.pp = pprint.PrettyPrinter(indent=4)
+        self.verbosity = verbosity
         #
         self.devicepool_config_yaml = None
         self.devicepool_bitbar_device_groups = {}
         # links device groups (in devicepool_bitbar_device_groups) to queues
         self.devicepool_queues_and_workers = {}
         # just the current queue names
+        self.tc_queue_counts = {}
         self.tc_current_worker_types = []
+        self.tc_current_worker_last_started = {}
+        self.tc_current_worker_last_resolved = {}
         # similar to devicepool_bitbar_device_groups
         self.tc_workers = {}
 
@@ -85,12 +99,16 @@ class WorkerHealth:
     def get_jsonc(self, an_url):
         headers = {"User-Agent": USER_AGENT_STRING}
 
+        if self.verbosity > 1:
+            print(an_url)
         response = requests.get(an_url, headers=headers)
         result = response.text
         output = json.loads(result)
 
-        if "continuationToken" in output:
+        while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
+            if self.verbosity > 1:
+                print("%s, %s" % (an_url, output["continuationToken"]))
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
             output = json.loads(result)
@@ -103,29 +121,19 @@ class WorkerHealth:
         with open(yaml_file_path, "r") as stream:
             try:
                 self.devicepool_config_yaml = yaml.load(stream, Loader=yaml.Loader)
-                # self.pp.pprint(self.devicepool_config_yaml)
             except yaml.YAMLError as exc:
                 print(exc)
 
         # get device group data
         for item in self.devicepool_config_yaml["device_groups"]:
             if item.startswith("motog5") or item.startswith("pixel2"):
-                # print("*** %s" % item)
                 if self.devicepool_config_yaml["device_groups"][item]:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
-                    # pp.pprint(keys)
                     self.devicepool_bitbar_device_groups[item] = list(keys)
-                # print("---")
-
-        # self.pp.pprint(self.devicepool_bitbar_device_groups)
 
         # link device group data with queue names
         for project in self.devicepool_config_yaml["projects"]:
             if project.endswith("p2") or project.endswith("g5"):
-                # print(project)
-                # print("  %s" % self.devicepool_config_yaml['projects'][project]['additional_parameters']['TC_WORKER_TYPE'])
-                # print("  %s" % self.devicepool_config_yaml['projects'][project]['device_group_name'])
-                # if self.devicepool_config_yaml['projects'][project]['device_group_name'] in self.devicepool_bitbar_device_groups[self.devicepool_config_yaml['projects'][project]]:
                 try:
                     self.devicepool_queues_and_workers[
                         self.devicepool_config_yaml["projects"][project][
@@ -147,9 +155,7 @@ class WorkerHealth:
             % MAX_WORKER_TYPES
         )
         json_1 = self.get_jsonc(url)
-        # self.pp.pprint(json_1)
         for item in json_1["workerTypes"]:
-            # self.pp.pprint(item['workerType'])
             self.tc_current_worker_types.append(item["workerType"])
 
     def set_current_workers(self):
@@ -158,29 +164,56 @@ class WorkerHealth:
         pass
 
         for item in self.tc_current_worker_types:
+            # if count is zero for queue, skip (otherwise we'll infinitely loop below in while block)
+            if self.tc_queue_counts[item] == 0:
+                continue
+
             url = (
                 "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
                 % (item, MAX_WORKER_COUNT)
             )
             json_result = self.get_jsonc(url)
-            self.tc_workers[item] = []
-            # self.pp.pprint(json_result)
-            for worker in json_result["workers"]:
-                # print(worker['workerId'])
-                self.tc_workers[item].append(worker["workerId"])
+            if self.verbosity > 1:
+                print("")
+                print("%s (%s)" % (item, url))
+                self.pp.pprint(json_result)
+            # lol, gross, but works... we should never get a queue that has 0 workers here.
+            # TODO: only retry 3 times or something
+            while json_result["workers"] == []:
+                json_result = self.get_jsonc(url)
 
-    def calculate_utilization_and_dead_hosts(self, show_all=False, verbose=False):
+            self.tc_workers[item] = []
+            for worker in json_result["workers"]:
+                self.tc_workers[item].append(worker["workerId"])
+                an_url = (
+                    "https://queue.taskcluster.net/v1/task/%s/status"
+                    % worker["latestTask"]["taskId"]
+                )
+                json_result2 = self.get_jsonc(an_url)
+                if self.verbosity > 1:
+                    print("%s result2: " % worker["workerId"])
+                    self.pp.pprint(json_result2)
+                # look at the last record for the task, could be rescheduled
+                if "started" in json_result2["status"]["runs"][-1]:
+                    started_time = json_result2["status"]["runs"][-1]["started"]
+                    self.tc_current_worker_last_started[
+                        worker["workerId"]
+                    ] = started_time
+                else:
+                    # TODO: for debugging, print json
+                    pass
+
+    def calculate_utilization_and_dead_hosts(self, show_all=False):
         difference_found = False
         print("missing workers (present in config, but not on tc):")
         for item in self.devicepool_queues_and_workers:
             # wh.tc_workers
             if show_all:
-                print("  %s: " % item)
+                print("  %s (%s jobs): " % (item, self.tc_queue_counts[item]))
                 print(
                     "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
                     % item
                 )
-            if verbose:
                 if item in self.devicepool_queues_and_workers:
                     print(
                         "    devicepool: %s" % self.devicepool_queues_and_workers[item]
@@ -200,7 +233,7 @@ class WorkerHealth:
                 else:
                     if difference:
                         difference_found = True
-                        print("  %s: " % item)
+                        print("  %s (%s jobs): " % (item, self.tc_queue_counts[item]))
                         print(
                             "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
                             % item
@@ -213,19 +246,103 @@ class WorkerHealth:
                 "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
             )
 
-    def show_report(self, show_all=False, verbose=False):
+    def show_last_started_report(self, limit=None):
+        # TODO: show all queues, not just the ones with data
+
+        base_string = "minutes since last TC job started"
+        if limit:
+            print(
+                "%s (showing only those started more than %sm ago):"
+                % (base_string, limit)
+            )
+        else:
+            print(
+                "%s (showing all workers, WARN at %sm):" % (base_string, ALERT_MINUTES)
+            )
+
+        for queue in self.devicepool_queues_and_workers:
+            # check that there are jobs in this queue, if not continue
+            if self.tc_queue_counts[queue] == 0:
+                continue
+            # TODO: if the queue isn't full, we can't expect all workers to be busy... mention that to user... don't warn?
+            print("  %s (%s jobs)" % (queue, self.tc_queue_counts[queue]))
+            for worker in self.devicepool_queues_and_workers[queue]:
+                if worker in self.tc_current_worker_last_started:
+                    now_dt = pendulum.now(tz="UTC")
+                    last_started_dt = pendulum.parse(
+                        self.tc_current_worker_last_started[worker]
+                    )
+                    difference = now_dt.diff(last_started_dt).in_minutes()
+                    if not limit:
+                        # even though no limit, indicate when we think a worker is bad
+                        if difference >= ALERT_MINUTES:
+                            print(
+                                "    %s: %s: %s (WARN)"
+                                % (
+                                    worker,
+                                    self.tc_current_worker_last_started[worker],
+                                    difference,
+                                )
+                            )
+                        else:
+                            print(
+                                "    %s: %s: %s"
+                                % (
+                                    worker,
+                                    self.tc_current_worker_last_started[worker],
+                                    difference,
+                                )
+                            )
+                    else:
+                        if difference >= limit:
+                            print(
+                                "    %s: %s: %s"
+                                % (
+                                    worker,
+                                    self.tc_current_worker_last_started[worker],
+                                    difference,
+                                )
+                            )
+                else:
+                    print("    %s: missing! (no data)" % worker)
+
+    def set_queue_counts(self):
+        for queue in self.devicepool_queues_and_workers:
+            an_url = (
+                "https://queue.taskcluster.net/v1/pending/proj-autophone/%s" % queue
+            )
+            json_result = self.get_jsonc(an_url)
+            self.tc_queue_counts[queue] = json_result["pendingTasks"]
+
+    def show_report(self, show_all=False, time_limit=None):
         # TODO: handle queues that are present with 0 tasks
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
         # - solution: check count and only add if non-zero
+
+        # from devicepool
         self.set_configured_worker_counts()
+
+        # from queue.tc
+        self.set_queue_counts()
+
+        # from tc
         self.set_current_worker_types()
         self.set_current_workers()
-        # print(wh.tc_current_worker_types)
-        # print(wh.devicepool_queues_and_workers)
-        self.calculate_utilization_and_dead_hosts(show_all, verbose)
+
+        # testing
+        #
+        # self.pp.pprint(self.devicepool_queues_and_workers)
+        # sys.exit()
+
+        # display reports
+        self.calculate_utilization_and_dead_hosts(show_all)
+        print("")
+        self.show_last_started_report(time_limit)
 
 
 def main():
+
+    # TODO: catch ctrl-c and exit nicely
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -246,14 +363,27 @@ def main():
     parser.add_argument(
         "-v",
         "--verbose",
-        action="store_true",
-        default=False,
-        help="print additional information",
+        action="count",
+        dest="log_level",
+        default=0,
+        help="specify multiple times for even more verbosity",
+    )
+    parser.add_argument(
+        "-t",
+        "--time-limit",
+        type=int,
+        default=None,
+        help="for last started report, only show devices that have started jobs longer than this many minutes ago",
     )
     args = parser.parse_args()
+    wh = WorkerHealth(args.log_level)
 
-    wh = WorkerHealth()
-    wh.show_report(args.all, args.verbose)
+    # TESTING
+    # output = wh.get_jsonc("https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=50")
+    # wh.pp.pprint(output)
+    # sys.exit(0)
+
+    wh.show_report(args.all, args.time_limit)
 
 
 if __name__ == "__main__":
