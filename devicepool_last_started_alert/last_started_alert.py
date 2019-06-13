@@ -93,18 +93,19 @@ class LastStarted:
             count += json_result["pendingTasks"]
         return count
 
+    # code for querying incidents
+    # - requires full user token, punting for now.
+    #
     # returns boolean, True if there is already an alert created by this program
     # def open_incidents_already(self):
     #     # https://api.pagerduty.com/incidents?statuses%5B%5D=triggered&statuses%5B%5D=acknowledged&service_ids%5B%5D=PS9CADW&time_zone=UTC
     #     # self.pd_session.rget('/incidents', params={statuses})
-
     #     incidents = self.pd_api_session.list_all(
     #         'incidents',
     #         params={'service_ids[]':[PD_SERVICE_ID],'statuses[]':['triggered', 'acknowledged']}
     #     )
-
     #     self.pp.pprint(incidents)
-
+    #
     # searches for any incidents created by this program and closes
     # def resolve_incidents(self):
     #     pass
@@ -142,7 +143,6 @@ class LastStarted:
             return False
 
     def create_dedup_key(self):
-        # date_string=`date +%Y%m%d%H%M`
         now = datetime.datetime.now()
         return now.strftime(DEDUP_KEY_FORMAT)
 
