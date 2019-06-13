@@ -57,12 +57,15 @@ class LastStarted:
         # - for now will use a dedupe key stored on local disk to detect if incident is already
         #   in progress
 
+        # check that it's present
         if 'PAGERDUTY_TOKEN' in os.environ:
-            api_token = os.environ['PAGERDUTY_TOKEN']
-            # TODO: rename to pd_event_session
-            self.pd_session = EventsAPISession(api_token)
-            self.alerting_enabled = True
-            self.debug(self.pd_session)
+            # check that it's non-empty
+            if os.environ['PAGERDUTY_TOKEN']:
+                api_token = os.environ['PAGERDUTY_TOKEN']
+                # TODO: rename to pd_event_session
+                self.pd_session = EventsAPISession(api_token)
+                self.alerting_enabled = True
+                self.debug(self.pd_session)
 
     def debug(self, sess):
         """
