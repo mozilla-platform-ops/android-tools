@@ -259,7 +259,6 @@ current_dedup_key = ""
             print("Enough lines of journalctl output?: %s" % enough_journalctl_lines)
             print("Started lines present?: %s" % started_lines_present)
             print("Completed lines present?: %s" % completed_lines_present)
-            print("")
 
         # ALERTING
         if self.alerting_enabled:
