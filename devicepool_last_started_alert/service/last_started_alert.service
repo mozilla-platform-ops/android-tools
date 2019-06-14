@@ -5,7 +5,7 @@ Documentation=https://github.com/mozilla-platform-ops/android-tools/tree/master/
 [Service]
 Environment=PAGERDUTY_TOKEN=replace-this-invalid-token
 Type=simple
-ExecStart=/bin/bash ./venv/bin/python ./last_started_alert.py
+ExecStart=./venv/bin/python ./last_started_alert.py
 Restart=always
 WorkingDirectory=/home/bitbar/android-tools/devicepool_last_started_alert
 User=bitbar
