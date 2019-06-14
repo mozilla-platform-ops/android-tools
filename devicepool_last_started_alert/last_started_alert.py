@@ -251,7 +251,8 @@ current_dedup_key = ""
 
         # INFO
         if args.verbose:
-
+            # TODO: store this output and put it in the trigger summary?
+            #       - also send git version?
             print("Currently alerting?: %s" % currently_alerting)
             print("Jobs in queues: %s" % jobs_in_queues)
             print("Minutes of logs inspected: %s" % MINUTES_OF_LOGS_TO_INSPECT)
@@ -292,6 +293,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     ls = LastStarted()
+    # TODO: mention git sha1 on start?
     if ls.alerting_enabled:
         print("Alerting is enabled.")
     else:
