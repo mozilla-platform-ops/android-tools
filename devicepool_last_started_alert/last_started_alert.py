@@ -256,7 +256,7 @@ current_dedup_key = ""
             print("Jobs in queues: %s" % jobs_in_queues)
             print("Minutes of logs inspected: %s" % MINUTES_OF_LOGS_TO_INSPECT)
             print("Lines of journalctl output: %s" % self.journalctl_lines_of_output)
-            print("Enough lines of journalctl output?: %s" % enough_journalctl_lines)
+            # print("Enough lines of journalctl output?: %s" % enough_journalctl_lines)
             print("Started lines present?: %s" % started_lines_present)
             print("Completed lines present?: %s" % completed_lines_present)
 
@@ -271,19 +271,18 @@ current_dedup_key = ""
             # self.trigger_event()
             # self.resolve_incident()
 
-            if enough_journalctl_lines:
-                if jobs_in_queues:
-                    if not started_lines_present:
-                        print("*** Alert conditions met! Sending trigger event.")
-                        self.trigger_event()
+            if jobs_in_queues:
+                if not started_lines_present:
+                    print("*** Alert conditions met! Sending trigger event.")
+                    self.trigger_event()
+                else:
+                    if currently_alerting:
+                        print(
+                            "*** Alert conditions not met. Resolving current incident."
+                        )
+                        self.resolve_incident()
                     else:
-                        if currently_alerting:
-                            print(
-                                "*** Alert conditions not met. Resolving current incident."
-                            )
-                            self.resolve_incident()
-                        else:
-                            print("*** Alert conditions not met.")
+                        print("*** Alert conditions not met.")
 
 
 if __name__ == "__main__":
