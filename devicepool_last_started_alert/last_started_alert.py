@@ -247,7 +247,9 @@ current_dedup_key = ""
         jobs_in_queues = self.jobs_in_queues()
         started_lines_present = self.started_lines_present()
         completed_lines_present = self.completed_lines_present()
-        enough_journalctl_lines = self.enough_journalctl_lines()
+        # TODO: check that the service is enabled (only if we want to
+        #       enable this and have it running on all hosts)
+        # enough_journalctl_lines = self.enough_journalctl_lines()
 
         # INFO
         if args.verbose:
