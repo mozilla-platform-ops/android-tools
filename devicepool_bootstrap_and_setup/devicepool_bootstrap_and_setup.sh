@@ -47,17 +47,7 @@ ssh "$the_host" sudo ~relops/bootstrap_bitbar_devicepool.sh
 scp "$bitbar_env_file_path" "$the_host":bitbar.env
 ssh "$the_host" 'sudo mv bitbar.env /etc/bitbar/ && sudo chown root:bitbar /etc/bitbar/bitbar.env && sudo chmod 660 /etc/bitbar/bitbar.env'
 
-# create venv and pip install -r requirements.txt
-devicepool_venv_setup_script_name="setup_devicepool_venv.sh"
-lsa_venv_setup_script_name="setup_last_started_alert_venv.sh"
-
-scp "./$devicepool_venv_setup_script_name" "$the_host":"/tmp/"
-scp "./$lsa_venv_setup_script_name" "$the_host":"/tmp/"
-
-ssh "$the_host" "chmod 755 /tmp/*.sh"
-
-ssh "$the_host" "sudo -iu bitbar '/tmp/$devicepool_venv_setup_script_name'"
-ssh "$the_host" "sudo -iu bitbar '/tmp/$lsa_venv_setup_script_name'"
+# venvs are now created in puppet
 
 cat << 'EOF'
 
