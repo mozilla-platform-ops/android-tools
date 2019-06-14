@@ -49,10 +49,15 @@ ssh "$the_host" 'sudo mv bitbar.env /etc/bitbar/ && sudo chown root:bitbar /etc/
 
 # create venv and pip install -r requirements.txt
 devicepool_venv_setup_script_name="setup_devicepool_venv.sh"
-devicepool_venv_setup_script_remote_path="/tmp/${devicepool_venv_setup_script_name}"
-scp "./$devicepool_venv_setup_script_name" "$the_host":"$devicepool_venv_setup_script_remote_path"
-ssh "$the_host" "chmod 755 $devicepool_venv_setup_script_remote_path"
-ssh "$the_host" "sudo -iu bitbar '$devicepool_venv_setup_script_remote_path'"
+lsa_venv_setup_script_name="setup_last_started_alert_venv.sh"
+
+scp "./$devicepool_venv_setup_script_name" "$the_host":"/tmp/"
+scp "./$lsa_venv_setup_script_name" "$the_host":"/tmp/"
+
+ssh "$the_host" "chmod 755 /tmp/*.sh"
+
+ssh "$the_host" "sudo -iu bitbar '/tmp/$devicepool_venv_setup_script_name'"
+ssh "$the_host" "sudo -iu bitbar '/tmp/$lsa_venv_setup_script_name'"
 
 cat << 'EOF'
 

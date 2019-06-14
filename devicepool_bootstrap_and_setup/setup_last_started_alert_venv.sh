@@ -3,7 +3,7 @@
 set -e
 # set -x
 
-PATH="/home/bitbar/mozilla-bitbar-devicepool"
+PATH="/home/bitbar/android-tools/devicepool_last_started_alert"
 
 cd $PATH
 # TODO: if it already exists, don't run next bits
