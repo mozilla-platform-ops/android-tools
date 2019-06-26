@@ -203,9 +203,6 @@ class LastStarted:
             # if not, explode and let systemd restart
             res = self.run_cmd(cmd)
 
-        # TODO: ensure that the process has been running for x minutes before being able to trigger alert?
-        # - X lines minimum?
-
         lines = res.split("\n")
         self.journalctl_lines_of_output = len(lines)
 
@@ -261,8 +258,12 @@ current_dedup_key = ""
             print("Currently alerting?: %s" % currently_alerting)
             if args.verbose > 1:
                 print("Unused metrics:")
-                print("  Lines of journalctl output: %s" % self.journalctl_lines_of_output)
-                print("  Enough lines of journalctl output?: %s" % enough_journalctl_lines)
+                print(
+                    "  Lines of journalctl output: %s" % self.journalctl_lines_of_output
+                )
+                print(
+                    "  Enough lines of journalctl output?: %s" % enough_journalctl_lines
+                )
                 print("  Completed lines present?: %s" % completed_lines_present)
             print("Decision metrics:")
             print("  Jobs in queues: %s" % jobs_in_queues)
@@ -270,14 +271,8 @@ current_dedup_key = ""
 
         # ALERTING
         if self.alerting_enabled:
-            # TESTING
-            # dk = self.create_dedup_key()
-            # self.set_dedup_key(dk)
-            # print(self.get_dedup_key())
-            # self.set_currently_alerting()
-            #
-            # self.trigger_event()
-            # self.resolve_incident()
+            # TODO: ensure that the process has been running for x minutes
+            #       before being able to trigger alert?
 
             if jobs_in_queues:
                 if not started_lines_present:
