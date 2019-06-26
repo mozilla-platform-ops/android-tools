@@ -265,7 +265,7 @@ class WorkerHealth:
             if self.tc_queue_counts[queue] == 0:
                 continue
             # TODO: if the queue isn't full, we can't expect all workers to be busy... mention that to user... don't warn?
-            print("  %s (%s jobs)" % (queue, self.tc_queue_counts[queue]))
+            print("  %s (%s workers, %s jobs)" % (queue, len(self.devicepool_queues_and_workers[queue]), self.tc_queue_counts[queue]))
             for worker in self.devicepool_queues_and_workers[queue]:
                 if worker in self.tc_current_worker_last_started:
                     now_dt = pendulum.now(tz="UTC")
