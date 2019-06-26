@@ -17,7 +17,7 @@ import toml
 from pdpyras import EventsAPISession
 
 # configuration option-esque constants
-MINUTES_OF_LOGS_TO_INSPECT = 30
+MINUTES_OF_LOGS_TO_INSPECT = 15
 MINIMUM_LINES_OF_JOURNALCTL_OUTPUT = 10
 DAEMON_MODE_CHECK_FREQUENCY_SECONDS = 5 * 60
 PD_SERVICE_ID = "PAYN6NV"
