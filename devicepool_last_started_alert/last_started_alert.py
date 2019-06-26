@@ -252,21 +252,21 @@ current_dedup_key = ""
         jobs_in_queues = self.jobs_in_queues()
         started_lines_present = self.started_lines_present()
         completed_lines_present = self.completed_lines_present()
-        # TODO: check that the service is enabled (only if we want to
-        #       enable this and have it running on all hosts)
-        # enough_journalctl_lines = self.enough_journalctl_lines()
+        enough_journalctl_lines = self.enough_journalctl_lines()
 
         # INFO
         if args.verbose:
             # TODO: store this output and put it in the trigger summary?
             #       - also send git version?
             print("Currently alerting?: %s" % currently_alerting)
-            print("Jobs in queues: %s" % jobs_in_queues)
-            print("Minutes of logs inspected: %s" % MINUTES_OF_LOGS_TO_INSPECT)
-            print("Lines of journalctl output: %s" % self.journalctl_lines_of_output)
-            # print("Enough lines of journalctl output?: %s" % enough_journalctl_lines)
-            print("Started lines present?: %s" % started_lines_present)
-            print("Completed lines present?: %s" % completed_lines_present)
+            if args.verbose > 1:
+                print("Unused metrics:")
+                print("  Lines of journalctl output: %s" % self.journalctl_lines_of_output)
+                print("  Enough lines of journalctl output?: %s" % enough_journalctl_lines)
+                print("  Completed lines present?: %s" % completed_lines_present)
+            print("Decision metrics:")
+            print("  Jobs in queues: %s" % jobs_in_queues)
+            print("  Started lines present?: %s" % started_lines_present)
 
         # ALERTING
         if self.alerting_enabled:
@@ -295,9 +295,18 @@ current_dedup_key = ""
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-v", "--verbose", action="store_true")
+    # parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        # dest="verbose",
+        default=False,
+        help="specify multiple times for even more verbosity",
+    )
     parser.add_argument("-d", "--daemon-mode", action="store_true")
     args = parser.parse_args()
+    # print(args)
 
     ls = LastStarted()
     # TODO: mention git sha1 on start?
@@ -305,6 +314,8 @@ if __name__ == "__main__":
         print("Alerting is enabled.")
     else:
         print("Alerting is _not_ enabled.")
+
+    print("Minutes of logs to inspect: %s" % MINUTES_OF_LOGS_TO_INSPECT)
 
     if args.daemon_mode:
         print(
