@@ -196,7 +196,11 @@ class LastStarted:
         cmd = (
             "journalctl -u bitbar --since '%s minutes ago'" % MINUTES_OF_LOGS_TO_INSPECT
         )
-        res = self.run_cmd(cmd)
+        try:
+            res = self.run_cmd(cmd)
+        except TimeoutExpired:
+            # just try again?
+            res = self.run_cmd(cmd)
 
         # TODO: ensure that the process has been running for x minutes before being able to trigger alert?
         # - X lines minimum?
@@ -208,7 +212,7 @@ class LastStarted:
 
     def run_cmd(self, cmd):
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        proc.wait()
+        proc.wait(timeout=10)
         rc = proc.returncode
         if rc == 0:
             tmp = proc.stdout.read().strip()
