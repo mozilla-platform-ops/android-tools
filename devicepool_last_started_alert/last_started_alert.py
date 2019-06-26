@@ -295,18 +295,15 @@ current_dedup_key = ""
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument(
         "-v",
         "--verbose",
         action="count",
-        # dest="verbose",
         default=False,
         help="specify multiple times for even more verbosity",
     )
     parser.add_argument("-d", "--daemon-mode", action="store_true")
     args = parser.parse_args()
-    # print(args)
 
     ls = LastStarted()
     # TODO: mention git sha1 on start?
