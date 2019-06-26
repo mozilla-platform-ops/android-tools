@@ -198,8 +198,9 @@ class LastStarted:
         )
         try:
             res = self.run_cmd(cmd)
-        except TimeoutExpired:
-            # just try again?
+        except subprocess.TimeoutExpired:
+            # just try again for now... should work this time
+            # if not, explode and let systemd restart
             res = self.run_cmd(cmd)
 
         # TODO: ensure that the process has been running for x minutes before being able to trigger alert?
