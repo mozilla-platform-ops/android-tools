@@ -11,6 +11,12 @@ import time
 
 # TODO: add requests caching for dev
 
+# TODO: reduce dependence on reading the devicepool config file somehow
+#       - if we run a config different from what's checked in, we could have issues
+
+# TODO: take path to git repo as arg, if passed don't clone/update a managed repo
+#       - if running on devicepool host, we have the actual config being run... best thing to use.
+
 try:
     import requests
     import yaml
@@ -265,7 +271,14 @@ class WorkerHealth:
             if self.tc_queue_counts[queue] == 0:
                 continue
             # TODO: if the queue isn't full, we can't expect all workers to be busy... mention that to user... don't warn?
-            print("  %s (%s workers, %s jobs)" % (queue, len(self.devicepool_queues_and_workers[queue]), self.tc_queue_counts[queue]))
+            print(
+                "  %s (%s workers, %s jobs)"
+                % (
+                    queue,
+                    len(self.devicepool_queues_and_workers[queue]),
+                    self.tc_queue_counts[queue],
+                )
+            )
             for worker in self.devicepool_queues_and_workers[queue]:
                 if worker in self.tc_current_worker_last_started:
                     now_dt = pendulum.now(tz="UTC")
@@ -306,6 +319,45 @@ class WorkerHealth:
                 else:
                     print("    %s: missing! (no data)" % worker)
 
+    def influx_logging(self, limit):
+        # TODO: show all queues, not just the ones with data
+
+        print("influx log lines for missing workers: ")
+
+        missing_workers = []
+        for queue in self.devicepool_queues_and_workers:
+            # check that there are jobs in this queue, if not continue
+            if self.tc_queue_counts[queue] == 0:
+                continue
+            # ensure # of jobs > # of workers, otherwise we're not 100% sure the device is having issues
+            if self.tc_queue_counts[queue] <= len(
+                self.devicepool_queues_and_workers[queue]
+            ):
+                continue
+            for worker in self.devicepool_queues_and_workers[queue]:
+                if worker in self.tc_current_worker_last_started:
+                    # tardy workers
+                    now_dt = pendulum.now(tz="UTC")
+                    last_started_dt = pendulum.parse(
+                        self.tc_current_worker_last_started[worker]
+                    )
+                    difference = now_dt.diff(last_started_dt).in_minutes()
+                    if difference >= limit:
+                        missing_workers.append(worker)
+                        # print(
+                        #     "    %s: %s: %s"
+                        #     % (
+                        #         worker,
+                        #         self.tc_current_worker_last_started[worker],
+                        #         difference,
+                        #     )
+                        # )
+                else:
+                    # fully missing wrker
+                    # print("    %s: missing! (no data)" % worker)
+                    missing_workers.append(worker)
+        print(missing_workers)
+
     def set_queue_counts(self):
         for queue in self.devicepool_queues_and_workers:
             an_url = (
@@ -338,6 +390,9 @@ class WorkerHealth:
         self.calculate_utilization_and_dead_hosts(show_all)
         print("")
         self.show_last_started_report(time_limit)
+        if time_limit:
+            print("")
+            self.influx_logging(time_limit)
 
 
 def main():
