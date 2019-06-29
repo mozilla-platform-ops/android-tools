@@ -319,7 +319,7 @@ class WorkerHealth:
                 else:
                     print("    %s: missing! (no data)" % worker)
 
-    def influx_logging(self, limit):
+    def influx_logging_report(self, limit):
         # TODO: show all queues, not just the ones with data
 
         print("influx log lines for missing workers: ")
@@ -357,6 +357,7 @@ class WorkerHealth:
                     # print("    %s: missing! (no data)" % worker)
                     missing_workers.append(worker)
         print(missing_workers)
+        return missing_workers
 
     def set_queue_counts(self):
         for queue in self.devicepool_queues_and_workers:
@@ -366,7 +367,7 @@ class WorkerHealth:
             json_result = self.get_jsonc(an_url)
             self.tc_queue_counts[queue] = json_result["pendingTasks"]
 
-    def show_report(self, show_all=False, time_limit=None):
+    def show_report(self, show_all=False, time_limit=None, influx_logging=False):
         # TODO: handle queues that are present with 0 tasks
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
         # - solution: check count and only add if non-zero
@@ -392,7 +393,10 @@ class WorkerHealth:
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
-            self.influx_logging(time_limit)
+            output = self.influx_logging_report(time_limit)
+            if influx_logging:
+                # TODO: write to influxdb
+                pass
 
 
 def main():
@@ -430,6 +434,13 @@ def main():
         default=None,
         help="for last started report, only show devices that have started jobs longer than this many minutes ago",
     )
+    parser.add_argument(
+        "-i",
+        "--influx-logging",
+        type="store_true",
+        default=False,
+        help="testing: try to write missing_workers data to a local influx instance",
+    )
     args = parser.parse_args()
     wh = WorkerHealth(args.log_level)
 
@@ -438,7 +449,7 @@ def main():
     # wh.pp.pprint(output)
     # sys.exit(0)
 
-    wh.show_report(args.all, args.time_limit)
+    wh.show_report(args.all, args.time_limit, args.influx_logging)
 
 
 if __name__ == "__main__":
