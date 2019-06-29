@@ -330,7 +330,7 @@ class WorkerHealth:
             if self.tc_queue_counts[queue] == 0:
                 continue
             # ensure # of jobs > # of workers, otherwise we're not 100% sure the device is having issues
-            if self.tc_queue_counts[queue] <= len(
+            if self.tc_queue_counts[queue] < len(
                 self.devicepool_queues_and_workers[queue]
             ):
                 continue
