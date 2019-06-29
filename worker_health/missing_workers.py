@@ -437,7 +437,7 @@ def main():
     parser.add_argument(
         "-i",
         "--influx-logging",
-        type="store_true",
+        action="store_true",
         default=False,
         help="testing: try to write missing_workers data to a local influx instance",
     )
