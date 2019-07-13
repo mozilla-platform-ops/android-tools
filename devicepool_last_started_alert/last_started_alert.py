@@ -274,18 +274,18 @@ current_dedup_key = ""
             # TODO: ensure that the process has been running for x minutes
             #       before being able to trigger alert?
 
-            if jobs_in_queues:
+            if jobs_in_queues > 5:
                 if not started_lines_present:
                     print("*** Alert conditions met! Sending trigger event.")
                     self.trigger_event()
+            else:
+                if currently_alerting:
+                    print(
+                        "*** Alert conditions not met. Resolving current incident."
+                    )
+                    self.resolve_incident()
                 else:
-                    if currently_alerting:
-                        print(
-                            "*** Alert conditions not met. Resolving current incident."
-                        )
-                        self.resolve_incident()
-                    else:
-                        print("*** Alert conditions not met.")
+                    print("*** Alert conditions not met.")
 
 
 if __name__ == "__main__":
