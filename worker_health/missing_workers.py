@@ -362,6 +362,26 @@ class WorkerHealth:
         print(mw2)
         return mw2
 
+    # input: dict of queues, keys are arrays of workers
+    def influx_write_cw(self, queue_to_worker_map, provisioner='proj-autophone'):
+        db  = 'capacity_testing'
+        # 'workers' influx measurement
+        #   - configured is from provisioner (devicepool config, etc)
+        #   - missing is from tc, calculated as: configured - active
+        #   - offline is from bitbar
+        #   - active is already graphed by relops
+        # INSERT workers,provisioner='autophone' configured=40,missing=3,active=20,offline=2
+        for queue in queue_to_worker_map:
+            worker_count = len(queue_to_worker_map[queue])
+            cmd = "influx -database %s -execute 'INSERT workers,provisioner=%s,queue=%s configured=%s' " % (
+                db,
+                provisioner,
+                queue,
+                worker_count,
+            )
+            # print(cmd)
+            subprocess.call(cmd, shell=True)
+
     def influx_write_mw(self, missing, provisioner='proj-autophone'):
         db  = 'capacity_testing'
         # 'workers' influx measurement
@@ -420,6 +440,8 @@ class WorkerHealth:
         if influx_logging:
             pass
             # TODO: run log configured code
+            # passing devicepool_queues_and_workers vs referencing internally for future reuse
+            self.influx_write_cw(self.devicepool_queues_and_workers)
 
 
 def main():
