@@ -325,7 +325,9 @@ class WorkerHealth:
         print("influx log lines for missing workers: ")
 
         missing_workers = []
+        mw2 = {}
         for queue in self.devicepool_queues_and_workers:
+            mw2[queue] = []
             # check that there are jobs in this queue, if not continue
             if self.tc_queue_counts[queue] == 0:
                 continue
@@ -344,6 +346,7 @@ class WorkerHealth:
                     difference = now_dt.diff(last_started_dt).in_minutes()
                     if difference >= limit:
                         missing_workers.append(worker)
+                        mw2[queue].append(worker)
                         # print(
                         #     "    %s: %s: %s"
                         #     % (
@@ -356,8 +359,8 @@ class WorkerHealth:
                     # fully missing wrker
                     # print("    %s: missing! (no data)" % worker)
                     missing_workers.append(worker)
-        print(missing_workers)
-        return missing_workers
+        print(mw2)
+        return mw2
 
     def influx_write_mw(self, missing, provisioner='proj-autophone'):
         db  = 'capacity_testing'
@@ -367,12 +370,15 @@ class WorkerHealth:
         #   - offline is from bitbar
         #   - active is already graphed by relops
         # INSERT workers,provisioner='autophone' configured=40,missing=3,active=20,offline=2
-        cmd = "influx -database %s -execute 'INSERT workers,provisioner=%s missing=%s' " % (
-            db,
-            provisioner,
-            len(missing),
-        )
-        subprocess.call(cmd, shell=True)
+        for queue in missing:
+            cmd = "influx -database %s -execute 'INSERT workers,provisioner=%s,queue=%s missing=%s' " % (
+                db,
+                provisioner,
+                queue,
+                len(missing[queue]),
+            )
+            # print(cmd)
+            subprocess.call(cmd, shell=True)
 
     def set_queue_counts(self):
         for queue in self.devicepool_queues_and_workers:
