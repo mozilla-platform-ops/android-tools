@@ -9,6 +9,8 @@ import pprint
 import sys
 import time
 
+from influxdb import InfluxDBClient
+
 # TODO: add requests caching for dev
 
 # TODO: reduce dependence on reading the devicepool config file somehow
@@ -55,6 +57,8 @@ class WorkerHealth:
         self.tc_current_worker_last_resolved = {}
         # similar to devicepool_bitbar_device_groups
         self.tc_workers = {}
+
+        self.influx_log_lines_to_send = []
 
         # clone or update repo
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
@@ -153,6 +157,7 @@ class WorkerHealth:
                 except KeyError:
                     pass
 
+    # gets and sets the queues under proj-autophone
     def set_current_worker_types(self):
         # get the queues with data
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
@@ -164,6 +169,7 @@ class WorkerHealth:
         for item in json_1["workerTypes"]:
             self.tc_current_worker_types.append(item["workerType"])
 
+    # gets and sets the devices working in each queu
     def set_current_workers(self):
         # get the workers and count of workers
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=15
@@ -362,43 +368,36 @@ class WorkerHealth:
         print(mw2)
         return mw2
 
-    # input: dict of queues, keys are arrays of workers
-    def influx_write_cw(self, queue_to_worker_map, provisioner='proj-autophone'):
-        db  = 'capacity_testing'
-        # 'workers' influx measurement
-        #   - configured is from provisioner (devicepool config, etc)
-        #   - missing is from tc, calculated as: configured - active
-        #   - offline is from bitbar
-        #   - active is already graphed by relops
-        # INSERT workers,provisioner='autophone' configured=40,missing=3,active=20,offline=2
+    def gen_influx_mw_lines(self, queue_to_worker_map, provisioner="proj-autophone"):
+        lines = []
         for queue in queue_to_worker_map:
             worker_count = len(queue_to_worker_map[queue])
-            cmd = "influx -database %s -execute 'INSERT workers,provisioner=%s,queue=%s configured=%s' " % (
-                db,
-                provisioner,
-                queue,
-                worker_count,
+            lines.append(
+                "workers,provisioner=%s,queue=%s missing=%s"
+                % (provisioner, queue, worker_count)
             )
-            # print(cmd)
-            subprocess.call(cmd, shell=True)
+        return lines
 
-    def influx_write_mw(self, missing, provisioner='proj-autophone'):
-        db  = 'capacity_testing'
-        # 'workers' influx measurement
-        #   - configured is from provisioner (devicepool config, etc)
-        #   - missing is from tc, calculated as: configured - active
-        #   - offline is from bitbar
-        #   - active is already graphed by relops
-        # INSERT workers,provisioner='autophone' configured=40,missing=3,active=20,offline=2
+    def gen_influx_cw_lines(self, missing, provisioner="proj-autophone"):
+        lines = []
         for queue in missing:
-            cmd = "influx -database %s -execute 'INSERT workers,provisioner=%s,queue=%s missing=%s' " % (
-                db,
-                provisioner,
-                queue,
-                len(missing[queue]),
+            lines.append(
+                "workers,provisioner=%s,queue=%s configured=%s"
+                % (provisioner, queue, len(missing[queue]))
             )
-            # print(cmd)
-            subprocess.call(cmd, shell=True)
+        return lines
+
+    def write_multiline_influx_data(self, line_arr):
+        db = "capacity_testing"
+
+        client = InfluxDBClient(
+            host="127.0.0.1",
+            port=8086,
+            ssl=False,
+            verify_ssl=False,
+        )
+
+        client.write(line_arr, {"db": db}, 204, "line")
 
     def set_queue_counts(self):
         for queue in self.devicepool_queues_and_workers:
@@ -429,18 +428,36 @@ class WorkerHealth:
         # sys.exit()
 
         # display reports
-        self.calculate_utilization_and_dead_hosts(show_all)
+        # self.calculate_utilization_and_dead_hosts(show_all)
+        # print("")
+
+        print(
+            "config projects/queues: %s, tc queues reporting: %s"
+            % (len(self.devicepool_queues_and_workers), len(self.tc_workers))
+        )
+
+        print("missing and tardy workers")
+        print(
+            "  from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
+        )
         print("")
+
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
             missing_workers = self.influx_logging_report(time_limit)
             if influx_logging:
-                self.influx_write_mw(missing_workers)
+                self.influx_log_lines_to_send.extend(
+                    self.gen_influx_mw_lines(missing_workers)
+                )
         if influx_logging:
             pass
             # TODO: ideally only log this every 1 hour?
-            self.influx_write_cw(self.devicepool_queues_and_workers)
+            self.influx_log_lines_to_send.extend(
+                self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
+            )
+        if influx_logging:
+            self.write_multiline_influx_data(self.influx_log_lines_to_send)
 
 
 def main():
