@@ -439,8 +439,7 @@ class WorkerHealth:
                 self.influx_write_mw(missing_workers)
         if influx_logging:
             pass
-            # TODO: run log configured code
-            # passing devicepool_queues_and_workers vs referencing internally for future reuse
+            # TODO: ideally only log this every 1 hour?
             self.influx_write_cw(self.devicepool_queues_and_workers)
 
 
