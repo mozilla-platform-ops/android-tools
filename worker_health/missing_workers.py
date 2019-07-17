@@ -328,6 +328,12 @@ class WorkerHealth:
     def influx_logging_report(self, limit):
         # TODO: show all queues, not just the ones with data
 
+        # TODO: get rid of intermittents
+        # store a file with last_seen_online for each host
+        #   - if not offline, remove
+        #   - if offline, update timestamp in file
+        #   - for alerting, see if last_seen_online exceeds threshold (2-5 minutes)
+
         print("influx log lines for missing workers: ")
 
         missing_workers = []
