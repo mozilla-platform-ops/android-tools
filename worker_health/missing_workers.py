@@ -359,6 +359,21 @@ class WorkerHealth:
         print(missing_workers)
         return missing_workers
 
+    def influx_write_mw(self, missing, provisioner='proj-autophone'):
+        db  = 'capacity_testing'
+        # 'workers' influx measurement
+        #   - configured is from provisioner (devicepool config, etc)
+        #   - missing is from tc, calculated as: configured - active
+        #   - offline is from bitbar
+        #   - active is already graphed by relops
+        # INSERT workers,provisioner='autophone' configured=40,missing=3,active=20,offline=2
+        cmd = "influx -database %s -execute 'INSERT workers,provisioner=%s missing=%s' " % (
+            db,
+            provisioner,
+            len(missing),
+        )
+        subprocess.call(cmd, shell=True)
+
     def set_queue_counts(self):
         for queue in self.devicepool_queues_and_workers:
             an_url = (
@@ -393,10 +408,9 @@ class WorkerHealth:
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
-            output = self.influx_logging_report(time_limit)
+            missing_workers = self.influx_logging_report(time_limit)
             if influx_logging:
-                # TODO: write to influxdb
-                pass
+                self.influx_write_mw(missing_workers)
 
 
 def main():
