@@ -417,6 +417,9 @@ class WorkerHealth:
             missing_workers = self.influx_logging_report(time_limit)
             if influx_logging:
                 self.influx_write_mw(missing_workers)
+        if influx_logging:
+            pass
+            # TODO: run log configured code
 
 
 def main():
