@@ -458,7 +458,7 @@ class WorkerHealth:
             print("")
             missing_workers = self.influx_logging_report(time_limit)
             print("influx log lines for missing workers: ")
-            print(self.flatten_list(mw2.values()))
+            print(self.flatten_list(missing_workers.values()))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
