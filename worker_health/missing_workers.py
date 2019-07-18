@@ -277,53 +277,58 @@ class WorkerHealth:
             if self.tc_queue_counts[queue] == 0:
                 continue
             # TODO: if the queue isn't full, we can't expect all workers to be busy... mention that to user... don't warn?
+            workers = len(self.devicepool_queues_and_workers[queue])
+            jobs = self.tc_queue_counts[queue]
             print(
                 "  %s (%s workers, %s jobs)"
                 % (
                     queue,
-                    len(self.devicepool_queues_and_workers[queue]),
-                    self.tc_queue_counts[queue],
+                    workers,
+                    jobs,
                 )
             )
-            for worker in self.devicepool_queues_and_workers[queue]:
-                if worker in self.tc_current_worker_last_started:
-                    now_dt = pendulum.now(tz="UTC")
-                    last_started_dt = pendulum.parse(
-                        self.tc_current_worker_last_started[worker]
-                    )
-                    difference = now_dt.diff(last_started_dt).in_minutes()
-                    if not limit:
-                        # even though no limit, indicate when we think a worker is bad
-                        if difference >= ALERT_MINUTES:
-                            print(
-                                "    %s: %s: %s (WARN)"
-                                % (
-                                    worker,
-                                    self.tc_current_worker_last_started[worker],
-                                    difference,
+            if jobs <= workers:
+                print("    results not displayed (unreliable as jobs <= workers)")
+            else:
+                for worker in self.devicepool_queues_and_workers[queue]:
+                    if worker in self.tc_current_worker_last_started:
+                        now_dt = pendulum.now(tz="UTC")
+                        last_started_dt = pendulum.parse(
+                            self.tc_current_worker_last_started[worker]
+                        )
+                        difference = now_dt.diff(last_started_dt).in_minutes()
+                        if not limit:
+                            # even though no limit, indicate when we think a worker is bad
+                            if difference >= ALERT_MINUTES:
+                                print(
+                                    "    %s: %s: %s (WARN)"
+                                    % (
+                                        worker,
+                                        self.tc_current_worker_last_started[worker],
+                                        difference,
+                                    )
                                 )
-                            )
+                            else:
+                                print(
+                                    "    %s: %s: %s"
+                                    % (
+                                        worker,
+                                        self.tc_current_worker_last_started[worker],
+                                        difference,
+                                    )
+                                )
                         else:
-                            print(
-                                "    %s: %s: %s"
-                                % (
-                                    worker,
-                                    self.tc_current_worker_last_started[worker],
-                                    difference,
+                            if difference >= limit:
+                                print(
+                                    "    %s: %s: %s"
+                                    % (
+                                        worker,
+                                        self.tc_current_worker_last_started[worker],
+                                        difference,
+                                    )
                                 )
-                            )
                     else:
-                        if difference >= limit:
-                            print(
-                                "    %s: %s: %s"
-                                % (
-                                    worker,
-                                    self.tc_current_worker_last_started[worker],
-                                    difference,
-                                )
-                            )
-                else:
-                    print("    %s: missing! (no data)" % worker)
+                        print("    %s: missing! (no data)" % worker)
 
     def influx_logging_report(self, limit):
         # TODO: show all queues, not just the ones with data
