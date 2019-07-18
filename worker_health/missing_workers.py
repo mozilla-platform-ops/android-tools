@@ -334,8 +334,6 @@ class WorkerHealth:
         #   - if offline, update timestamp in file
         #   - for alerting, see if last_seen_online exceeds threshold (2-5 minutes)
 
-        print("influx log lines for missing workers: ")
-
         missing_workers = []
         mw2 = {}
         for queue in self.devicepool_queues_and_workers:
@@ -371,7 +369,6 @@ class WorkerHealth:
                     # fully missing wrker
                     # print("    %s: missing! (no data)" % worker)
                     missing_workers.append(worker)
-        print(mw2)
         return mw2
 
     def gen_influx_mw_lines(self, queue_to_worker_map, provisioner="proj-autophone"):
@@ -413,6 +410,14 @@ class WorkerHealth:
             json_result = self.get_jsonc(an_url)
             self.tc_queue_counts[queue] = json_result["pendingTasks"]
 
+    def flatten_list(self, list_to_flatten):
+        flattened_list = []
+        # flatten the list
+        for x in list_to_flatten:
+            for y in x:
+                flattened_list.append(y)
+        return flattened_list
+
     def show_report(self, show_all=False, time_limit=None, influx_logging=False):
         # TODO: handle queues that are present with 0 tasks
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
@@ -452,6 +457,8 @@ class WorkerHealth:
         if time_limit:
             print("")
             missing_workers = self.influx_logging_report(time_limit)
+            print("influx log lines for missing workers: ")
+            print(self.flatten_list(mw2.values()))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
