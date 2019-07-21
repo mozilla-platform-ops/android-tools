@@ -274,8 +274,13 @@ current_dedup_key = ""
             # TODO: ensure that the process has been running for x minutes
             #       before being able to trigger alert?
 
+            # alert decision logic
+            triggered_now = False
             if jobs_in_queues > 5:
                 if not started_lines_present:
+                    triggered_now = True
+
+            if triggered_now:
                     print("*** Alert conditions met! Sending trigger event.")
                     self.trigger_event()
             else:
