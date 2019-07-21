@@ -423,7 +423,7 @@ class WorkerHealth:
                 flattened_list.append(y)
         return flattened_list
 
-    def show_report(self, show_all=False, time_limit=None, influx_logging=False):
+    def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
         # TODO: handle queues that are present with 0 tasks
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
         # - solution: check count and only add if non-zero
@@ -447,22 +447,22 @@ class WorkerHealth:
         # self.calculate_utilization_and_dead_hosts(show_all)
         # print("")
 
-        print(
-            "config projects/queues: %s, tc queues reporting: %s"
-            % (len(self.devicepool_queues_and_workers), len(self.tc_workers))
-        )
-
         print("missing and tardy workers")
-        print(
-            "  from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
-        )
-        print("")
+        if verbosity:
+            print(
+                "  from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
+            )
+            print(
+                "  config has %s projects/queues"
+                % (len(self.devicepool_queues_and_workers))
+            )
+        # print("")
 
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
             missing_workers = self.influx_logging_report(time_limit)
-            print("influx log lines for missing workers: ")
+            print("summary: ")
             print(self.flatten_list(missing_workers.values()))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
@@ -528,7 +528,7 @@ def main():
     # wh.pp.pprint(output)
     # sys.exit(0)
 
-    wh.show_report(args.all, args.time_limit, args.influx_logging)
+    wh.show_report(args.all, args.time_limit, args.influx_logging, args.log_level)
 
 
 if __name__ == "__main__":
