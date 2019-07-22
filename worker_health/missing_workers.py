@@ -490,6 +490,9 @@ class WorkerHealth:
             return False
         return True
 
+    def make_list_unique(self, list_input):
+        set = Set(list_input)
+        return list(set)
 
     def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
         # TODO: handle queues that are present with 0 tasks
@@ -526,16 +529,26 @@ class WorkerHealth:
             )
         # print("")
 
+        missing_workers = {}
+        missing_workers_flattened = []
+        offline_workers = {}
+        offline_workers_flattened = []
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
             missing_workers = self.influx_logging_report(time_limit)
-            print("tc: %s" % self.flatten_list(missing_workers.values()))
+            missing_workers_flattened = self.flatten_list(missing_workers.values())
+            print("tc: %s" % missing_workers_flattened)
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
-                print("dp: %s" % self.flatten_list(offline_workers.values()))
+                offline_workers_flattened = self.flatten_list(offline_workers.values())
+                print("dp: %s" % offline_workers_flattened)
                 # TODO: calculate merged
-                print("merged: %s" % [])
+
+                merged = self.make_list_unique(
+                    offline_workers_flattened + missing_workers_flattened)
+
+                print("merged: %s" % merged)
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
