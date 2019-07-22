@@ -63,6 +63,16 @@ class WorkerHealth:
         # clone or update repo
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
 
+    def run_cmd(self, cmd):
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        proc.wait(timeout=10)
+        rc = proc.returncode
+        if rc == 0:
+            tmp = proc.stdout.read().strip()
+            return tmp.decode()
+        else:
+            raise Exception("non-zero code returned")
+
     def clone_or_update(self, repo_url, repo_path, force_update=False):
         devnull_fh = open(os.devnull, "w")
         last_updated_file = os.path.join(
