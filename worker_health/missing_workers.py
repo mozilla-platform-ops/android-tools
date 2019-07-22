@@ -287,6 +287,15 @@ class WorkerHealth:
                 "%s showing all workers, WARN at %sm" % (base_string, ALERT_MINUTES)
             )
 
+        if verbosity > 1:
+            print(
+                "  - from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
+            )
+            print(
+                "  - config has %s projects/queues"
+                % (len(self.devicepool_queues_and_workers))
+            )
+
         for queue in self.devicepool_queues_and_workers:
             show_details = True
             workers = len(self.devicepool_queues_and_workers[queue])
@@ -526,16 +535,7 @@ class WorkerHealth:
         # self.calculate_utilization_and_dead_hosts(show_all)
         # print("")
 
-        if verbosity:
-            print("tc: missing and tardy workers")
-            if verbosity > 1:
-                print(
-                    "  - from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
-                )
-                print(
-                    "  - config has %s projects/queues"
-                    % (len(self.devicepool_queues_and_workers))
-                )
+        if verbosity
             self.show_last_started_report(time_limit, verbosity)
             print("")
 
