@@ -69,7 +69,9 @@ webhook_url = ""
 
   def main(self, args):
       if self.alerting_enabled:
-        print("alerting enabled!")
+        print("INFO: alerting enabled!")
+      else:
+        print("WARNING: alerting _not_ enabled. please edit '%s' and rerun." % self.configuration_file)
 
       if not self.wh.bitbar_systemd_service_present():
         print("ERROR: should probably run on host running mozilla-bitbar-devicepool")
