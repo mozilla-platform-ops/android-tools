@@ -9,6 +9,7 @@ import subprocess
 import pendulum
 import pprint
 import re
+import requests
 import schedule
 import sys
 import time
@@ -66,7 +67,15 @@ webhook_url = ""
     now = pendulum.now(tz=self.bitbar_tz)
     if (8 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
       pw = self.wh.get_problem_workers(self.time_limit)
-      # TODO: send slack message
+      message = "problem workers: %s" % pw
+      self.send_slack_message(message)
+
+  def send_slack_message(self, message):
+    # cli example:
+    #   curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' WEBHOOK_URL
+    data = {'text': message}
+    r = requests.post(url=self.webhook_url, json=data)
+    print(r.status_code)
 
   def main(self, args):
       if self.alerting_enabled:

@@ -606,4 +606,3 @@ class WorkerHealth:
 
         # print("merged: %s" % merged)
         return merged
-        # TODO: send the slack message
