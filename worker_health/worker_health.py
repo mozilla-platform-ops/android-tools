@@ -564,10 +564,6 @@ class WorkerHealth:
             self.write_multiline_influx_data(self.influx_log_lines_to_send)
 
     def send_slack_alert(self, time_limit=None, verbosity=0):
-        if not self.bitbar_systemd_service_present():
-          print("ERROR: should probably run on host running mozilla-bitbar-devicepool")
-          sys.exit(1)
-
         # from devicepool
         self.set_configured_worker_counts()
 
