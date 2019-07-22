@@ -447,9 +447,9 @@ class WorkerHealth:
             # if not, explode and let systemd restart
             res = self.run_cmd(cmd)
         lines = res.split("\n")
-        output = len(lines)
-    # TODO: check res?
-        return output
+        # output = len(lines)
+        # TODO: check res?
+        return lines
 
     def get_offline_workers_from_journalctl(self):
         lines = self.get_journalctl_output()
