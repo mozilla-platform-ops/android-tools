@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import pprint
+import re
 import sys
 import time
 
@@ -457,10 +458,14 @@ class WorkerHealth:
         return lines
 
     def get_offline_workers_from_journalctl(self):
+        pattern = ": (.*) WARNING (.*) DISABLED (\d+) OFFLINE (\d+) (.*)"
         lines = self.get_journalctl_output()
         offline_dict = {}
         for line in lines:
-                print(line)
+                m = re.search(pattern, line)
+                print(m)
+                # m.group(0)
+                # print(line)
                 #pool =
 
 
