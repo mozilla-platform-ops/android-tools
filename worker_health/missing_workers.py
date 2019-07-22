@@ -275,15 +275,15 @@ class WorkerHealth:
     def show_last_started_report(self, limit=None):
         # TODO: show all queues, not just the ones with data
 
-        base_string = "minutes since last TC job started"
+        base_string = "  (minutes since last TC job started,"
         if limit:
             print(
-                "%s (showing only those started more than %sm ago):"
+                "%s showing only those started more than %sm ago):"
                 % (base_string, limit)
             )
         else:
             print(
-                "%s (showing all workers, WARN at %sm):" % (base_string, ALERT_MINUTES)
+                "%s showing all workers, WARN at %sm):" % (base_string, ALERT_MINUTES)
             )
 
         for queue in self.devicepool_queues_and_workers:
