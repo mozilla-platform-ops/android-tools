@@ -288,13 +288,9 @@ class WorkerHealth:
             )
 
         for queue in self.devicepool_queues_and_workers:
-            # check that there are jobs in this queue, if not continue
-            if self.tc_queue_counts[queue] == 0:
-                print("  %s: no jobs" % queue)
-                continue
-            # TODO: if the queue isn't full, we can't expect all workers to be busy... mention that to user... don't warn?
             workers = len(self.devicepool_queues_and_workers[queue])
             jobs = self.tc_queue_counts[queue]
+
             print(
                 "  %s (%s workers, %s jobs)"
                 % (
@@ -303,6 +299,9 @@ class WorkerHealth:
                     jobs,
                 )
             )
+            # check that there are jobs in this queue, if not continue
+            if jobs == 0:
+                continue
             if jobs <= workers:
                 print("    results not displayed (unreliable as jobs <= workers)")
             else:
