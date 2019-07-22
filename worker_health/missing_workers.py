@@ -199,7 +199,7 @@ class WorkerHealth:
                 % (item, MAX_WORKER_COUNT)
             )
             json_result = self.get_jsonc(url)
-            if self.verbosity > 1:
+            if self.verbosity > 2:
                 print("")
                 print("%s (%s)" % (item, url))
                 self.pp.pprint(json_result)
@@ -216,7 +216,7 @@ class WorkerHealth:
                     % worker["latestTask"]["taskId"]
                 )
                 json_result2 = self.get_jsonc(an_url)
-                if self.verbosity > 1:
+                if self.verbosity > 2:
                     print("%s result2: " % worker["workerId"])
                     self.pp.pprint(json_result2)
                 # look at the last record for the task, could be rescheduled
