@@ -462,7 +462,7 @@ class WorkerHealth:
         return list(csv.reader([csv_string]))[0]
 
     def get_offline_workers_from_journalctl(self):
-        pattern = ": (.*) WARNING (.*) DISABLED (\d+) OFFLINE (\d+) (.*)"
+        pattern = r": (.*) WARNING (.*) DISABLED (\d+) OFFLINE (\d+) (.*)"
         lines = self.get_journalctl_output()
         offline_dict = {}
         for line in lines:
@@ -472,16 +472,13 @@ class WorkerHealth:
                     queue = m.group(2)
                     disabled_count = m.group(3)
                     offline_count = m.group(4)
-                    # TODO: un-csv this string
                     offline_hosts = m.group(5)
                     offline_dict[project] = self.csv_string_to_list(offline_hosts)
-                    # print("%s: %s" % (project, offline_hosts))
-                # m.group(0)
-                # print(line)
-                #pool =
 
-        for k,v in offline_dict.items():
-            print("%s: %s" % (k, v))
+        # for k,v in offline_dict.items():
+        #     print("%s: %s" % (k, v))
+
+        return offline_dict
 
 
     def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
