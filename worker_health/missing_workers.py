@@ -469,9 +469,9 @@ class WorkerHealth:
                 m = re.search(pattern, line)
                 if m:
                     project = m.group(1)
-                    queue = m.group(2)
-                    disabled_count = m.group(3)
-                    offline_count = m.group(4)
+                    # queue = m.group(2)
+                    # disabled_count = m.group(3)
+                    # offline_count = m.group(4)
                     offline_hosts = m.group(5)
                     offline_dict[project] = self.csv_string_to_list(offline_hosts)
 
@@ -523,7 +523,7 @@ class WorkerHealth:
             offline_workers = self.get_offline_workers_from_journalctl()
             print("summary: ")
             print(self.flatten_list(missing_workers.values()))
-            print(self.flatten_list(offline_workers))
+            print(self.flatten_list(offline_workers.values()))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
