@@ -103,6 +103,8 @@ webhook_url = ""
         print("alert will run every hour at %s" % minute_at_string)
         schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
       else:
+        # run one right now
+        self.slack_alert_m_thru_f()
         # test schedule
         minutes_to_run = 10
         print("alert will run every %s minutes" % minutes_to_run)
