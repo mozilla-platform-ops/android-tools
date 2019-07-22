@@ -276,7 +276,7 @@ class WorkerHealth:
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
-        base_string = "  - minutes since last TC job started,"
+        base_string = "minutes since last TC job started,"
         if limit:
             print(
                 "%s showing only those started more than %sm ago"
