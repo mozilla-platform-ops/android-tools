@@ -31,6 +31,7 @@ class SlackAlert:
     self.wh = worker_health.WorkerHealth(log_level)
     self.time_limit = time_limit
     self.alerting_enabled = False
+    self.bitbar_tz = 'America/Los_Angeles'
 
     # config file
     self.configuration_file = os.path.join(
@@ -60,25 +61,27 @@ webhook_url = ""
           self.write_toml(return_dict)
           return return_dict
 
+  # only fires if it's 8AM-6PM M-F in bitbar TZ
+  def slack_alert_m_thru_f(self):
+    now = pendulum.now(tz=self.bitbar_tz)
+    if (8 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
+      self.wh.send_slack_alert(self.time_limit)
+
   def main(self, args):
       if self.alerting_enabled:
         print("alerting enabled!")
 
-      wh = worker_health.WorkerHealth(args.log_level)
-
-      if not wh.bitbar_systemd_service_present():
+      if not self.wh.bitbar_systemd_service_present():
         print("ERROR: should probably run on host running mozilla-bitbar-devicepool")
         sys.exit(1)
 
-      # we only alert 8-6 M-F in
-      bitbar_worker_tz = 'America/Los_Angeles'
+      # we only alert 8-6 M-F in tz of bitbar dc
 
       minute_of_hour_to_run = 7
       minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
       print("alert will run every hour at %s" % minute_at_string)
-      schedule.every().hour.at(minute_at_string).do(wh.send_slack_alert, self.time_limit)
+      schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
       while True:
-        # TODO: only alert if M-F 8-6
         schedule.run_pending()
         time.sleep(1)
 
