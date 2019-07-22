@@ -4,6 +4,7 @@ import argparse
 import csv
 import os
 import json
+import logging
 import shutil
 import subprocess
 import pendulum
@@ -15,6 +16,9 @@ import sys
 import time
 import toml
 
+# logging.basicConfig(format='%(asctime)s %(threadName)22s %(levelname)-8s %(message)s')
+logging.basicConfig(format='%(func)s:%(levelname): %(message)s')
+logger = logging.getLogger()
 
 import worker_health
 
@@ -66,12 +70,15 @@ webhook_url = ""
   def slack_alert_m_thru_f(self):
     now = pendulum.now(tz=self.bitbar_tz)
     if (8 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
+      logger.info("inside run window")
       pw = self.wh.get_problem_workers(self.time_limit)
       if pw:
         message = "problem workers: %s" % pw
         self.send_slack_message(message)
       else:
-        print("no problem workers")
+        logger.info("no problem workers")
+    else:
+      logger.info("outside run window")
 
   def send_slack_message(self, message):
     # cli example:
@@ -79,20 +86,20 @@ webhook_url = ""
     data = {'text': message}
     r = requests.post(url=self.webhook_url, json=data)
     if r.status_code == 200:
-      print("slack message sent. message: '%s'" % message)
+      logger.info("slack message sent. message: '%s'" % message)
     else:
-      print("ERROR: failure when trying to send slack message")
-      print(r.text)
-      print(r.status_code)
+      logger.error("failure when trying to send slack message")
+      logger.error(r.text)
+      logger.error(r.status_code)
 
   def main(self, args):
       if self.alerting_enabled:
-        print("INFO: alerting enabled!")
+        logger.info("alerting enabled!")
       else:
-        print("WARNING: alerting _not_ enabled. please edit '%s' and rerun." % self.configuration_file)
+        logger.warning("alerting _not_ enabled. please edit '%s' and rerun." % self.configuration_file)
 
       if not self.wh.bitbar_systemd_service_present():
-        print("ERROR: should probably run on host running mozilla-bitbar-devicepool")
+        logger.error(should probably run on host running mozilla-bitbar-devicepool")
         sys.exit(1)
 
       testing_mode_enabled = False
@@ -100,13 +107,13 @@ webhook_url = ""
         # run once every hour at specific minute
         minute_of_hour_to_run = 7
         minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
-        print("alert will run every hour at %s" % minute_at_string)
+        logger.info("job will run every hour at %s" % minute_at_string)
         schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
       else:
         minutes_to_run = 10
-        print("alert will run every %s minutes" % minutes_to_run)
+        logger.info("job will run every %s minutes" % minutes_to_run)
         # run one right now
-        print("running once immediately")
+        logger.info("running once immediately")
         self.slack_alert_m_thru_f()
         # test schedule
         schedule.every(minutes_to_run).minutes.do(self.slack_alert_m_thru_f)
