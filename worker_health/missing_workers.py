@@ -514,7 +514,7 @@ class WorkerHealth:
         # self.calculate_utilization_and_dead_hosts(show_all)
         # print("")
 
-        print("missing and tardy workers")
+        print("tc: missing and tardy workers")
         if verbosity:
             print(
                 "  from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
@@ -530,10 +530,10 @@ class WorkerHealth:
             print("")
             print("summary: ")
             missing_workers = self.influx_logging_report(time_limit)
-            print(self.flatten_list(missing_workers.values()))
+            print("  tc: %s" % self.flatten_list(missing_workers.values()))
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
-                print(self.flatten_list(offline_workers.values()))
+                print("  dp: %s" % self.flatten_list(offline_workers.values()))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
