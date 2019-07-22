@@ -477,7 +477,7 @@ class WorkerHealth:
                 # print(line)
                 #pool =
 
-        for k,v in offline_dict:
+        for k,v in offline_dict.items():
             print("%s: %s" % (k, v))
 
 
