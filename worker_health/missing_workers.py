@@ -272,7 +272,7 @@ class WorkerHealth:
                 "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
             )
 
-    def show_last_started_report(self, limit=None):
+    def show_last_started_report(self, limit=None, verbosity=0):
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
@@ -520,23 +520,23 @@ class WorkerHealth:
         # self.calculate_utilization_and_dead_hosts(show_all)
         # print("")
 
-        print("tc: missing and tardy workers")
         if verbosity:
-            print(
-                "  from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
-            )
-            print(
-                "  config has %s projects/queues"
-                % (len(self.devicepool_queues_and_workers))
-            )
-        # print("")
+            print("tc: missing and tardy workers")
+            if verbosity:
+                print(
+                    "  from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
+                )
+                print(
+                    "  config has %s projects/queues"
+                    % (len(self.devicepool_queues_and_workers))
+                )
+            self.show_last_started_report(time_limit, verbosity)
 
         missing_workers = {}
         missing_workers_flattened = []
         offline_workers = {}
         offline_workers_flattened = []
 
-        self.show_last_started_report(time_limit)
         if time_limit:
             print("")
             missing_workers = self.influx_logging_report(time_limit)
