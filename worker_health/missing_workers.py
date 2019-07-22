@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import csv
 import os
 import json
 import shutil
@@ -470,10 +471,14 @@ class WorkerHealth:
                     offline_count = m.group(4)
                     # TODO: un-csv this string
                     offline_hosts = m.group(5)
-                    print("%s: %s" % (project, offline_hosts))
+                    offline_dict[project] = csv.reader(offline_hosts)
+                    # print("%s: %s" % (project, offline_hosts))
                 # m.group(0)
                 # print(line)
                 #pool =
+
+        for k,v in offline_dict:
+            print("%s: %s" % (k, v))
 
 
     def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
