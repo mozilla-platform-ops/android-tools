@@ -459,8 +459,7 @@ class WorkerHealth:
         return lines
 
     def csv_string_to_list(self, csv_string):
-        s = csv.reader(csv_string)
-        return list(csv.reader([s]))[0]
+        return list(csv.reader([csv_string]))[0]
 
     def get_offline_workers_from_journalctl(self):
         pattern = ": (.*) WARNING (.*) DISABLED (\d+) OFFLINE (\d+) (.*)"
