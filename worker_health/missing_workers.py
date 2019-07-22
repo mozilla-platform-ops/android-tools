@@ -531,6 +531,7 @@ class WorkerHealth:
                     % (len(self.devicepool_queues_and_workers))
                 )
             self.show_last_started_report(time_limit, verbosity)
+            print("")
 
         missing_workers = {}
         missing_workers_flattened = []
@@ -538,7 +539,6 @@ class WorkerHealth:
         offline_workers_flattened = []
 
         if time_limit:
-            print("")
             missing_workers = self.influx_logging_report(time_limit)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             missing_workers_flattened.sort()
