@@ -424,7 +424,8 @@ class WorkerHealth:
         return flattened_list
 
     def get_journalctl_output(self):
-    MINUTES_OF_LOGS_TO_INSPECT = 5
+        MINUTES_OF_LOGS_TO_INSPECT = 5
+
         # NOTE: user running needs to be in adm group to not need sudo
         cmd = (
             "journalctl -u bitbar --since '%s minutes ago'" % MINUTES_OF_LOGS_TO_INSPECT
