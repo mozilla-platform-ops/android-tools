@@ -288,6 +288,7 @@ class WorkerHealth:
             )
 
         for queue in self.devicepool_queues_and_workers:
+            show_details = True
             workers = len(self.devicepool_queues_and_workers[queue])
             jobs = self.tc_queue_counts[queue]
 
@@ -299,12 +300,17 @@ class WorkerHealth:
                     jobs,
                 )
             )
-            # check that there are jobs in this queue, if not continue
+
             if jobs == 0:
-                continue
+                show_details = False
             if jobs <= workers:
-                print("    results not displayed (unreliable as jobs <= workers)")
-            else:
+                if verbosity > 1:
+                    print("    WARNING: results unreliable as jobs <= workers!")
+                else:
+                    print("    results not displayed (unreliable as jobs <= workers)")
+                    show_details = False
+
+            if show_details:
                 for worker in self.devicepool_queues_and_workers[queue]:
                     if worker in self.tc_current_worker_last_started:
                         now_dt = pendulum.now(tz="UTC")
@@ -521,12 +527,12 @@ class WorkerHealth:
 
         if verbosity:
             print("tc: missing and tardy workers")
-            if verbosity:
+            if verbosity > 1:
                 print(
-                    "  from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
+                    "  - from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
                 )
                 print(
-                    "  config has %s projects/queues"
+                    "  - config has %s projects/queues"
                     % (len(self.devicepool_queues_and_workers))
                 )
             self.show_last_started_report(time_limit, verbosity)
