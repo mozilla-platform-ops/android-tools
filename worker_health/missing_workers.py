@@ -68,7 +68,7 @@ def main():
         help="testing: try to write missing_workers data to a local influx instance",
     )
     args = parser.parse_args()
-    wh = WorkerHealth(args.log_level)
+    wh = worker_health.WorkerHealth(args.log_level)
 
     # TESTING
     # output = wh.get_jsonc("https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=50")
