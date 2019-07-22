@@ -99,7 +99,7 @@ webhook_url = ""
         logger.warning("alerting _not_ enabled. please edit '%s' and rerun." % self.configuration_file)
 
       if not self.wh.bitbar_systemd_service_present():
-        logger.error(should probably run on host running mozilla-bitbar-devicepool")
+        logger.error("should probably run on host running mozilla-bitbar-devicepool")
         sys.exit(1)
 
       testing_mode_enabled = False
