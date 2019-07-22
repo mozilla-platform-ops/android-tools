@@ -423,6 +423,31 @@ class WorkerHealth:
                 flattened_list.append(y)
         return flattened_list
 
+    def get_journalctl_output(self):
+    MINUTES_OF_LOGS_TO_INSPECT = 5
+        # NOTE: user running needs to be in adm group to not need sudo
+        cmd = (
+            "journalctl -u bitbar --since '%s minutes ago'" % MINUTES_OF_LOGS_TO_INSPECT
+        )
+        try:
+            res = self.run_cmd(cmd)
+        except subprocess.TimeoutExpired:
+            # just try again for now... should work this time
+            # if not, explode and let systemd restart
+            res = self.run_cmd(cmd)
+        lines = res.split("\n")
+        output = len(lines)
+    # TODO: check res?
+        return output
+
+    def get_offline_workers_from_journalctl(self):
+        lines = self.get_journalctl_output()
+        offline_dict = {}
+        for line in lines:
+                print(line)
+                #pool =
+
+
     def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
         # TODO: handle queues that are present with 0 tasks
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
@@ -462,8 +487,10 @@ class WorkerHealth:
         if time_limit:
             print("")
             missing_workers = self.influx_logging_report(time_limit)
+            offline_workers = self.get_offline_workers_from_journalctl()
             print("summary: ")
             print(self.flatten_list(missing_workers.values()))
+            print(self.flatten_list(offline_workers))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
