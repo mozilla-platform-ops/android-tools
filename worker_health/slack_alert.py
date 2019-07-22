@@ -61,6 +61,9 @@ webhook_url = ""
           return return_dict
 
   def main(self, args):
+      if self.alerting_enabled:
+        print("alerting enabled!")
+
       wh = worker_health.WorkerHealth(args.log_level)
 
       if not wh.bitbar_systemd_service_present():
@@ -72,8 +75,6 @@ webhook_url = ""
 
       minute_of_hour_to_run = 7
       minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
-      if self.alerting_enabled:
-        print("alerting enabled!")
       print("alert will run every hour at %s" % minute_at_string)
       schedule.every().hour.at(minute_at_string).do(wh.send_slack_alert, self.time_limit)
       while True:
