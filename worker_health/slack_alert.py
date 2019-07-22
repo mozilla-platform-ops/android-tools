@@ -95,12 +95,19 @@ webhook_url = ""
         print("ERROR: should probably run on host running mozilla-bitbar-devicepool")
         sys.exit(1)
 
-      # we only alert 8-6 M-F in tz of bitbar dc
+      testing_mode_enabled = False
+      if not testing_mode_enabled:
+        # run once every hour at specific minute
+        minute_of_hour_to_run = 7
+        minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
+        print("alert will run every hour at %s" % minute_at_string)
+        schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
+      else:
+        # test schedule
+        minutes_to_run = 10
+        print("alert will run every %s minutes" % minutes_to_run)
+        schedule.every(minutes_to_run).minutes.do(self.slack_alert_m_thru_f)
 
-      minute_of_hour_to_run = 7
-      minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
-      print("alert will run every hour at %s" % minute_at_string)
-      schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
       while True:
         schedule.run_pending()
         time.sleep(1)
