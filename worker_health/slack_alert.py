@@ -65,7 +65,8 @@ webhook_url = ""
   def slack_alert_m_thru_f(self):
     now = pendulum.now(tz=self.bitbar_tz)
     if (8 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
-      self.wh.send_slack_alert(self.time_limit)
+      pw = self.wh.get_problem_workers(self.time_limit)
+      # TODO: send slack message
 
   def main(self, args):
       if self.alerting_enabled:

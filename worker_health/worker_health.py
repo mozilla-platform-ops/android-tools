@@ -563,7 +563,9 @@ class WorkerHealth:
         if influx_logging:
             self.write_multiline_influx_data(self.influx_log_lines_to_send)
 
-    def send_slack_alert(self, time_limit=None, verbosity=0):
+    # merged taskcluster tardy and devicepool offline data to one list
+    # TODO: add taskcluster missing data
+    def get_problem_workers(self, time_limit=None, verbosity=0):
         # from devicepool
         self.set_configured_worker_counts()
 
@@ -591,17 +593,17 @@ class WorkerHealth:
         missing_workers = self.influx_logging_report(time_limit)
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
-        print("tc: %s" % missing_workers_flattened)
+        # print("tc: %s" % missing_workers_flattened)
         offline_workers = self.get_offline_workers_from_journalctl()
         offline_workers_flattened = self.flatten_list(offline_workers.values())
         offline_workers_flattened.sort()
-        print("dp: %s" % offline_workers_flattened)
+        # print("dp: %s" % offline_workers_flattened)
         # TODO: calculate merged
 
         merged = self.make_list_unique(
             offline_workers_flattened + missing_workers_flattened)
         merged.sort()
 
-        print("merged: %s" % merged)
-
+        # print("merged: %s" % merged)
+        return merged
         # TODO: send the slack message
