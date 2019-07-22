@@ -276,10 +276,10 @@ class WorkerHealth:
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
-        base_string = "minutes since last TC job started,"
+        base_string = "tc: missing and tardy workers,"
         if limit:
             print(
-                "%s showing only those started more than %sm ago"
+                "%s hosts started more than %sm ago"
                 % (base_string, limit)
             )
         else:
