@@ -276,15 +276,15 @@ class WorkerHealth:
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
-        base_string = "  (minutes since last TC job started,"
+        base_string = "- minutes since last TC job started,"
         if limit:
             print(
-                "%s showing only those started more than %sm ago)"
+                "%s showing only those started more than %sm ago"
                 % (base_string, limit)
             )
         else:
             print(
-                "%s showing all workers, WARN at %sm)" % (base_string, ALERT_MINUTES)
+                "%s showing all workers, WARN at %sm" % (base_string, ALERT_MINUTES)
             )
 
         for queue in self.devicepool_queues_and_workers:
@@ -350,6 +350,7 @@ class WorkerHealth:
                                 )
                     else:
                         print("    %s: missing! (no data)" % worker)
+                        # TODO: add this to missing!
 
     def influx_logging_report(self, limit):
         # TODO: show all queues, not just the ones with data
