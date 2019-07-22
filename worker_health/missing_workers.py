@@ -290,6 +290,7 @@ class WorkerHealth:
         for queue in self.devicepool_queues_and_workers:
             # check that there are jobs in this queue, if not continue
             if self.tc_queue_counts[queue] == 0:
+                print("no jobs, returning early")
                 continue
             # TODO: if the queue isn't full, we can't expect all workers to be busy... mention that to user... don't warn?
             workers = len(self.devicepool_queues_and_workers[queue])
@@ -534,6 +535,7 @@ class WorkerHealth:
         missing_workers_flattened = []
         offline_workers = {}
         offline_workers_flattened = []
+
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
