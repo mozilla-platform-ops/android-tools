@@ -36,6 +36,8 @@ USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-too
 # for last started report: if no limit specified, still warn at this limit
 ALERT_MINUTES = 60
 
+class NonZeroExit(Exception):
+    pass
 
 class WorkerHealth:
     def __init__(self, verbosity=0):
@@ -73,7 +75,7 @@ class WorkerHealth:
             tmp = proc.stdout.read().strip()
             return tmp.decode()
         else:
-            raise Exception("non-zero code returned")
+            raise NonZeroExit("non-zero code returned")
 
     def clone_or_update(self, repo_url, repo_path, force_update=False):
         devnull_fh = open(os.devnull, "w")
@@ -480,6 +482,13 @@ class WorkerHealth:
 
         return offline_dict
 
+    def bitbar_systemd_service_present(self):
+        try:
+            self.run_cmd('systemctl status bitbar > /dev/null 2>&1')
+        except NonZeroExit:
+            return False
+        return True
+
 
     def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
         # TODO: handle queues that are present with 0 tasks
@@ -519,11 +528,12 @@ class WorkerHealth:
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
-            missing_workers = self.influx_logging_report(time_limit)
-            offline_workers = self.get_offline_workers_from_journalctl()
             print("summary: ")
+            missing_workers = self.influx_logging_report(time_limit)
             print(self.flatten_list(missing_workers.values()))
-            print(self.flatten_list(offline_workers.values()))
+            if self.bitbar_systemd_service_present():
+                offline_workers = self.get_offline_workers_from_journalctl()
+                print(self.flatten_list(offline_workers.values()))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
