@@ -562,3 +562,50 @@ class WorkerHealth:
             )
         if influx_logging:
             self.write_multiline_influx_data(self.influx_log_lines_to_send)
+
+    def send_slack_alert(self, time_limit=None, verbosity=0):
+        if not self.bitbar_systemd_service_present():
+          print("ERROR: should probably run on host running mozilla-bitbar-devicepool")
+          sys.exit(1)
+
+        # from devicepool
+        self.set_configured_worker_counts()
+
+        # from queue.tc
+        self.set_queue_counts()
+
+        # from tc
+        self.set_current_worker_types()
+        self.set_current_workers()
+
+        # testing
+        #
+        # self.pp.pprint(self.devicepool_queues_and_workers)
+        # sys.exit()
+
+        # display reports
+        # self.calculate_utilization_and_dead_hosts(show_all)
+        # print("")
+
+        missing_workers = {}
+        missing_workers_flattened = []
+        offline_workers = {}
+        offline_workers_flattened = []
+
+        missing_workers = self.influx_logging_report(time_limit)
+        missing_workers_flattened = self.flatten_list(missing_workers.values())
+        missing_workers_flattened.sort()
+        print("tc: %s" % missing_workers_flattened)
+        offline_workers = self.get_offline_workers_from_journalctl()
+        offline_workers_flattened = self.flatten_list(offline_workers.values())
+        offline_workers_flattened.sort()
+        print("dp: %s" % offline_workers_flattened)
+        # TODO: calculate merged
+
+        merged = self.make_list_unique(
+            offline_workers_flattened + missing_workers_flattened)
+        merged.sort()
+
+        print("merged: %s" % merged)
+
+        # TODO: send the slack message
