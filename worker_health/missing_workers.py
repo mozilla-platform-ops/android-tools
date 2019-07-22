@@ -535,7 +535,7 @@ class WorkerHealth:
         # self.calculate_utilization_and_dead_hosts(show_all)
         # print("")
 
-        if verbosity
+        if verbosity:
             self.show_last_started_report(time_limit, verbosity)
             print("")
 
