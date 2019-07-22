@@ -123,7 +123,7 @@ class WorkerHealth:
     def get_jsonc(self, an_url):
         headers = {"User-Agent": USER_AGENT_STRING}
 
-        if self.verbosity > 1:
+        if self.verbosity > 2:
             print(an_url)
         response = requests.get(an_url, headers=headers)
         result = response.text
@@ -131,7 +131,7 @@ class WorkerHealth:
 
         while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
-            if self.verbosity > 1:
+            if self.verbosity > 2:
                 print("%s, %s" % (an_url, output["continuationToken"]))
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
@@ -276,7 +276,7 @@ class WorkerHealth:
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
-        base_string = "- minutes since last TC job started,"
+        base_string = "  - minutes since last TC job started,"
         if limit:
             print(
                 "%s showing only those started more than %sm ago"
