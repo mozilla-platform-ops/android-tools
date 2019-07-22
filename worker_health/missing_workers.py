@@ -463,7 +463,14 @@ class WorkerHealth:
         offline_dict = {}
         for line in lines:
                 m = re.search(pattern, line)
-                print(m)
+                if m:
+                    project = m.group(1)
+                    queue = m.group(2)
+                    disabled_count = m.group(3)
+                    offline_count = m.group(4)
+                    # TODO: un-csv this string
+                    offline_hosts = m.group(5)
+                    print("%s: %s" % (project, offline_hosts))
                 # m.group(0)
                 # print(line)
                 #pool =
