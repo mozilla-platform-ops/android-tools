@@ -274,6 +274,7 @@ class WorkerHealth:
 
     def show_last_started_report(self, limit=None):
         # TODO: show all queues, not just the ones with data
+        # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
         base_string = "  (minutes since last TC job started,"
         if limit:
@@ -528,12 +529,13 @@ class WorkerHealth:
         self.show_last_started_report(time_limit)
         if time_limit:
             print("")
-            print("summary: ")
             missing_workers = self.influx_logging_report(time_limit)
-            print("  tc: %s" % self.flatten_list(missing_workers.values()))
+            print("tc: %s" % self.flatten_list(missing_workers.values()))
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
-                print("  dp: %s" % self.flatten_list(offline_workers.values()))
+                print("dp: %s" % self.flatten_list(offline_workers.values()))
+                # TODO: calculate merged
+                print("merged: %s" % [])
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
@@ -580,8 +582,8 @@ def main():
         "-t",
         "--time-limit",
         type=int,
-        default=None,
-        help="for last started report, only show devices that have started jobs longer than this many minutes ago",
+        default=60,
+        help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
     )
     parser.add_argument(
         "-i",
