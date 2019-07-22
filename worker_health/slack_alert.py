@@ -67,8 +67,11 @@ webhook_url = ""
     now = pendulum.now(tz=self.bitbar_tz)
     if (8 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
       pw = self.wh.get_problem_workers(self.time_limit)
-      message = "problem workers: %s" % pw
-      self.send_slack_message(message)
+      if pw:
+        message = "problem workers: %s" % pw
+        self.send_slack_message(message)
+      else:
+        print("no problem workers")
 
   def send_slack_message(self, message):
     # cli example:
