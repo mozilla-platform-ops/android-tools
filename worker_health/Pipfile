@@ -15,4 +15,5 @@ requests = "*"
 pendulum = "*"
 influxdb = "*"
 schedule = "*"
+toml = "*"
 
