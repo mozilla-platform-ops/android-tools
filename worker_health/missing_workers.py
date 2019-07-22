@@ -491,8 +491,9 @@ class WorkerHealth:
         return True
 
     def make_list_unique(self, list_input):
-        set = Set(list_input)
-        return list(set)
+        # python 2 uses Set (vs set)
+        n_set = set(list_input)
+        return list(n_set)
 
     def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
         # TODO: handle queues that are present with 0 tasks
