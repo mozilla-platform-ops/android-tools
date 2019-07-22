@@ -427,6 +427,11 @@ class WorkerHealth:
 
     def flatten_list(self, list_to_flatten):
         flattened_list = []
+
+        # if empty list passed, return quickly
+        if not list_to_flatten:
+            return flattened_list
+
         # flatten the list
         for x in list_to_flatten:
             for y in x:
