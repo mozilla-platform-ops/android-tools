@@ -279,12 +279,12 @@ class WorkerHealth:
         base_string = "  (minutes since last TC job started,"
         if limit:
             print(
-                "%s showing only those started more than %sm ago):"
+                "%s showing only those started more than %sm ago)"
                 % (base_string, limit)
             )
         else:
             print(
-                "%s showing all workers, WARN at %sm):" % (base_string, ALERT_MINUTES)
+                "%s showing all workers, WARN at %sm)" % (base_string, ALERT_MINUTES)
             )
 
         for queue in self.devicepool_queues_and_workers:
@@ -303,7 +303,7 @@ class WorkerHealth:
 
             if jobs == 0:
                 show_details = False
-            if jobs <= workers:
+            elif jobs <= workers:
                 if verbosity > 1:
                     print("    WARNING: results unreliable as jobs <= workers!")
                 else:
