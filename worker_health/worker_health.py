@@ -49,6 +49,7 @@ class WorkerHealth:
         #
         self.devicepool_config_yaml = None
         self.devicepool_bitbar_device_groups = {}
+        self.devicepool_project_to_device_group_name = {}
         # links device groups (in devicepool_bitbar_device_groups) to queues
         self.devicepool_queues_and_workers = {}
         # just the current queue names
@@ -167,6 +168,7 @@ class WorkerHealth:
                             "device_group_name"
                         ]
                     ]
+                    self.devicepool_project_to_device_group_name[project] = self.devicepool_config_yaml["projects"][project]["device_group_name"]
                 except KeyError:
                     pass
 
@@ -490,12 +492,15 @@ class WorkerHealth:
         for line in lines:
             m = re.search(pattern, line)
             if m:
+                # TODO: use worker type as key vs project
+                # - gecko-t-bitbar-gw-perf-p2
                 project = m.group(1)
+                device_group_name = self.devicepool_project_to_device_group_name[project]
                 # queue = m.group(2)
                 # disabled_count = m.group(3)
                 # offline_count = m.group(4)
                 offline_hosts = m.group(5)
-                offline_dict[project] = self.csv_string_to_list(offline_hosts)
+                offline_dict[device_group_name] = self.csv_string_to_list(offline_hosts)
 
         # for k,v in offline_dict.items():
         #     print("%s: %s" % (k, v))
