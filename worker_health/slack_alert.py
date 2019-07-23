@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-import csv
 import os
-import json
 import logging
-import shutil
-import subprocess
 import pendulum
-import pprint
-import re
 import requests
 import schedule
 import sys

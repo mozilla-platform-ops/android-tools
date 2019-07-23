@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import csv
-import os
-import json
-import shutil
-import subprocess
-import pprint
-import re
-import sys
-import time
-
 
 import worker_health
 
