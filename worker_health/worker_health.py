@@ -448,11 +448,13 @@ class WorkerHealth:
 
     # sorts also!
     def dict_merge_with_dedupe(self, dict1, dict2):
-      for key,value in dict1.items():
-          dict2[key].extend(value)
-          dict2[key] = self.make_list_unique(dict2[key])
-          dict2[key].sort()
-      return dict2
+        for key,value in dict1.items():
+            if key not in dict2:
+                dict2[key] = []
+            dict2[key].extend(value)
+            dict2[key] = self.make_list_unique(dict2[key])
+            dict2[key].sort()
+        return dict2
 
     # preserves dupes
     def dict_merge(self, dict1, dict2):

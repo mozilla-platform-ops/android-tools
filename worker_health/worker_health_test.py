@@ -22,3 +22,10 @@ def test_dict_merge_with_dedupe(wh_instance):
   c = {'a': [1, 2, 3], 'b': [4, 5, 6, 9]}
   result = wh_instance.dict_merge_with_dedupe(a, b)
   assert c == result
+
+def test_dict_merge_with_dedupe2(wh_instance):
+  a = {'b': [4, 5, 6]}
+  b = {'a': [1, 3]}
+  c = {'a': [1, 3], 'b': [4, 5, 6]}
+  result = wh_instance.dict_merge_with_dedupe(a, b)
+  assert c == result
