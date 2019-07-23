@@ -411,7 +411,7 @@ class WorkerHealth:
             )
         return lines
 
-    def write_multiline_influx_data(self, line_arr):
+    def write_multiline_influx_data_locally(self, line_arr):
         db = "capacity_testing"
 
         client = InfluxDBClient(
@@ -564,7 +564,7 @@ class WorkerHealth:
                 self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
             )
         if influx_logging:
-            self.write_multiline_influx_data(self.influx_log_lines_to_send)
+            self.write_multiline_influx_data_locally(self.influx_log_lines_to_send)
 
     # merged taskcluster tardy and devicepool offline data to one list
     # TODO: add taskcluster missing data
