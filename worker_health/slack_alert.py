@@ -17,7 +17,7 @@ import time
 import toml
 
 # logging.basicConfig(format='%(asctime)s %(threadName)22s %(levelname)-8s %(message)s')
-logging.basicConfig(format='%(func)s:%(levelname): %(message)s')
+logging.basicConfig(format='%(func)s:%(levelname): %(message)s', stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger()
 
 import worker_health
