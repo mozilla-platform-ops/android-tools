@@ -4,6 +4,7 @@ import argparse
 import os
 import logging
 import sys
+import time
 
 try:
     import schedule
@@ -22,17 +23,10 @@ import worker_health
 
 class InfluxLogger:
 
-    def log_configured_workers(self):
-        pass
-
-    def log_problem_workers(self):
-        pass
-
     def __init__(self, log_level, time_limit):
         self.wh = worker_health.WorkerHealth(log_level)
-        # self.time_limit = time_limit
+        self.time_limit = time_limit
         self.logging_enabled = False
-        # self.bitbar_tz = "America/Los_Angeles"
 
         # config file
         self.configuration_file = os.path.join(
@@ -40,10 +34,26 @@ class InfluxLogger:
         )
         self.toml = self.read_toml()
 
-        # webhook url
-        # self.webhook_url = self.toml["main"]["webhook_url"]
-        # if self.webhook_url:
-        #     self.alerting_enabled = True
+        # influx
+        self.influx_host = self.toml["influx"]["host"]
+        self.influx_port = self.toml["influx"]["port"]
+        self.influx_user = self.toml["influx"]["user"]
+        self.influx_pass = self.toml["influx"]["pass"]
+        self.influx_db = self.toml["influx"]["db"]
+
+        if (self.influx_host and self.influx_port and
+                self.influx_user and self.influx_pass and self.influx_db):
+            self.logging_enabled = True
+            self.influx_client = InfluxDBClient(
+                host=self.influx_host,
+                port=self.influx_port,
+                username=self.influx_user,
+                password=self.influx_pass,
+                database=self.influx_db,
+                # TODO: should config take these?
+                ssl=True,
+                verify_ssl=True,
+            )
 
     def write_toml(self, dict_to_write):
         with open(self.configuration_file, "w") as writer:
@@ -58,36 +68,42 @@ class InfluxLogger:
 [influx]
 host = ""
 port = ""
+user = ""
+pass = ""
+db = ""
           """
             return_dict = toml.loads(default_doc)
             self.write_toml(return_dict)
             return return_dict
 
-    # only fires if it's 8AM-6PM M-F in bitbar TZ
-    # def slack_alert_m_thru_f(self):
-    #     now = pendulum.now(tz=self.bitbar_tz)
-    #     if (8 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
-    #         logger.info("inside run window")
-    #         pw = self.wh.get_problem_workers(self.time_limit)
-    #         if pw:
-    #             message = "problem workers: %s" % pw
-    #             self.send_slack_message(message)
-    #         else:
-    #             logger.info("no problem workers")
-    #     else:
-    #         logger.info("outside run window")
+    # writes lists of strings to influx in line format
+    def write_multiline_influx_data(self):
+        if self.logging_enabled:
+            self.influx_client.write(self.wh.influx_log_lines_to_send,
+                 {"db": self.influx_db}, 204, "line")
+            logging.info("wrote %s line(s) to influx" % len(self.wh.influx_log_lines_to_send))
+        else:
+            logging.info("test mode: would have written: '%s'" % self.wh.influx_log_lines_to_send)
+        # zero out lines to send
+        self.wh.influx_log_lines_to_send = []
 
-    # def send_slack_message(self, message):
-    #     # cli example:
-    #     #   curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' WEBHOOK_URL
-    #     data = {"text": message}
-    #     r = requests.post(url=self.webhook_url, json=data)
-    #     if r.status_code == 200:
-    #         logger.info("slack message sent. message: '%s'" % message)
-    #     else:
-    #         logger.error("failure when trying to send slack message")
-    #         logger.error(r.text)
-    #         logger.error(r.status_code)
+    # def do_configured_worker_influx_logging(self):
+    #     logger.info("here now")
+
+    # def do_problem_worker_influx_logging(self):
+    #     logger.info("here now")
+
+    # logs both problem and configured data
+    def do_worker_influx_logging(self):
+        logger.info("here now")
+
+        # TODO: DO EEET
+
+
+
+
+
+        self.write_multiline_influx_data()
 
     def main(self, args):
         if self.logging_enabled:
@@ -106,21 +122,18 @@ port = ""
 
         testing_mode_enabled = True
         if not testing_mode_enabled:
-            # # run once every hour at specific minute
-            # minute_of_hour_to_run = 7
-            # minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
-            # logger.info("job will run every hour at %s" % minute_at_string)
-            # schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
-            pass
+            raise('define production mode schedules!')
         else:
-            # minutes_to_run = 10
-            # logger.info("job will run every %s minutes" % minutes_to_run)
+            minutes_to_run = 15
+            # logger.info("jobs will run every %s minutes" % minutes_to_run)
+
             # run one right now
             # logger.info("running once immediately")
-            # self.slack_alert_m_thru_f()
+
             # test schedule
-            schedule.every(minutes_to_run).minutes.do(self.)
-            pass
+            # schedule.every(minutes_to_run).minutes.do(self.do_configured_worker_influx_logging)
+            # schedule.every(minutes_to_run).minutes.do(self.do_problem_worker_influx_logging)
+            schedule.every(minutes_to_run).minutes.do(self.do_worker_influx_logging)
 
         while True:
             schedule.run_pending()
