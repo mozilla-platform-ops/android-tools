@@ -25,8 +25,10 @@ USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-too
 # for last started report: if no limit specified, still warn at this limit
 ALERT_MINUTES = 60
 
+
 class NonZeroExit(Exception):
     pass
+
 
 class WorkerHealth:
     def __init__(self, verbosity=0):
@@ -267,14 +269,9 @@ class WorkerHealth:
 
         base_string = "tc: missing and tardy workers,"
         if limit:
-            print(
-                "%s hosts started more than %sm ago"
-                % (base_string, limit)
-            )
+            print("%s hosts started more than %sm ago" % (base_string, limit))
         else:
-            print(
-                "%s showing all workers, WARN at %sm" % (base_string, ALERT_MINUTES)
-            )
+            print("%s showing all workers, WARN at %sm" % (base_string, ALERT_MINUTES))
 
         if verbosity > 1:
             print(
@@ -290,14 +287,7 @@ class WorkerHealth:
             workers = len(self.devicepool_queues_and_workers[queue])
             jobs = self.tc_queue_counts[queue]
 
-            print(
-                "  %s (%s workers, %s jobs)"
-                % (
-                    queue,
-                    workers,
-                    jobs,
-                )
-            )
+            print("  %s (%s workers, %s jobs)" % (queue, workers, jobs))
 
             if jobs == 0:
                 show_details = False
@@ -419,10 +409,7 @@ class WorkerHealth:
         db = "capacity_testing"
 
         client = InfluxDBClient(
-            host="127.0.0.1",
-            port=8086,
-            ssl=False,
-            verify_ssl=False,
+            host="127.0.0.1", port=8086, ssl=False, verify_ssl=False
         )
 
         client.write(line_arr, {"db": db}, 204, "line")
@@ -474,14 +461,14 @@ class WorkerHealth:
         lines = self.get_journalctl_output()
         offline_dict = {}
         for line in lines:
-                m = re.search(pattern, line)
-                if m:
-                    project = m.group(1)
-                    # queue = m.group(2)
-                    # disabled_count = m.group(3)
-                    # offline_count = m.group(4)
-                    offline_hosts = m.group(5)
-                    offline_dict[project] = self.csv_string_to_list(offline_hosts)
+            m = re.search(pattern, line)
+            if m:
+                project = m.group(1)
+                # queue = m.group(2)
+                # disabled_count = m.group(3)
+                # offline_count = m.group(4)
+                offline_hosts = m.group(5)
+                offline_dict[project] = self.csv_string_to_list(offline_hosts)
 
         # for k,v in offline_dict.items():
         #     print("%s: %s" % (k, v))
@@ -490,7 +477,7 @@ class WorkerHealth:
 
     def bitbar_systemd_service_present(self):
         try:
-            self.run_cmd('systemctl status bitbar > /dev/null 2>&1')
+            self.run_cmd("systemctl status bitbar > /dev/null 2>&1")
         except NonZeroExit:
             return False
         return True
@@ -500,7 +487,9 @@ class WorkerHealth:
         n_set = set(list_input)
         return list(n_set)
 
-    def show_report(self, show_all=False, time_limit=None, influx_logging=False, verbosity=0):
+    def show_report(
+        self, show_all=False, time_limit=None, influx_logging=False, verbosity=0
+    ):
         # TODO: handle queues that are present with 0 tasks
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
         # - solution: check count and only add if non-zero
@@ -539,18 +528,19 @@ class WorkerHealth:
             missing_workers = self.influx_logging_report(time_limit)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             missing_workers_flattened.sort()
-            print(output_format % ('tc', missing_workers_flattened))
+            print(output_format % ("tc", missing_workers_flattened))
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
                 offline_workers_flattened.sort()
-                print(output_format % ('dp', offline_workers_flattened))
+                print(output_format % ("dp", offline_workers_flattened))
 
                 merged = self.make_list_unique(
-                    offline_workers_flattened + missing_workers_flattened)
+                    offline_workers_flattened + missing_workers_flattened
+                )
                 merged.sort()
 
-                print(output_format % ('merged', merged))
+                print(output_format % ("merged", merged))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
@@ -602,7 +592,8 @@ class WorkerHealth:
         # TODO: calculate merged
 
         merged = self.make_list_unique(
-            offline_workers_flattened + missing_workers_flattened)
+            offline_workers_flattened + missing_workers_flattened
+        )
         merged.sort()
 
         # print("merged: %s" % merged)

@@ -12,7 +12,6 @@ import sys
 import time
 
 
-
 import worker_health
 
 # TODO: add requests caching for dev
@@ -22,7 +21,6 @@ import worker_health
 
 # TODO: take path to git repo as arg, if passed don't clone/update a managed repo
 #       - if running on devicepool host, we have the actual config being run... best thing to use.
-
 
 
 def main():
