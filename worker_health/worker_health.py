@@ -63,6 +63,7 @@ class WorkerHealth:
         self.influx_log_lines_to_send = []
         # TODO: store these
         self.problem_workers = {}
+        self.quarantined_workers = []
 
         # clone or update repo
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
@@ -184,7 +185,7 @@ class WorkerHealth:
         for item in json_1["workerTypes"]:
             self.tc_current_worker_types.append(item["workerType"])
 
-    # gets and sets the devices working in each queu
+    # gets and sets the devices working in each queue
     def set_current_workers(self):
         # get the workers and count of workers
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=15
@@ -212,6 +213,9 @@ class WorkerHealth:
             self.tc_workers[item] = []
             for worker in json_result["workers"]:
                 self.tc_workers[item].append(worker["workerId"])
+                # TODO: quarantine data
+                if 'quarantineUntil' in worker:
+                    self.quarantined_workers.append(worker['workerId'])
                 an_url = (
                     "https://queue.taskcluster.net/v1/task/%s/status"
                     % worker["latestTask"]["taskId"]
@@ -350,14 +354,13 @@ class WorkerHealth:
                         print("    %s: missing! (no data)" % worker)
                         # TODO: add this to missing!
 
-    def calculate_missing_workers_from_tc(self, limit):
+    def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
         #   - if not offline, remove
         #   - if offline, update timestamp in file
         #   - for alerting, see if last_seen_online exceeds threshold (2-5 minutes)
 
-        missing_workers = []
         mw2 = {}
         for queue in self.devicepool_queues_and_workers:
             mw2[queue] = []
@@ -378,8 +381,10 @@ class WorkerHealth:
                     )
                     difference = now_dt.diff(last_started_dt).in_minutes()
                     if difference >= limit:
-                        missing_workers.append(worker)
-                        mw2[queue].append(worker)
+                        if exclude_quarantined and worker not in self.quarantined_workers:
+                            mw2[queue].append(worker)
+                        else:
+                            mw2[queue].append(worker)
                         # print(
                         #     "    %s: %s: %s"
                         #     % (
@@ -389,9 +394,14 @@ class WorkerHealth:
                         #     )
                         # )
                 else:
-                    # fully missing wrker
-                    # print("    %s: missing! (no data)" % worker)
-                    missing_workers.append(worker)
+                    # fully missing worker
+                    # - devicepool lists these as offline
+                    if exclude_quarantined and worker not in self.quarantined_workers:
+                        mw2[queue].append(worker)
+                    else:
+                        mw2[queue].append(worker)
+        # TOOD: add option to remove or just remove the quarantined hosts
+
         return mw2
 
     def gen_influx_mw_lines(self, queue_to_worker_map, provisioner="proj-autophone"):
@@ -642,6 +652,7 @@ class WorkerHealth:
         offline_workers_flattened = []
 
         missing_workers = self.calculate_missing_workers_from_tc(time_limit)
+        missing_workers_no_q = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
         # print("tc: %s" % missing_workers_flattened)
@@ -657,6 +668,7 @@ class WorkerHealth:
         merged.sort()
 
         print("missing: %s" % missing_workers)
+        print("missing_no_q: %s" % missing_workers_no_q)
         print("offline: %s" % offline_workers)
         merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
         print("merged2: %s" % merged2)
