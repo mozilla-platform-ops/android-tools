@@ -617,7 +617,7 @@ class WorkerHealth:
         # print("merged: %s" % merged)
         return merged
 
-    def influx_report(self, time_limit=None, verbosity=0):
+    def influx_report(self, time_limit=60, verbosity=0):
         self.gather_data()
 
         # testing
