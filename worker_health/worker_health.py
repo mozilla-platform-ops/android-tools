@@ -60,6 +60,8 @@ class WorkerHealth:
         self.tc_workers = {}
 
         self.influx_log_lines_to_send = []
+        # TODO: store these
+        self.problem_workers = {}
 
         # clone or update repo
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
@@ -493,6 +495,20 @@ class WorkerHealth:
         n_set = set(list_input)
         return list(n_set)
 
+    # gathers and generates data
+    def gather_data(self):
+        # from devicepool
+        self.set_configured_worker_counts()
+        # from queue.tc
+        self.set_queue_counts()
+        # from tc
+        self.set_current_worker_types()
+        self.set_current_workers()
+        # TODO: write these two
+        # - missing and offline separate?
+        # self.set_problem_workers()
+        # self.set_configured_workers()
+
     def show_report(
         self, show_all=False, time_limit=None, influx_logging=False, verbosity=0
     ):
@@ -500,15 +516,7 @@ class WorkerHealth:
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
         # - solution: check count and only add if non-zero
 
-        # from devicepool
-        self.set_configured_worker_counts()
-
-        # from queue.tc
-        self.set_queue_counts()
-
-        # from tc
-        self.set_current_worker_types()
-        self.set_current_workers()
+        self.gather_data()
 
         # testing
         #
@@ -563,15 +571,7 @@ class WorkerHealth:
     # merged taskcluster tardy and devicepool offline data to one list
     # TODO: add taskcluster missing data
     def get_problem_workers(self, time_limit=None, verbosity=0):
-        # from devicepool
-        self.set_configured_worker_counts()
-
-        # from queue.tc
-        self.set_queue_counts()
-
-        # from tc
-        self.set_current_worker_types()
-        self.set_current_workers()
+        self.gather_data()
 
         # testing
         #
