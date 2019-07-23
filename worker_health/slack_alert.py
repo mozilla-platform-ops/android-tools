@@ -18,7 +18,7 @@ import toml
 
 # log_format = '%(asctime)s - %(levelname)-10s - %(funcName)s - %(message)s'
 log_format = '%(levelname)-10s - %(funcName)s - %(message)s'
-logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
 import worker_health
