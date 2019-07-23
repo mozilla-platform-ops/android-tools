@@ -348,7 +348,7 @@ class WorkerHealth:
                         print("    %s: missing! (no data)" % worker)
                         # TODO: add this to missing!
 
-    def get_missing_workers(self, limit):
+    def calculate_missing_workers_from_tc(self, limit):
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
         #   - if not offline, remove
@@ -537,7 +537,7 @@ class WorkerHealth:
         if time_limit:
             output_format = "%-07s %s"
 
-            missing_workers = self.get_missing_workers(time_limit)
+            missing_workers = self.calculate_missing_workers_from_tc(time_limit)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             missing_workers_flattened.sort()
             print(output_format % ("tc", missing_workers_flattened))
@@ -585,7 +585,7 @@ class WorkerHealth:
         offline_workers = {}
         offline_workers_flattened = []
 
-        missing_workers = self.get_missing_workers(time_limit)
+        missing_workers = self.calculate_missing_workers_from_tc(time_limit)
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
         # print("tc: %s" % missing_workers_flattened)
@@ -620,7 +620,7 @@ class WorkerHealth:
         offline_workers = {}
         offline_workers_flattened = []
 
-        missing_workers = self.get_missing_workers(time_limit)
+        missing_workers = self.calculate_missing_workers_from_tc(time_limit)
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
         # print("tc: %s" % missing_workers_flattened)
