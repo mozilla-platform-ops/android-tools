@@ -8,6 +8,7 @@ verify_ssl = true
 #python_version = "3.6"
 
 [dev-packages]
+pyflakes = "*"
 
 [packages]
 pyyaml = "*"

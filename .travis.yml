@@ -1,0 +1,14 @@
+language: python
+python:
+  - '3.6'
+
+install:
+  - pip install pipenv
+  - cd worker_health
+  - pipenv install
+  - pipenv install --dev
+
+script:
+  - pwd
+  - pyflakes **/*.py
+
