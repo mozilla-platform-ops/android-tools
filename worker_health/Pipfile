@@ -9,6 +9,7 @@ verify_ssl = true
 
 [dev-packages]
 pyflakes = "*"
+pytest = "*"
 
 [packages]
 pyyaml = "*"
