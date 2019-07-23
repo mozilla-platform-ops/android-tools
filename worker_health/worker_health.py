@@ -651,9 +651,9 @@ class WorkerHealth:
         )
         merged.sort()
 
+        print("missing: %s" % missing_workers)
+        print("offline: %s" % offline_workers)
         merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
-
-        print("merged: %s" % merged)
         print("merged2: %s" % merged2)
 
         # return merged
