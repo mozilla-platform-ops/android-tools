@@ -28,6 +28,13 @@ ALERT_MINUTES = 60
 class NonZeroExit(Exception):
     pass
 
+# TODO: add requests caching for dev
+
+# TODO: reduce dependence on reading the devicepool config file somehow
+#       - if we run a config different from what's checked in, we could have issues
+
+# TODO: take path to git repo as arg, if passed don't clone/update a managed repo
+#       - if running on devicepool host, we have the actual config being run... best thing to use.
 
 class WorkerHealth:
     def __init__(self, verbosity=0):

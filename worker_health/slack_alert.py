@@ -17,14 +17,6 @@ logger = logging.getLogger()
 
 import worker_health
 
-# TODO: add requests caching for dev
-
-# TODO: reduce dependence on reading the devicepool config file somehow
-#       - if we run a config different from what's checked in, we could have issues
-
-# TODO: take path to git repo as arg, if passed don't clone/update a managed repo
-#       - if running on devicepool host, we have the actual config being run... best thing to use.
-
 
 class SlackAlert:
     def __init__(self, log_level, time_limit):

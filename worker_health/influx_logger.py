@@ -3,12 +3,15 @@
 import argparse
 import os
 import logging
-# import pendulum
-# import requests
-import schedule
 import sys
-# import time
-import toml
+
+try:
+    import schedule
+    import toml
+    from influxdb import InfluxDBClient
+except ImportError:
+    print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
+    sys.exit(1)
 
 # log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
 log_format = "%(levelname)-10s %(funcName)s: %(message)s"
@@ -16,15 +19,6 @@ logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
 import worker_health
-
-# TODO: add requests caching for dev
-
-# TODO: reduce dependence on reading the devicepool config file somehow
-#       - if we run a config different from what's checked in, we could have issues
-
-# TODO: take path to git repo as arg, if passed don't clone/update a managed repo
-#       - if running on devicepool host, we have the actual config being run... best thing to use.
-
 
 class InfluxLogger:
 
