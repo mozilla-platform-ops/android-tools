@@ -441,6 +441,25 @@ class WorkerHealth:
                 flattened_list.append(y)
         return flattened_list
 
+    def make_list_unique(self, list_input):
+        # python 2 uses Set (vs set)
+        n_set = set(list_input)
+        return list(n_set)
+
+    # sorts also!
+    def dict_merge_with_dedupe(self, dict1, dict2):
+      for key,value in dict1.items():
+          dict2[key].extend(value)
+          dict2[key] = self.make_list_unique(dict2[key])
+          dict2[key].sort()
+      return dict2
+
+    # preserves dupes
+    def dict_merge(self, dict1, dict2):
+      for key,value in dict1.items():
+          dict2[key].extend(value)
+      return dict2
+
     def get_journalctl_output(self):
         MINUTES_OF_LOGS_TO_INSPECT = 5
 
@@ -487,11 +506,6 @@ class WorkerHealth:
         except NonZeroExit:
             return False
         return True
-
-    def make_list_unique(self, list_input):
-        # python 2 uses Set (vs set)
-        n_set = set(list_input)
-        return list(n_set)
 
     # gathers and generates data
     def gather_data(self):
@@ -636,4 +650,13 @@ class WorkerHealth:
         merged.sort()
 
         # print("merged: %s" % merged)
-        return merged
+        # return merged
+
+        self.influx_log_lines_to_send.extend(
+            self.gen_influx_mw_lines(missing_workers)
+        )
+
+        # write influx lines to self's buffer
+        self.influx_log_lines_to_send.extend(
+            self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
+        )
