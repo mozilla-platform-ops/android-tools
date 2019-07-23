@@ -67,4 +67,4 @@ fabric.properties
 
 # aje
 **/*.pyc
-
+.vscode
