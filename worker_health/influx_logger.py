@@ -100,8 +100,8 @@ db = ""
         # TODO: DO EEET
 
 
-
-
+        self.wh.influx_report()
+        sys.exit(0)
 
         self.write_multiline_influx_data()
 
@@ -129,6 +129,7 @@ db = ""
 
             # run one right now
             # logger.info("running once immediately")
+            self.do_worker_influx_logging()
 
             # test schedule
             # schedule.every(minutes_to_run).minutes.do(self.do_configured_worker_influx_logging)

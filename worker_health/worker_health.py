@@ -649,8 +649,13 @@ class WorkerHealth:
         )
         merged.sort()
 
-        # print("merged: %s" % merged)
+        merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
+
+        print("merged: %s" % merged)
+        print("merged2: %s" % merged2)
+
         # return merged
+        sys.exit(0)
 
         self.influx_log_lines_to_send.extend(
             self.gen_influx_mw_lines(missing_workers)
