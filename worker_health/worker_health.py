@@ -534,21 +534,23 @@ class WorkerHealth:
         offline_workers_flattened = []
 
         if time_limit:
+            output_format = "%-07s %s"
+
             missing_workers = self.influx_logging_report(time_limit)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             missing_workers_flattened.sort()
-            print("%-08s: %s" % ('tc', missing_workers_flattened))
+            print(output_format % ('tc', missing_workers_flattened))
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
                 offline_workers_flattened.sort()
-                print("%-08s: %s" % ('dp', offline_workers_flattened))
+                print(output_format % ('dp', offline_workers_flattened))
 
                 merged = self.make_list_unique(
                     offline_workers_flattened + missing_workers_flattened)
                 merged.sort()
 
-                print("%-08s: %s" % ('merged', merged))
+                print(output_format % ('merged', merged))
             if influx_logging:
                 self.influx_log_lines_to_send.extend(
                     self.gen_influx_mw_lines(missing_workers)
