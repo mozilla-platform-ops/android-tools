@@ -100,7 +100,7 @@ db = ""
         # TODO: DO EEET
 
 
-        self.wh.influx_report()
+        self.wh.influx_report(time_limit=self.time_limit)
         sys.exit(0)
 
         self.write_multiline_influx_data()
