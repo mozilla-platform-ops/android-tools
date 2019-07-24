@@ -585,6 +585,8 @@ class WorkerHealth:
     def get_problem_workers2(
         self, time_limit=None, verbosity=0, exclude_quarantined=False
     ):
+        # TODO: stop calling gather_data in processing/calculation code
+        # - only call when necessary, push up to higher level
         self.gather_data()
 
         missing_workers = self.calculate_missing_workers_from_tc(
@@ -665,55 +667,14 @@ class WorkerHealth:
     def influx_report(self, time_limit=None, verbosity=0):
         self.gather_data()
 
-        # testing
-        #
-        # self.pp.pprint(self.devicepool_queues_and_workers)
-        # sys.exit()
-
-        # display reports
-        # self.calculate_utilization_and_dead_hosts(show_all)
-        # print("")
-
-        missing_workers = {}
-        missing_workers_flattened = []
-        offline_workers = {}
-        offline_workers_flattened = []
-
         missing_workers = self.calculate_missing_workers_from_tc(time_limit)
-        missing_workers_flattened = self.flatten_list(missing_workers.values())
-        missing_workers_flattened.sort()
-        # print("tc: %s" % missing_workers_flattened)
         offline_workers = self.get_offline_workers_from_journalctl()
-        offline_workers_flattened = self.flatten_list(offline_workers.values())
-        offline_workers_flattened.sort()
-        # print("dp: %s" % offline_workers_flattened)
-        # TODO: calculate merged
+        problem_workers = self.dict_merge_with_dedupe(missing_workers, offline_workers)
 
-        merged = self.make_list_unique(
-            offline_workers_flattened + missing_workers_flattened
-        )
-        merged.sort()
+        self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))
 
-        merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
-        merged2_flattened = self.flatten_list(merged2.values())
-        merged2_flattened = self.make_list_unique(merged2_flattened)
-        merged2_flattened.sort()
-
-        print("quarantined: %s" % self.quarantined_workers)
-        print("missing: %s" % missing_workers)
-        print("offline: %s" % offline_workers)
-        print("")
-        print("merged2: %s" % merged2)
-        print("")
-        print("merged_flattened: %s" % merged)
-        print("merged2_flattened: %s" % merged2_flattened)
-
-        # return merged
-        sys.exit(0)
-
-        self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(missing_workers))
-
-        # write influx lines to self's buffer
         self.influx_log_lines_to_send.extend(
             self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
         )
+
+        # sending is done by caller
