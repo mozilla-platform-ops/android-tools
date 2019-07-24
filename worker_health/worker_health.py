@@ -384,22 +384,12 @@ class WorkerHealth:
                         if exclude_quarantined and worker in self.quarantined_workers:
                             continue
                         mw2[queue].append(worker)
-                        # print(
-                        #     "    %s: %s: %s"
-                        #     % (
-                        #         worker,
-                        #         self.tc_current_worker_last_started[worker],
-                        #         difference,
-                        #     )
-                        # )
                 else:
                     # fully missing worker
                     # - devicepool lists these as offline
                     if exclude_quarantined and worker in self.quarantined_workers:
                         continue
                     mw2[queue].append(worker)
-        # TOOD: add option to remove or just remove the quarantined hosts
-
         return mw2
 
     def gen_influx_mw_lines(self, queue_to_worker_map, provisioner="proj-autophone"):
