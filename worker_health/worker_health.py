@@ -381,10 +381,9 @@ class WorkerHealth:
                     )
                     difference = now_dt.diff(last_started_dt).in_minutes()
                     if difference >= limit:
-                        if exclude_quarantined and worker not in self.quarantined_workers:
-                            mw2[queue].append(worker)
-                        else:
-                            mw2[queue].append(worker)
+                        if exclude_quarantined and worker in self.quarantined_workers:
+                            continue
+                        mw2[queue].append(worker)
                         # print(
                         #     "    %s: %s: %s"
                         #     % (
@@ -396,10 +395,9 @@ class WorkerHealth:
                 else:
                     # fully missing worker
                     # - devicepool lists these as offline
-                    if exclude_quarantined and worker not in self.quarantined_workers:
-                        mw2[queue].append(worker)
-                    else:
-                        mw2[queue].append(worker)
+                    if exclude_quarantined and worker in self.quarantined_workers:
+                        continue
+                    mw2[queue].append(worker)
         # TOOD: add option to remove or just remove the quarantined hosts
 
         return mw2
