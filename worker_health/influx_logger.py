@@ -131,8 +131,11 @@ verify_ssl = false
                 # check call messages
                 sys.exit(1)
 
+        # configure scheduled tasks
         if not self.testing_mode:
-            raise ("define production mode schedules!")
+            minutes_to_run = 15
+            logger.info("jobs will run every %s minutes" % minutes_to_run)
+            schedule.every(minutes_to_run).minutes.do(self.do_worker_influx_logging)
         else:
             minutes_to_run = 5
             logger.info("jobs will run every %s minutes" % minutes_to_run)
@@ -144,6 +147,7 @@ verify_ssl = false
             # test schedule
             schedule.every(minutes_to_run).minutes.do(self.do_worker_influx_logging)
 
+        # enter schedule's loop
         while True:
             schedule.run_pending()
             time.sleep(1)
