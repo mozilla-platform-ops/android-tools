@@ -680,11 +680,7 @@ class WorkerHealth:
             self.write_multiline_influx_data_locally(self.influx_log_lines_to_send)
 
     def influx_report(self, time_limit=None, verbosity=0):
-        self.gather_data()
-
-        missing_workers = self.calculate_missing_workers_from_tc(time_limit)
-        offline_workers = self.get_offline_workers_from_journalctl()
-        problem_workers = self.dict_merge_with_dedupe(missing_workers, offline_workers)
+        problem_workers = self.get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
 
         self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))
 
