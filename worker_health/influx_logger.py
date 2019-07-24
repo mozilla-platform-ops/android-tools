@@ -99,9 +99,9 @@ db = ""
 
     # logs both problem and configured data
     def do_worker_influx_logging(self):
-        logger.info('gathering data and influx lines...')
+        logger.info("gathering data and influx lines...")
         self.wh.influx_report(time_limit=self.time_limit)
-        logger.info('writing to influx...')
+        logger.info("writing to influx...")
         self.write_multiline_influx_data()
 
     def main(self, args):

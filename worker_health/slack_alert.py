@@ -4,6 +4,7 @@ import argparse
 import os
 import time
 
+# TODO: wrap import with try/except?
 import pendulum
 import requests
 import schedule
@@ -95,9 +96,11 @@ webhook_url = ""
 
         if args.testing_mode:
             testing_mode_start_delay = 10
-            logger.warning('testing mode enabled! messages will still be sent if webhook_url configured.')
+            logger.warning(
+                "testing mode enabled! messages will still be sent if webhook_url configured."
+            )
             if testing_mode_start_delay:
-                logger.warning('starting in %s seconds...' % testing_mode_start_delay)
+                logger.warning("starting in %s seconds..." % testing_mode_start_delay)
                 time.sleep(testing_mode_start_delay)
 
         if not self.testing_mode:
@@ -138,10 +141,7 @@ if __name__ == "__main__":
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
     )
     parser.add_argument(
-        "--testing-mode",
-        action="store_true",
-        default=False,
-        help="enable testing mode",
+        "--testing-mode", action="store_true", default=False, help="enable testing mode"
     )
     args = parser.parse_args()
 

@@ -537,9 +537,7 @@ class WorkerHealth:
                     "this should be run on the primary devicepool host for maximum data."
                 )
             if error:
-                logger.error(
-                    "this must be run on the primary devicepool host!"
-                )
+                logger.error("this must be run on the primary devicepool host!")
             return False
         return True
 
@@ -557,7 +555,7 @@ class WorkerHealth:
         # self.set_problem_workers()
         # self.set_configured_workers()
 
-  # merged taskcluster tardy and devicepool offline data to one list
+    # merged taskcluster tardy and devicepool offline data to one list
     # TODO: add taskcluster missing data
     def get_problem_workers(
         self, time_limit=None, verbosity=0, exclude_quarantined=False
