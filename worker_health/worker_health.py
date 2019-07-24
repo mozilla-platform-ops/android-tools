@@ -667,6 +667,7 @@ class WorkerHealth:
         )
         merged.sort()
 
+        print("quarantined: %s" % self.quarantined_workers)
         print("missing: %s" % missing_workers)
         print("missing_no_q: %s" % missing_workers_no_q)
         print("offline: %s" % offline_workers)
