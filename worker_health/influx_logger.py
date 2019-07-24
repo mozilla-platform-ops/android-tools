@@ -37,25 +37,23 @@ class InfluxLogger:
         self.influx_user = self.toml["influx"]["user"]
         self.influx_pass = self.toml["influx"]["pass"]
         self.influx_db = self.toml["influx"]["db"]
+        self.influx_ssl = self.toml["influx"]["ssl"]
+        self.influx_verify_ssl = self.toml["influx"]["verify_ssl"]
 
         if (
             self.influx_host
             and self.influx_port
-            and self.influx_user
-            and self.influx_pass
             and self.influx_db
         ):
-            self.logging_enabled = True
             self.influx_client = InfluxDBClient(
                 host=self.influx_host,
                 port=self.influx_port,
                 username=self.influx_user,
                 password=self.influx_pass,
-                database=self.influx_db,
-                # TODO: should config take these?
-                ssl=True,
-                verify_ssl=True,
+                ssl=self.influx_ssl,
+                verify_ssl=self.influx_verify_ssl,
             )
+            self.logging_enabled = True
 
     def write_toml(self, dict_to_write):
         with open(self.configuration_file, "w") as writer:
@@ -68,11 +66,13 @@ class InfluxLogger:
             # first run
             default_doc = """
 [influx]
-host = ""
-port = ""
+host = "localhost"
+port = 8086
 user = ""
 pass = ""
-db = ""
+db = "testing"
+ssl = false
+verify_ssl = false
           """
             return_dict = toml.loads(default_doc)
             self.write_toml(return_dict)
