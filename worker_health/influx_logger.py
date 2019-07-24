@@ -21,8 +21,8 @@ logger = logging.getLogger()
 
 import worker_health
 
-class InfluxLogger:
 
+class InfluxLogger:
     def __init__(self, log_level, time_limit):
         self.wh = worker_health.WorkerHealth(log_level)
         self.time_limit = time_limit
@@ -41,8 +41,13 @@ class InfluxLogger:
         self.influx_pass = self.toml["influx"]["pass"]
         self.influx_db = self.toml["influx"]["db"]
 
-        if (self.influx_host and self.influx_port and
-                self.influx_user and self.influx_pass and self.influx_db):
+        if (
+            self.influx_host
+            and self.influx_port
+            and self.influx_user
+            and self.influx_pass
+            and self.influx_db
+        ):
             self.logging_enabled = True
             self.influx_client = InfluxDBClient(
                 host=self.influx_host,
@@ -79,11 +84,16 @@ db = ""
     # writes lists of strings to influx in line format
     def write_multiline_influx_data(self):
         if self.logging_enabled:
-            self.influx_client.write(self.wh.influx_log_lines_to_send,
-                 {"db": self.influx_db}, 204, "line")
-            logging.info("wrote %s line(s) to influx" % len(self.wh.influx_log_lines_to_send))
+            self.influx_client.write(
+                self.wh.influx_log_lines_to_send, {"db": self.influx_db}, 204, "line"
+            )
+            logging.info(
+                "wrote %s line(s) to influx" % len(self.wh.influx_log_lines_to_send)
+            )
         else:
-            logging.info("test mode: would have written: '%s'" % self.wh.influx_log_lines_to_send)
+            logging.info(
+                "test mode: would have written: '%s'" % self.wh.influx_log_lines_to_send
+            )
         # zero out lines to send
         self.wh.influx_log_lines_to_send = []
 
@@ -98,7 +108,6 @@ db = ""
         logger.info("here now")
 
         # TODO: DO EEET
-
 
         self.wh.influx_report(time_limit=self.time_limit)
         sys.exit(0)
@@ -122,7 +131,7 @@ db = ""
 
         testing_mode_enabled = True
         if not testing_mode_enabled:
-            raise('define production mode schedules!')
+            raise ("define production mode schedules!")
         else:
             minutes_to_run = 15
             # logger.info("jobs will run every %s minutes" % minutes_to_run)

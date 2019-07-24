@@ -60,7 +60,9 @@ webhook_url = ""
             logger.info("inside run window")
             # for slack alerts, don't mention tc quarantined hosts
             # - will still appear if offline in devicepool
-            pw = self.wh.get_problem_workers(time_limit=self.time_limit, exclude_quarantined=True)
+            pw = self.wh.get_problem_workers(
+                time_limit=self.time_limit, exclude_quarantined=True
+            )
             if pw:
                 message = "problem workers: %s" % pw
                 self.send_slack_message(message)

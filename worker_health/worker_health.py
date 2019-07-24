@@ -28,6 +28,7 @@ ALERT_MINUTES = 60
 class NonZeroExit(Exception):
     pass
 
+
 # TODO: add requests caching for dev
 
 # TODO: reduce dependence on reading the devicepool config file somehow
@@ -35,6 +36,7 @@ class NonZeroExit(Exception):
 
 # TODO: take path to git repo as arg, if passed don't clone/update a managed repo
 #       - if running on devicepool host, we have the actual config being run... best thing to use.
+
 
 class WorkerHealth:
     def __init__(self, verbosity=0):
@@ -169,7 +171,11 @@ class WorkerHealth:
                             "device_group_name"
                         ]
                     ]
-                    self.devicepool_project_to_device_group_name[project] = self.devicepool_config_yaml["projects"][project]["device_group_name"]
+                    self.devicepool_project_to_device_group_name[
+                        project
+                    ] = self.devicepool_config_yaml["projects"][project][
+                        "device_group_name"
+                    ]
                 except KeyError:
                     pass
 
@@ -214,8 +220,8 @@ class WorkerHealth:
             for worker in json_result["workers"]:
                 self.tc_workers[item].append(worker["workerId"])
                 # TODO: quarantine data
-                if 'quarantineUntil' in worker:
-                    self.quarantined_workers.append(worker['workerId'])
+                if "quarantineUntil" in worker:
+                    self.quarantined_workers.append(worker["workerId"])
                 an_url = (
                     "https://queue.taskcluster.net/v1/task/%s/status"
                     % worker["latestTask"]["taskId"]
@@ -448,7 +454,7 @@ class WorkerHealth:
 
     # sorts also!
     def dict_merge_with_dedupe(self, dict1, dict2):
-        for key,value in dict1.items():
+        for key, value in dict1.items():
             if key not in dict2:
                 dict2[key] = []
             dict2[key].extend(value)
@@ -458,9 +464,9 @@ class WorkerHealth:
 
     # preserves dupes
     def dict_merge(self, dict1, dict2):
-      for key,value in dict1.items():
-          dict2[key].extend(value)
-      return dict2
+        for key, value in dict1.items():
+            dict2[key].extend(value)
+        return dict2
 
     def flatten_dict(self, a_dict):
         flattened = self.flatten_list(a_dict.values())
@@ -499,7 +505,9 @@ class WorkerHealth:
                 # TODO: use worker type as key vs project
                 # - gecko-t-bitbar-gw-perf-p2
                 project = m.group(1)
-                device_group_name = self.devicepool_project_to_device_group_name[project]
+                device_group_name = self.devicepool_project_to_device_group_name[
+                    project
+                ]
                 # queue = m.group(2)
                 # disabled_count = m.group(3)
                 # offline_count = m.group(4)
@@ -593,7 +601,9 @@ class WorkerHealth:
 
     # merged taskcluster tardy and devicepool offline data to one list
     # TODO: add taskcluster missing data
-    def get_problem_workers(self, time_limit=None, verbosity=0, exclude_quarantined=False):
+    def get_problem_workers(
+        self, time_limit=None, verbosity=0, exclude_quarantined=False
+    ):
         self.gather_data()
 
         # testing
@@ -610,7 +620,9 @@ class WorkerHealth:
         offline_workers = {}
         offline_workers_flattened = []
 
-        missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=exclude_quarantined)
+        missing_workers = self.calculate_missing_workers_from_tc(
+            time_limit, exclude_quarantined=exclude_quarantined
+        )
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
         # print("tc: %s" % missing_workers_flattened)
@@ -629,10 +641,14 @@ class WorkerHealth:
         return merged
 
     # returns a dict vs list
-    def get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
+    def get_problem_workers2(
+        self, time_limit=None, verbosity=0, exclude_quarantined=False
+    ):
         self.gather_data()
 
-        missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=exclude_quarantined)
+        missing_workers = self.calculate_missing_workers_from_tc(
+            time_limit, exclude_quarantined=exclude_quarantined
+        )
         offline_workers = self.get_offline_workers_from_journalctl()
 
         merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
@@ -645,7 +661,6 @@ class WorkerHealth:
 
         # use flatten_dict if needed in list
         return merged2
-
 
     def influx_report(self, time_limit=None, verbosity=0):
         self.gather_data()
@@ -666,7 +681,9 @@ class WorkerHealth:
 
         # TODO: exclude_quarantined just for testing, remove!!!!
         # missing_workers = self.calculate_missing_workers_from_tc(time_limit)
-        missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)
+        missing_workers = self.calculate_missing_workers_from_tc(
+            time_limit, exclude_quarantined=True
+        )
         # END TODO
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
@@ -699,9 +716,7 @@ class WorkerHealth:
         # return merged
         sys.exit(0)
 
-        self.influx_log_lines_to_send.extend(
-            self.gen_influx_mw_lines(missing_workers)
-        )
+        self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(missing_workers))
 
         # write influx lines to self's buffer
         self.influx_log_lines_to_send.extend(
