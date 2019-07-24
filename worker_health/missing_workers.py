@@ -48,7 +48,7 @@ def main():
     # wh.pp.pprint(output)
     # sys.exit(0)
 
-    wh.show_report(args.all, args.time_limit, args.influx_logging, args.log_level)
+    wh.show_report(show_all=args.all, time_limit=args.time_limit, verbosity=args.log_level)
 
 
 if __name__ == "__main__":
