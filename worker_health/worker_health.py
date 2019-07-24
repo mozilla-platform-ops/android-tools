@@ -540,66 +540,7 @@ class WorkerHealth:
         # self.set_problem_workers()
         # self.set_configured_workers()
 
-    def show_report(
-        self, show_all=False, time_limit=None, influx_logging=False, verbosity=0
-    ):
-        # TODO: handle queues that are present with 0 tasks
-        # - have recently had jobs, but none currently and workers entries have dropped off/expired.
-        # - solution: check count and only add if non-zero
-
-        self.gather_data()
-
-        # testing
-        #
-        # self.pp.pprint(self.devicepool_queues_and_workers)
-        # sys.exit()
-
-        # display reports
-        # self.calculate_utilization_and_dead_hosts(show_all)
-        # print("")
-
-        if verbosity:
-            self.show_last_started_report(time_limit, verbosity)
-            print("")
-
-        missing_workers = {}
-        missing_workers_flattened = []
-        offline_workers = {}
-        offline_workers_flattened = []
-
-        if time_limit:
-            output_format = "%-07s %s"
-
-            missing_workers = self.calculate_missing_workers_from_tc(time_limit)
-            missing_workers_flattened = self.flatten_list(missing_workers.values())
-            missing_workers_flattened.sort()
-            print(output_format % ("tc", missing_workers_flattened))
-            if self.bitbar_systemd_service_present():
-                offline_workers = self.get_offline_workers_from_journalctl()
-                offline_workers_flattened = self.flatten_list(offline_workers.values())
-                offline_workers_flattened.sort()
-                print(output_format % ("dp", offline_workers_flattened))
-
-                merged = self.make_list_unique(
-                    offline_workers_flattened + missing_workers_flattened
-                )
-                merged.sort()
-
-                print(output_format % ("merged", merged))
-            if influx_logging:
-                self.influx_log_lines_to_send.extend(
-                    self.gen_influx_mw_lines(missing_workers)
-                )
-        if influx_logging:
-            pass
-            # TODO: ideally only log this every 1 hour?
-            self.influx_log_lines_to_send.extend(
-                self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
-            )
-        if influx_logging:
-            self.write_multiline_influx_data_locally(self.influx_log_lines_to_send)
-
-    # merged taskcluster tardy and devicepool offline data to one list
+  # merged taskcluster tardy and devicepool offline data to one list
     # TODO: add taskcluster missing data
     def get_problem_workers(
         self, time_limit=None, verbosity=0, exclude_quarantined=False
@@ -662,6 +603,65 @@ class WorkerHealth:
         # use flatten_dict if needed in list
         return merged2
 
+    def show_report(
+        self, show_all=False, time_limit=None, influx_logging=False, verbosity=0
+    ):
+        # TODO: handle queues that are present with 0 tasks
+        # - have recently had jobs, but none currently and workers entries have dropped off/expired.
+        # - solution: check count and only add if non-zero
+
+        self.gather_data()
+
+        # testing
+        #
+        # self.pp.pprint(self.devicepool_queues_and_workers)
+        # sys.exit()
+
+        # display reports
+        # self.calculate_utilization_and_dead_hosts(show_all)
+        # print("")
+
+        if verbosity:
+            self.show_last_started_report(time_limit, verbosity)
+            print("")
+
+        missing_workers = {}
+        missing_workers_flattened = []
+        offline_workers = {}
+        offline_workers_flattened = []
+
+        if time_limit:
+            output_format = "%-07s %s"
+
+            missing_workers = self.calculate_missing_workers_from_tc(time_limit)
+            missing_workers_flattened = self.flatten_list(missing_workers.values())
+            missing_workers_flattened.sort()
+            print(output_format % ("tc", missing_workers_flattened))
+            if self.bitbar_systemd_service_present():
+                offline_workers = self.get_offline_workers_from_journalctl()
+                offline_workers_flattened = self.flatten_list(offline_workers.values())
+                offline_workers_flattened.sort()
+                print(output_format % ("dp", offline_workers_flattened))
+
+                merged = self.make_list_unique(
+                    offline_workers_flattened + missing_workers_flattened
+                )
+                merged.sort()
+
+                print(output_format % ("merged", merged))
+            if influx_logging:
+                self.influx_log_lines_to_send.extend(
+                    self.gen_influx_mw_lines(missing_workers)
+                )
+        if influx_logging:
+            pass
+            # TODO: ideally only log this every 1 hour?
+            self.influx_log_lines_to_send.extend(
+                self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
+            )
+        if influx_logging:
+            self.write_multiline_influx_data_locally(self.influx_log_lines_to_send)
+
     def influx_report(self, time_limit=None, verbosity=0):
         self.gather_data()
 
@@ -679,12 +679,7 @@ class WorkerHealth:
         offline_workers = {}
         offline_workers_flattened = []
 
-        # TODO: exclude_quarantined just for testing, remove!!!!
-        # missing_workers = self.calculate_missing_workers_from_tc(time_limit)
-        missing_workers = self.calculate_missing_workers_from_tc(
-            time_limit, exclude_quarantined=True
-        )
-        # END TODO
+        missing_workers = self.calculate_missing_workers_from_tc(time_limit)
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
         # print("tc: %s" % missing_workers_flattened)
