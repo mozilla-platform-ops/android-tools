@@ -440,7 +440,7 @@ class WorkerHealth:
             json_result = self.get_jsonc(an_url)
             self.tc_queue_counts[queue] = json_result["pendingTasks"]
 
-    def flatten_list(self, list_to_flatten):
+    def flatten_list(self, list_to_flatten, sort_output=True):
         flattened_list = []
 
         # if empty list passed, return quickly
@@ -451,6 +451,10 @@ class WorkerHealth:
         for x in list_to_flatten:
             for y in x:
                 flattened_list.append(y)
+
+        if sort_output:
+            flattened_list.sort()
+
         return flattened_list
 
     def make_list_unique(self, list_input):
@@ -652,12 +656,11 @@ class WorkerHealth:
 
             missing_workers = self.calculate_missing_workers_from_tc(time_limit)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
-            missing_workers_flattened.sort()
             print(output_format % ("tc", missing_workers_flattened))
+
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
-                offline_workers_flattened.sort()
                 print(output_format % ("dp", offline_workers_flattened))
 
                 merged = self.make_list_unique(

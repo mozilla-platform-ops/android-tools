@@ -15,10 +15,14 @@ def test_make_list_unique(wh_instance):
 
 
 def test_flatten_list(wh_instance):
-    a = [[1, 2], [1, 2], [3, 4]]
-    output = wh_instance.flatten_list(a)
-    assert output == [1, 2, 1, 2, 3, 4]
+    a = [[5, 2], [1, 2], [3, 4]]
+    output = wh_instance.flatten_list(a, sort_output=False)
+    assert output == [5, 2, 1, 2, 3, 4]
 
+    # by default sorts output now
+    a = [[5, 2], [1, 2], [3, 4]]
+    output = wh_instance.flatten_list(a)
+    assert output == [1, 2, 2, 3, 4, 5]
 
 def test_flatten_dict(wh_instance):
     a = {
