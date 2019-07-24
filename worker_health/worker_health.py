@@ -640,6 +640,7 @@ class WorkerHealth:
         offline_workers_flattened = []
 
         missing_workers = self.calculate_missing_workers_from_tc(time_limit)
+        # TODO: exclude_quarantined just for testing, remove!!!!
         missing_workers_no_q = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)
         missing_workers_flattened = self.flatten_list(missing_workers.values())
         missing_workers_flattened.sort()
@@ -659,7 +660,11 @@ class WorkerHealth:
         print("missing: %s" % missing_workers)
         print("missing_no_q: %s" % missing_workers_no_q)
         print("offline: %s" % offline_workers)
+        print("")
+        print("merged: %s" % merged)
         merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
+        merged2_flattened = self.flatten_list(merged2.values())
+        merged2_flattened.sort()
         print("merged2: %s" % merged2)
 
         # return merged
