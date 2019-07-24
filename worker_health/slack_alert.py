@@ -58,7 +58,9 @@ webhook_url = ""
         now = pendulum.now(tz=self.bitbar_tz)
         if (8 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
             logger.info("inside run window")
-            pw = self.wh.get_problem_workers(self.time_limit)
+            # for slack alerts, don't mention tc quarantined hosts
+            # - will still appear if offline in devicepool
+            pw = self.wh.get_problem_workers(time_limit=self.time_limit, exclude_quarantined=True)
             if pw:
                 message = "problem workers: %s" % pw
                 self.send_slack_message(message)
