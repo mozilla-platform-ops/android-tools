@@ -14,17 +14,18 @@ except ImportError:
     print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
     sys.exit(1)
 
-# log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
-log_format = "%(levelname)-10s %(funcName)s: %(message)s"
-logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
-logger = logging.getLogger()
 
-import worker_health
+
+from worker_health import (
+    WorkerHealth,
+    logger
+)
+
 
 
 class InfluxLogger:
     def __init__(self, log_level, time_limit):
-        self.wh = worker_health.WorkerHealth(log_level)
+        self.wh = WorkerHealth(log_level)
         self.time_limit = time_limit
         self.logging_enabled = False
 
@@ -87,11 +88,11 @@ db = ""
             self.influx_client.write(
                 self.wh.influx_log_lines_to_send, {"db": self.influx_db}, 204, "line"
             )
-            logging.info(
+            logger.info(
                 "wrote %s line(s) to influx" % len(self.wh.influx_log_lines_to_send)
             )
         else:
-            logging.info(
+            logger.info(
                 "test mode: would have written: '%s'" % self.wh.influx_log_lines_to_send
             )
         # zero out lines to send
@@ -105,13 +106,9 @@ db = ""
 
     # logs both problem and configured data
     def do_worker_influx_logging(self):
-        logger.info("here now")
-
-        # TODO: DO EEET
-
+        logger.info('gathering data and influx lines...')
         self.wh.influx_report(time_limit=self.time_limit)
-        sys.exit(0)
-
+        logger.info('writing to influx...')
         self.write_multiline_influx_data()
 
     def main(self, args):

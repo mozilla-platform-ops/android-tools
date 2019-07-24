@@ -1,5 +1,6 @@
 import csv
 import os
+import logging
 import json
 import shutil
 import subprocess
@@ -7,6 +8,11 @@ import pprint
 import re
 import sys
 import time
+
+# log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
+log_format = "%(levelname)-10s %(funcName)s: %(message)s"
+logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
+logger = logging.getLogger()
 
 try:
     import requests
@@ -496,6 +502,9 @@ class WorkerHealth:
         return list(csv.reader([csv_string], skipinitialspace=True))[0]
 
     def get_offline_workers_from_journalctl(self):
+        if not self.bitbar_systemd_service_present():
+            logger.debug("bitbar systemd service not present, returning early.")
+            return {}
         pattern = r": (.*) WARNING (.*) DISABLED (\d+) OFFLINE (\d+) (.*)"
         lines = self.get_journalctl_output()
         offline_dict = {}
@@ -676,5 +685,3 @@ class WorkerHealth:
         self.influx_log_lines_to_send.extend(
             self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
         )
-
-        # sending is done by caller

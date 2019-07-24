@@ -10,19 +10,17 @@ import sys
 import time
 import toml
 
-# log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
-log_format = "%(levelname)-10s %(funcName)s: %(message)s"
-logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
-logger = logging.getLogger()
-
-import worker_health
-
+from worker_health import (
+    WorkerHealth,
+    logger
+)
 
 class SlackAlert:
-    def __init__(self, log_level, time_limit):
-        self.wh = worker_health.WorkerHealth(log_level)
+    def __init__(self, log_level, time_limit, testing_mode_enabled):
+        self.wh = WorkerHealth(log_level)
         self.time_limit = time_limit
         self.alerting_enabled = False
+        self.testing_mode = testing_mode_enabled
         self.bitbar_tz = "America/Los_Angeles"
 
         # config file
@@ -32,8 +30,8 @@ class SlackAlert:
         self.toml = self.read_toml()
 
         # webhook url
-        self.webhook_url = self.toml["main"]["webhook_url"]
-        if self.webhook_url:
+        if "main" in self.toml and "webhook_url" in self.toml["main"]:
+            self.webhook_url = self.toml["main"]["webhook_url"]
             self.alerting_enabled = True
 
     def write_toml(self, dict_to_write):
@@ -65,7 +63,10 @@ webhook_url = ""
             )
             if pw:
                 message = "problem workers: %s" % pw
-                self.send_slack_message(message)
+                if self.alerting_enabled:
+                    self.send_slack_message(message)
+                else:
+                    logger.info("would have sent message: '%s'" % message)
             else:
                 logger.info("no problem workers")
         else:
@@ -92,14 +93,15 @@ webhook_url = ""
                 % self.configuration_file
             )
 
+        if args.testing_mode:
+            logger.warning('testing mode enabled! messages will still be sent if webhook_url configured.')
+
         if not self.wh.bitbar_systemd_service_present():
-            logger.error(
+            logger.warning(
                 "should probably run on host running mozilla-bitbar-devicepool"
             )
-            sys.exit(1)
 
-        testing_mode_enabled = False
-        if not testing_mode_enabled:
+        if not self.testing_mode:
             # run once every hour at specific minute
             minute_of_hour_to_run = 7
             minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
@@ -136,7 +138,13 @@ if __name__ == "__main__":
         default=60,
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
     )
+    parser.add_argument(
+        "--testing-mode",
+        action="store_true",
+        default=False,
+        help="enable testing mode",
+    )
     args = parser.parse_args()
 
-    sa = SlackAlert(args.log_level, args.time_limit)
+    sa = SlackAlert(args.log_level, args.time_limit, args.testing_mode)
     sa.main(args)
