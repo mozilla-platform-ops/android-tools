@@ -15,7 +15,6 @@ logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
 try:
-    from influxdb import InfluxDBClient
     import pendulum
     import requests
     import yaml
@@ -422,15 +421,6 @@ class WorkerHealth:
                 % (provisioner, queue, len(missing[queue]))
             )
         return lines
-
-    def write_multiline_influx_data_locally(self, line_arr):
-        db = "capacity_testing"
-
-        client = InfluxDBClient(
-            host="127.0.0.1", port=8086, ssl=False, verify_ssl=False
-        )
-
-        client.write(line_arr, {"db": db}, 204, "line")
 
     def set_queue_counts(self):
         for queue in self.devicepool_queues_and_workers:
