@@ -2,25 +2,18 @@
 
 import argparse
 import os
-import logging
 import sys
 import time
 
+from worker_health import WorkerHealth, logger
+
 try:
+    from influxdb import InfluxDBClient
     import schedule
     import toml
-    from influxdb import InfluxDBClient
 except ImportError:
     print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
     sys.exit(1)
-
-
-
-from worker_health import (
-    WorkerHealth,
-    logger
-)
-
 
 
 class InfluxLogger:

@@ -2,18 +2,15 @@
 
 import argparse
 import os
-import logging
+import time
+
 import pendulum
 import requests
 import schedule
-import sys
-import time
 import toml
 
-from worker_health import (
-    WorkerHealth,
-    logger
-)
+from worker_health import WorkerHealth, logger
+
 
 class SlackAlert:
     def __init__(self, log_level, time_limit, testing_mode_enabled):

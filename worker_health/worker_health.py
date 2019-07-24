@@ -1,11 +1,11 @@
 import csv
-import os
-import logging
 import json
-import shutil
-import subprocess
+import logging
+import os
 import pprint
 import re
+import shutil
+import subprocess
 import sys
 import time
 
@@ -15,10 +15,10 @@ logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
 try:
+    from influxdb import InfluxDBClient
+    import pendulum
     import requests
     import yaml
-    import pendulum
-    from influxdb import InfluxDBClient
 except ImportError:
     print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
     sys.exit(1)
