@@ -94,12 +94,6 @@ verify_ssl = false
         # zero out lines to send
         self.wh.influx_log_lines_to_send = []
 
-    # def do_configured_worker_influx_logging(self):
-    #     logger.info("here now")
-
-    # def do_problem_worker_influx_logging(self):
-    #     logger.info("here now")
-
     # logs both problem and configured data
     def do_worker_influx_logging(self):
         logger.info("gathering data and influx lines...")
@@ -135,16 +129,14 @@ verify_ssl = false
         if not args.testing_mode:
             raise ("define production mode schedules!")
         else:
-            minutes_to_run = 15
-            # logger.info("jobs will run every %s minutes" % minutes_to_run)
+            minutes_to_run = 5
+            logger.info("jobs will run every %s minutes" % minutes_to_run)
 
             # run one right now
-            # logger.info("running once immediately")
+            logger.info("running once immediately")
             self.do_worker_influx_logging()
 
             # test schedule
-            # schedule.every(minutes_to_run).minutes.do(self.do_configured_worker_influx_logging)
-            # schedule.every(minutes_to_run).minutes.do(self.do_problem_worker_influx_logging)
             schedule.every(minutes_to_run).minutes.do(self.do_worker_influx_logging)
 
         while True:
