@@ -40,13 +40,6 @@ def main():
         default=60,
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
     )
-    parser.add_argument(
-        "-i",
-        "--influx-logging",
-        action="store_true",
-        default=False,
-        help="testing: try to write missing_workers data to a local influx instance",
-    )
     args = parser.parse_args()
     wh = worker_health.WorkerHealth(args.log_level)
 

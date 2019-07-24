@@ -621,7 +621,7 @@ class WorkerHealth:
         return merged2
 
     def show_report(
-        self, show_all=False, time_limit=None, influx_logging=False, verbosity=0
+        self, show_all=False, time_limit=None, verbosity=0
     ):
         # TODO: handle queues that are present with 0 tasks
         # - have recently had jobs, but none currently and workers entries have dropped off/expired.
@@ -666,18 +666,6 @@ class WorkerHealth:
                 merged.sort()
 
                 print(output_format % ("merged", merged))
-            if influx_logging:
-                self.influx_log_lines_to_send.extend(
-                    self.gen_influx_mw_lines(missing_workers)
-                )
-        if influx_logging:
-            pass
-            # TODO: ideally only log this every 1 hour?
-            self.influx_log_lines_to_send.extend(
-                self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
-            )
-        if influx_logging:
-            self.write_multiline_influx_data_locally(self.influx_log_lines_to_send)
 
     def influx_report(self, time_limit=None, verbosity=0):
         problem_workers = self.get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
