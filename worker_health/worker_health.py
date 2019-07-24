@@ -462,6 +462,12 @@ class WorkerHealth:
           dict2[key].extend(value)
       return dict2
 
+    def flatten_dict(self, a_dict):
+        flattened = self.flatten_list(a_dict.values())
+        flattened = self.make_list_unique(flattened)
+        flattened.sort()
+        return flattened
+
     def get_journalctl_output(self):
         MINUTES_OF_LOGS_TO_INSPECT = 5
 
@@ -621,6 +627,25 @@ class WorkerHealth:
 
         # print("merged: %s" % merged)
         return merged
+
+    # returns a dict vs list
+    def get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
+        self.gather_data()
+
+        missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=exclude_quarantined)
+        offline_workers = self.get_offline_workers_from_journalctl()
+
+        merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
+
+        # print("quarantined: %s" % self.quarantined_workers)
+        # print("missing: %s" % missing_workers)
+        # print("offline: %s" % offline_workers)
+        # print("")
+        # print("merged2: %s" % merged2)
+
+        # use flatten_dict if needed in list
+        return merged2
+
 
     def influx_report(self, time_limit=None, verbosity=0):
         self.gather_data()
