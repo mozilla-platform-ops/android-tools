@@ -18,10 +18,11 @@ except ImportError:
 
 
 class InfluxLogger:
-    def __init__(self, log_level, time_limit):
+    def __init__(self, log_level, time_limit, testing_mode):
         self.wh = WorkerHealth(log_level)
         self.time_limit = time_limit
         self.logging_enabled = False
+        self.testing_mode = testing_mode
 
         # config file
         self.configuration_file = os.path.join(
@@ -87,6 +88,10 @@ verify_ssl = false
             logger.info(
                 "wrote %s line(s) to influx" % len(self.wh.influx_log_lines_to_send)
             )
+            if self.testing_mode:
+                logger.info(
+                "lines written: \n%s" % self.pp.pformat(self.wh.influx_log_lines_to_send)
+                )
         else:
             logger.info(
                 "test mode: would have written: \n%s" % self.pp.pformat(self.wh.influx_log_lines_to_send)
@@ -166,5 +171,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    sa = InfluxLogger(args.log_level, args.time_limit)
+    sa = InfluxLogger(args.log_level, args.time_limit, args.testing_mode)
     sa.main(args)
