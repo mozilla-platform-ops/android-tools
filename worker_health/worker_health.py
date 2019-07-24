@@ -320,7 +320,7 @@ class WorkerHealth:
                 if verbosity > 1:
                     print("    WARNING: results unreliable as jobs <= workers!")
                 else:
-                    print("    results not displayed (unreliable as jobs <= workers)")
+                    print("    results not displayed (unreliable as jobs <= workers, -vv to show)")
                     show_details = False
 
             if show_details:
