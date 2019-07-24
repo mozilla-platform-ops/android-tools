@@ -93,13 +93,16 @@ webhook_url = ""
                 % self.configuration_file
             )
 
-        if args.testing_mode:
-            logger.warning('testing mode enabled! messages will still be sent if webhook_url configured.')
+        if not self.wh.bitbar_systemd_service_present(warn=True):
+            # the check call will message
+            pass
 
-        if not self.wh.bitbar_systemd_service_present():
-            logger.warning(
-                "should probably run on host running mozilla-bitbar-devicepool"
-            )
+        if args.testing_mode:
+            testing_mode_start_delay = 10
+            logger.warning('testing mode enabled! messages will still be sent if webhook_url configured.')
+            if testing_mode_start_delay:
+                logger.warning('starting in %s seconds...' % testing_mode_start_delay)
+                time.sleep(testing_mode_start_delay)
 
         if not self.testing_mode:
             # run once every hour at specific minute

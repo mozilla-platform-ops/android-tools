@@ -120,10 +120,8 @@ db = ""
                 % self.configuration_file
             )
 
-        if not self.wh.bitbar_systemd_service_present():
-            logger.error(
-                "this should only be run on the primary mozilla-bitbar-devicepool host"
-            )
+        if not self.wh.bitbar_systemd_service_present(error=True):
+            # check call messages
             sys.exit(1)
 
         testing_mode_enabled = True
