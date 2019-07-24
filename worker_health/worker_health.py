@@ -664,6 +664,7 @@ class WorkerHealth:
         print("merged: %s" % merged)
         merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
         merged2_flattened = self.flatten_list(merged2.values())
+        merged2_flattened = self.make_list_unique(merged2_flattened)
         merged2_flattened.sort()
         print("merged2: %s" % merged2_flattened)
 
