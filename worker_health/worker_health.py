@@ -408,7 +408,7 @@ class WorkerHealth:
         for queue in queue_to_worker_map:
             worker_count = len(queue_to_worker_map[queue])
             lines.append(
-                "workers,provisioner=%s,queue=%s missing=%s"
+                "workers,provisioner=%s,queue=%s problem=%s"
                 % (provisioner, queue, worker_count)
             )
         return lines
