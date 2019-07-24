@@ -106,7 +106,7 @@ verify_ssl = false
         logger.info("writing log lines to influx...")
         self.write_multiline_influx_data()
 
-    def main(self, args):
+    def main(self):
         if self.logging_enabled:
             logger.info("logging enabled!")
         else:
@@ -115,7 +115,7 @@ verify_ssl = false
                 % self.configuration_file
             )
 
-        if args.testing_mode:
+        if self.testing_mode:
             self.wh.bitbar_systemd_service_present(warn=True)
 
             testing_mode_start_delay = 10
@@ -131,7 +131,7 @@ verify_ssl = false
                 # check call messages
                 sys.exit(1)
 
-        if not args.testing_mode:
+        if not self.testing_mode:
             raise ("define production mode schedules!")
         else:
             minutes_to_run = 5
@@ -171,5 +171,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # TODO: just pass args?
     sa = InfluxLogger(args.log_level, args.time_limit, args.testing_mode)
-    sa.main(args)
+    sa.main()
