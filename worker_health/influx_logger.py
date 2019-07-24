@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import pprint
 import sys
 import time
 
@@ -27,6 +28,8 @@ class InfluxLogger:
             os.path.expanduser("~"), ".bitbar_influx_logger.toml"
         )
         self.toml = self.read_toml()
+
+        self.pp = pprint.PrettyPrinter(indent=2)
 
         # influx
         self.influx_host = self.toml["influx"]["host"]
@@ -86,7 +89,7 @@ db = ""
             )
         else:
             logger.info(
-                "test mode: would have written: '%s'" % self.wh.influx_log_lines_to_send
+                "test mode: would have written: \n%s" % self.pp.pformat(self.wh.influx_log_lines_to_send)
             )
         # zero out lines to send
         self.wh.influx_log_lines_to_send = []
