@@ -113,12 +113,23 @@ db = ""
                 % self.configuration_file
             )
 
-        if not self.wh.bitbar_systemd_service_present(error=True):
-            # check call messages
-            sys.exit(1)
+        if args.testing_mode:
+            self.wh.bitbar_systemd_service_present(warn=True)
 
-        testing_mode_enabled = True
-        if not testing_mode_enabled:
+            testing_mode_start_delay = 10
+            logger.warning(
+                "testing mode enabled! logging can still occur if configured."
+            )
+            if testing_mode_start_delay:
+                logger.warning("starting in %s seconds..." % testing_mode_start_delay)
+                time.sleep(testing_mode_start_delay)
+
+        else:
+            if not self.wh.bitbar_systemd_service_present(error=True):
+                # check call messages
+                sys.exit(1)
+
+        if not args.testing_mode:
             raise ("define production mode schedules!")
         else:
             minutes_to_run = 15
@@ -154,6 +165,9 @@ if __name__ == "__main__":
         type=int,
         default=60,
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
+    )
+    parser.add_argument(
+        "--testing-mode", action="store_true", default=False, help="enable testing mode"
     )
     args = parser.parse_args()
 
