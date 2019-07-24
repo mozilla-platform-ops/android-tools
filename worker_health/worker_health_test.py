@@ -9,9 +9,10 @@ def wh_instance():
 
 
 def test_make_list_unique(wh_instance):
-    a = [1, 2, 3, 1, 1, 1, 1]
+    a = [5, 2, 3, 1, 1, 1, 1]
     output = wh_instance.make_list_unique(a)
-    assert output == [1, 2, 3]
+    # it does sort?!?
+    assert output == [1, 2, 3, 5]
 
 
 def test_flatten_list(wh_instance):
@@ -23,6 +24,7 @@ def test_flatten_list(wh_instance):
     a = [[5, 2], [1, 2], [3, 4]]
     output = wh_instance.flatten_list(a)
     assert output == [1, 2, 2, 3, 4, 5]
+
 
 def test_flatten_dict(wh_instance):
     a = {

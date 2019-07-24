@@ -666,7 +666,6 @@ class WorkerHealth:
                 merged = self.make_list_unique(
                     offline_workers_flattened + missing_workers_flattened
                 )
-                merged.sort()
 
                 print(output_format % ("merged", merged))
 
