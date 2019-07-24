@@ -93,9 +93,8 @@ webhook_url = ""
                 % self.configuration_file
             )
 
-        if not self.wh.bitbar_systemd_service_present(warn=True):
-            # the check call will message
-            pass
+        # warn the user that all possible data is not available
+        self.wh.bitbar_systemd_service_present(warn=True)
 
         if args.testing_mode:
             testing_mode_start_delay = 10
