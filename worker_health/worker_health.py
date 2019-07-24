@@ -642,16 +642,19 @@ class WorkerHealth:
         offline_workers_flattened = []
 
         if time_limit:
-            output_format = "%-07s %s"
+            output_format = "%-14s %s"
 
             missing_workers = self.calculate_missing_workers_from_tc(time_limit)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             print(output_format % ("tc", missing_workers_flattened))
 
+            if self.quarantined_workers:
+                print(output_format % ("tc-quarantine", self.quarantined_workers))
+
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
-                print(output_format % ("dp", offline_workers_flattened))
+                print(output_format % ("devicepool", offline_workers_flattened))
 
                 merged = self.make_list_unique(
                     offline_workers_flattened + missing_workers_flattened
