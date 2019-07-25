@@ -588,6 +588,10 @@ class WorkerHealth:
     def influx_report(self, time_limit=None, verbosity=0):
         problem_workers = self.get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
 
+        if verbosity:
+            # TODO: pretty print
+            logging.info(problem_workers)
+
         self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))
 
         self.influx_log_lines_to_send.extend(
