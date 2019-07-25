@@ -254,8 +254,11 @@ class WorkerHealth:
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
-        base_string = "tc: missing and tardy workers,"
-        print("%s hosts started more than %sm ago" % (base_string, limit))
+        base_string = "tc: missing and tardy workers"
+        if not show_all:
+            print("%s, hosts started more than %sm ago" % (base_string, limit))
+        else:
+            print("%s, showing all workers" % (base_string, limit))
 
         if verbosity > 1:
             print(
