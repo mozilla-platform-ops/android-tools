@@ -291,6 +291,7 @@ class WorkerHealth:
                             display_host = True
                         if difference >= limit:
                             display_host = True
+                            offline_or_tardy.append(worker)
 
                         # display host line
                         if display_host:
