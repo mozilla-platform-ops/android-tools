@@ -145,12 +145,12 @@ verify_ssl = false
             minutes_to_run = 5
             logger.info("jobs will run every %s minutes" % minutes_to_run)
 
-            # run one right now
-            logger.info("running once immediately")
-            self.do_worker_influx_logging()
-
             # test schedule
             schedule.every(minutes_to_run).minutes.do(self.do_worker_influx_logging)
+
+        # run one right now
+        logger.info("running once immediately")
+        self.do_worker_influx_logging()
 
         # enter schedule's loop
         while True:
