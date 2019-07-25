@@ -176,7 +176,7 @@ if __name__ == "__main__":
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
     )
     parser.add_argument(
-        "--testing-mode", action="store_true", default=False, help="enable testing mode"
+        "--testing-mode", action="store_true", default=False, help="enable testing mode (special schedule)."
     )
     args = parser.parse_args()
 
