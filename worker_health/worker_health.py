@@ -389,7 +389,9 @@ class WorkerHealth:
     def make_list_unique(self, list_input):
         # python 2 uses Set (vs set)
         n_set = set(list_input)
-        return list(n_set)
+        output = list(n_set)
+        output.sort()
+        return output
 
     # sorts also!
     def dict_merge_with_dedupe(self, dict1, dict2):

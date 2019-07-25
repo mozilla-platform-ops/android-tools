@@ -14,6 +14,13 @@ def test_make_list_unique(wh_instance):
     # it does sort?!?
     assert output == [1, 2, 3, 5]
 
+def test_make_list_unique_and_sorted(wh_instance):
+    b = [10]
+    c = [1, 2, 3]
+    output2 = wh_instance.make_list_unique(
+        b + c
+    )
+    assert output2 == [1, 2, 3, 10]
 
 def test_flatten_list(wh_instance):
     a = [[5, 2], [1, 2], [3, 4]]
