@@ -213,6 +213,14 @@ class WorkerHealth:
                 print("%s (%s)" % (item, url))
                 self.pp.pprint(json_result)
 
+            retries_left = 2
+            # tc can sometimes return empty results for this query, retry a few times
+            while json_result["workers"] == []:
+                json_result = self.get_jsonc(url)
+                retries = retries - 1
+                if retries == 0:
+                    break
+
             if json_result["workers"] == []:
                 logger.warning("no workers in %s... strange. let aerickson know if it continues" % item)
                 logger.warning(url)
