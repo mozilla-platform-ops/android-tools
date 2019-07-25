@@ -137,8 +137,8 @@ if __name__ == "__main__":
         "-t",
         "--time-limit",
         type=int,
-        default=60,
-        help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
+        default=95,
+        help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 95.",
     )
     parser.add_argument(
         "--testing-mode", action="store_true", default=False, help="enable testing mode"

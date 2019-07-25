@@ -37,8 +37,8 @@ def main():
         "-t",
         "--time-limit",
         type=int,
-        default=60,
-        help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 60.",
+        default=95,
+        help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 95.",
     )
     args = parser.parse_args()
     wh = worker_health.WorkerHealth(args.log_level)

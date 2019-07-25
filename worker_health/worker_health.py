@@ -26,8 +26,6 @@ REPO_UPDATE_SECONDS = 300
 MAX_WORKER_TYPES = 50
 MAX_WORKER_COUNT = 50
 USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-tools/tree/master/worker_health)"
-# for last started report: if no limit specified, still warn at this limit
-ALERT_MINUTES = 60
 
 
 class NonZeroExit(Exception):
@@ -249,7 +247,7 @@ class WorkerHealth:
                     # TODO: for debugging, print json
                     pass
 
-    def show_last_started_report(self, limit=60, show_all=False, verbosity=0):
+    def show_last_started_report(self, limit=95, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
