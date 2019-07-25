@@ -252,10 +252,7 @@ class WorkerHealth:
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
         base_string = "tc: missing and tardy workers,"
-        if limit:
-            print("%s hosts started more than %sm ago" % (base_string, limit))
-        else:
-            print("%s showing all workers, WARN at %sm" % (base_string, ALERT_MINUTES))
+        print("%s hosts started more than %sm ago" % (base_string, limit))
 
         if verbosity > 1:
             print(
