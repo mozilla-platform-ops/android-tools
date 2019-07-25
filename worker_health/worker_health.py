@@ -264,16 +264,16 @@ class WorkerHealth:
             show_details = True
             workers = len(self.devicepool_queues_and_workers[queue])
             jobs = self.tc_queue_counts[queue]
+            offline_or_tardy = []
 
             print("  %s (%s workers, %s jobs)" % (queue, workers, jobs))
 
             if jobs == 0:
+                # don't show output, results are 100% unreliable
                 show_details = False
             elif jobs <= workers:
-                if verbosity > 1:
-                    print("    WARNING: results unreliable as jobs <= workers!")
-                else:
-                    print("    results not displayed (unreliable as jobs <= workers, -vv to show)")
+                # unless we're -vv hide workers in this state
+                if verbosity <= 1:
                     show_details = False
 
             if show_details:
@@ -304,7 +304,15 @@ class WorkerHealth:
                             )
                     else:
                         print("    %s: missing! (no data)" % worker)
+                        offline_or_tardy.append(worker)
                         # TODO: add this to missing!
+
+            if offline_or_tardy and jobs <= workers:
+                if verbosity > 1 or show_all:
+                    print("    WARNING: results unreliable as jobs <= workers!")
+                else:
+                    print("    results not displayed (unreliable as jobs <= workers, -vv to show)")
+                    show_details = False
 
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
         # TODO: get rid of intermittents
