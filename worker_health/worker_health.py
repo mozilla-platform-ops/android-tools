@@ -298,10 +298,10 @@ class WorkerHealth:
             print(
                 "  - from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
             )
-            print(
-                "  - config has %s projects/queues"
-                % (len(self.devicepool_queues_and_workers))
-            )
+            # print(
+            #     "  - config has %s projects/queues"
+            #     % (len(self.devicepool_queues_and_workers))
+            # )
 
         for queue in self.devicepool_queues_and_workers:
             show_details = True
@@ -640,12 +640,14 @@ class WorkerHealth:
         if time_limit:
             output_format = "%-14s %s"
 
-            missing_workers = self.calculate_missing_workers_from_tc(time_limit)
+            # exclude quarantined as we mention them specifically later
+            missing_workers = self.calculate_missing_workers_from_tc(time_limit,
+                                                                    exclude_quarantined=True)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             print(output_format % ("tc", missing_workers_flattened))
 
             if self.quarantined_workers:
-                print(output_format % ("tc-quarantine", self.quarantined_workers))
+                print(output_format % ("tc-quarantined", self.quarantined_workers))
 
             if self.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
