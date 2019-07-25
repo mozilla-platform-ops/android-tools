@@ -220,7 +220,10 @@ class WorkerHealth:
                     break
 
             if json_result["workers"] == []:
-                logger.warning("no workers in %s... strange. let aerickson know if it continues" % item)
+                logger.warning(
+                    "no workers in %s... strange. let aerickson know if it continues"
+                    % item
+                )
                 logger.warning(url)
 
             self.tc_workers[item] = []
@@ -315,7 +318,9 @@ class WorkerHealth:
                 if verbosity > 1 or show_all:
                     print("    WARNING: results unreliable as jobs <= workers!")
                 else:
-                    print("    results not displayed (unreliable as jobs <= workers, -vv to show)")
+                    print(
+                        "    results not displayed (unreliable as jobs <= workers, -vv to show)"
+                    )
                     show_details = False
 
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
@@ -560,13 +565,13 @@ class WorkerHealth:
         # use flatten_dict if needed in list
         return merged2
 
-    def show_report(
-        self, show_all=False, time_limit=None, verbosity=0
-    ):
+    def show_report(self, show_all=False, time_limit=None, verbosity=0):
         self.gather_data()
 
         if verbosity:
-            self.show_last_started_report(limit=time_limit, show_all=show_all, verbosity=verbosity)
+            self.show_last_started_report(
+                limit=time_limit, show_all=show_all, verbosity=verbosity
+            )
             print("")
 
         missing_workers = {}
@@ -578,8 +583,9 @@ class WorkerHealth:
             output_format = "%-16s %s"
 
             # exclude quarantined as we mention them specifically later
-            missing_workers = self.calculate_missing_workers_from_tc(time_limit,
-                                                                    exclude_quarantined=True)
+            missing_workers = self.calculate_missing_workers_from_tc(
+                time_limit, exclude_quarantined=True
+            )
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             print(output_format % ("tc", missing_workers_flattened))
 
@@ -598,7 +604,9 @@ class WorkerHealth:
                 print(output_format % ("merged", merged))
 
     def influx_report(self, time_limit=None, verbosity=0):
-        problem_workers = self.get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
+        problem_workers = self.get_problem_workers2(
+            time_limit=time_limit, exclude_quarantined=False
+        )
 
         logger.info("generating influx log lines for problem workers...")
         self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))

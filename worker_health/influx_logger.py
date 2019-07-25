@@ -42,11 +42,7 @@ class InfluxLogger:
         self.influx_ssl = self.toml["influx"]["ssl"]
         self.influx_verify_ssl = self.toml["influx"]["verify_ssl"]
 
-        if (
-            self.influx_host
-            and self.influx_port
-            and self.influx_db
-        ):
+        if self.influx_host and self.influx_port and self.influx_db:
             self.influx_client = InfluxDBClient(
                 host=self.influx_host,
                 port=self.influx_port,
@@ -91,11 +87,13 @@ verify_ssl = false
             )
             if self.log_level:
                 logger.info(
-                "lines written: \n%s" % self.pp.pformat(self.wh.influx_log_lines_to_send)
+                    "lines written: \n%s"
+                    % self.pp.pformat(self.wh.influx_log_lines_to_send)
                 )
         else:
             logger.info(
-                "test mode: would have written: \n%s" % self.pp.pformat(self.wh.influx_log_lines_to_send)
+                "test mode: would have written: \n%s"
+                % self.pp.pformat(self.wh.influx_log_lines_to_send)
             )
         # zero out lines to send
         self.wh.influx_log_lines_to_send = []
@@ -176,10 +174,15 @@ if __name__ == "__main__":
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 95.",
     )
     parser.add_argument(
-        "--testing-mode", action="store_true", default=False, help="enable testing mode (special schedule)."
+        "--testing-mode",
+        action="store_true",
+        default=False,
+        help="enable testing mode (special schedule).",
     )
     args = parser.parse_args()
 
     # TODO: just pass args?
-    sa = InfluxLogger(args.log_level, args.time_limit, args.testing_mode, args.log_level)
+    sa = InfluxLogger(
+        args.log_level, args.time_limit, args.testing_mode, args.log_level
+    )
     sa.main()
