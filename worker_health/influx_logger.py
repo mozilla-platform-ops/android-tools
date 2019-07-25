@@ -89,7 +89,7 @@ verify_ssl = false
             logger.info(
                 "wrote %s line(s) to influx" % len(self.wh.influx_log_lines_to_send)
             )
-            if self.testing_mode:
+            if self.log_level:
                 logger.info(
                 "lines written: \n%s" % self.pp.pformat(self.wh.influx_log_lines_to_send)
                 )
