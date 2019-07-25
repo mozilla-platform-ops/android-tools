@@ -15,7 +15,7 @@ def main():
         "--all",
         action="store_true",
         default=False,
-        help="list all worker-types on TC even if not missing workers",
+        help="in verbose mode, list all worker-types on TC even if not missing workers",
     )
     parser.add_argument(
         "-u",

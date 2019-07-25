@@ -241,7 +241,7 @@ class WorkerHealth:
                     # TODO: for debugging, print json
                     pass
 
-    def show_last_started_report(self, limit=None, verbosity=0):
+    def show_last_started_report(self, limit=60, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
 
@@ -284,36 +284,22 @@ class WorkerHealth:
                             self.tc_current_worker_last_started[worker]
                         )
                         difference = now_dt.diff(last_started_dt).in_minutes()
-                        if not limit:
-                            # even though no limit, indicate when we think a worker is bad
-                            if difference >= ALERT_MINUTES:
-                                print(
-                                    "    %s: %s: %s (WARN)"
-                                    % (
-                                        worker,
-                                        self.tc_current_worker_last_started[worker],
-                                        difference,
-                                    )
+
+                        display_host = False
+                        if show_all:
+                            display_host = True
+                        if difference >= limit:
+                            display_host = True
+
+                        if display_host:
+                            print(
+                                "    %s: %s: %s"
+                                % (
+                                    worker,
+                                    self.tc_current_worker_last_started[worker],
+                                    difference,
                                 )
-                            else:
-                                print(
-                                    "    %s: %s: %s"
-                                    % (
-                                        worker,
-                                        self.tc_current_worker_last_started[worker],
-                                        difference,
-                                    )
-                                )
-                        else:
-                            if difference >= limit:
-                                print(
-                                    "    %s: %s: %s"
-                                    % (
-                                        worker,
-                                        self.tc_current_worker_last_started[worker],
-                                        difference,
-                                    )
-                                )
+                            )
                     else:
                         print("    %s: missing! (no data)" % worker)
                         # TODO: add this to missing!
@@ -564,7 +550,7 @@ class WorkerHealth:
         self.gather_data()
 
         if verbosity:
-            self.show_last_started_report(time_limit, verbosity)
+            self.show_last_started_report(limit=time_limit, show_all=show_all, verbosity=verbosity)
             print("")
 
         missing_workers = {}
