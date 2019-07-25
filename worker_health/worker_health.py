@@ -241,49 +241,6 @@ class WorkerHealth:
                     # TODO: for debugging, print json
                     pass
 
-    def calculate_utilization_and_dead_hosts(self, show_all=False):
-        difference_found = False
-        print("missing workers (present in config, but not on tc):")
-        for item in self.devicepool_queues_and_workers:
-            # wh.tc_workers
-            if show_all:
-                print("  %s (%s jobs): " % (item, self.tc_queue_counts[item]))
-                print(
-                    "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
-                    % item
-                )
-                if item in self.devicepool_queues_and_workers:
-                    print(
-                        "    devicepool: %s" % self.devicepool_queues_and_workers[item]
-                    )
-                if item in self.tc_workers:
-                    print("    taskcluster: %s" % self.tc_workers[item])
-            if item in self.devicepool_queues_and_workers and item in self.tc_workers:
-                difference = set(self.devicepool_queues_and_workers[item]) - set(
-                    self.tc_workers[item]
-                )
-                if show_all:
-                    if difference:
-                        difference_found = True
-                        print("    difference: %s" % sorted(difference))
-                    else:
-                        print("    difference: none")
-                else:
-                    if difference:
-                        difference_found = True
-                        print("  %s (%s jobs): " % (item, self.tc_queue_counts[item]))
-                        print(
-                            "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s"
-                            % item
-                        )
-                        print("    difference: %s" % sorted(difference))
-
-        if not difference_found and not show_all:
-            print("  differences: none")
-            print(
-                "    https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
-            )
-
     def show_last_started_report(self, limit=None, verbosity=0):
         # TODO: show all queues, not just the ones with data
         # TODO: now that we're defaulting limit, move limit mode to use verbosity.
@@ -552,15 +509,6 @@ class WorkerHealth:
     ):
         self.gather_data()
 
-        # testing
-        #
-        # self.pp.pprint(self.devicepool_queues_and_workers)
-        # sys.exit()
-
-        # display reports
-        # self.calculate_utilization_and_dead_hosts(show_all)
-        # print("")
-
         missing_workers = {}
         missing_workers_flattened = []
         offline_workers = {}
@@ -613,20 +561,7 @@ class WorkerHealth:
     def show_report(
         self, show_all=False, time_limit=None, verbosity=0
     ):
-        # TODO: handle queues that are present with 0 tasks
-        # - have recently had jobs, but none currently and workers entries have dropped off/expired.
-        # - solution: check count and only add if non-zero
-
         self.gather_data()
-
-        # testing
-        #
-        # self.pp.pprint(self.devicepool_queues_and_workers)
-        # sys.exit()
-
-        # display reports
-        # self.calculate_utilization_and_dead_hosts(show_all)
-        # print("")
 
         if verbosity:
             self.show_last_started_report(time_limit, verbosity)
