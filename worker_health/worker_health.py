@@ -358,7 +358,7 @@ class WorkerHealth:
         for queue in queue_to_worker_map:
             worker_count = len(queue_to_worker_map[queue])
             lines.append(
-                "workers,provisioner=%s,queue=%s problem=%s"
+                "bitbar_workers,provisioner=%s,queue=%s problem=%s"
                 % (provisioner, queue, worker_count)
             )
         return lines
@@ -367,7 +367,7 @@ class WorkerHealth:
         lines = []
         for queue in missing:
             lines.append(
-                "workers,provisioner=%s,queue=%s configured=%s"
+                "bitbar_workers,provisioner=%s,queue=%s configured=%s"
                 % (provisioner, queue, len(missing[queue]))
             )
         return lines
