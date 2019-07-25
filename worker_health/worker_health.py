@@ -600,8 +600,10 @@ class WorkerHealth:
             # TODO: pretty print
             logging.info(problem_workers)
 
+        logger.info("generating influx log lines for problem workers...")
         self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))
 
+        logger.info("generating influx log lines for configured workers...")
         self.influx_log_lines_to_send.extend(
             self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
         )
