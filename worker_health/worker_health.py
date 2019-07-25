@@ -285,12 +285,14 @@ class WorkerHealth:
                         )
                         difference = now_dt.diff(last_started_dt).in_minutes()
 
+                        # display logic
                         display_host = False
                         if show_all:
                             display_host = True
                         if difference >= limit:
                             display_host = True
 
+                        # display host line
                         if display_host:
                             print(
                                 "    %s: %s: %s"
@@ -561,7 +563,7 @@ class WorkerHealth:
         offline_workers_flattened = []
 
         if time_limit:
-            output_format = "%-14s %s"
+            output_format = "%-16s %s"
 
             # exclude quarantined as we mention them specifically later
             missing_workers = self.calculate_missing_workers_from_tc(time_limit,
