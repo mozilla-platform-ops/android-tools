@@ -203,10 +203,6 @@ class WorkerHealth:
         pass
 
         for item in self.tc_current_worker_types:
-            # if count is zero for queue, skip (otherwise we'll infinitely loop below in while block)
-            if self.tc_queue_counts[item] == 0:
-                continue
-
             url = (
                 "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
                 % (item, MAX_WORKER_COUNT)
@@ -216,10 +212,10 @@ class WorkerHealth:
                 print("")
                 print("%s (%s)" % (item, url))
                 self.pp.pprint(json_result)
-            # lol, gross, but works... we should never get a queue that has 0 workers here.
-            # TODO: only retry 3 times or something
-            while json_result["workers"] == []:
-                json_result = self.get_jsonc(url)
+
+            if json_result["workers"] == []:
+                logger.warning("no workers in %s... strange. let aerickson know if it continues" % item)
+                logger.warning(url)
 
             self.tc_workers[item] = []
             for worker in json_result["workers"]:
