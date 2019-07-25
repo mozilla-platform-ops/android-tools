@@ -5,11 +5,9 @@ python:
 install:
   - pip install pipenv
   - cd worker_health
-  - pipenv install
   - pipenv install --dev
 
 script:
-  - pwd
   - pyflakes *.py
   - pytest
   - ./test_help.sh
