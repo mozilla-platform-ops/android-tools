@@ -215,8 +215,8 @@ class WorkerHealth:
             # tc can sometimes return empty results for this query, retry a few times
             while json_result["workers"] == []:
                 json_result = self.get_jsonc(url)
-                retries = retries - 1
-                if retries == 0:
+                retries_left = retries_left - 1
+                if retries_left == 0:
                     break
 
             if json_result["workers"] == []:
