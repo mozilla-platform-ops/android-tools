@@ -109,10 +109,10 @@ verify_ssl = false
 
     def main(self):
         if self.logging_enabled:
-            logger.info("logging enabled!")
+            logger.info("influx logging enabled! host is %s" % self.influx_host)
         else:
             logger.warning(
-                "logging _not_ enabled. please edit '%s' and rerun."
+                "influx logging _not_ enabled. please edit '%s' and rerun."
                 % self.configuration_file
             )
 
