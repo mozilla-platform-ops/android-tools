@@ -12,4 +12,4 @@ script:
   - pwd
   - pyflakes *.py
   - pytest
-
+  - ./test_help.sh
