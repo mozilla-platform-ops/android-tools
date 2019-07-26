@@ -258,7 +258,7 @@ class WorkerHealth:
         if not show_all:
             print("%s, hosts started more than %sm ago" % (base_string, limit))
         else:
-            print("%s, showing all workers" % (base_string, limit))
+            print("%s, showing all workers" % base_string)
 
         if verbosity > 1:
             print(
