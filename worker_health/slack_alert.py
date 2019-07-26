@@ -52,7 +52,7 @@ webhook_url = ""
     # only fires if it's 8AM-6PM M-F in bitbar TZ
     def slack_alert_m_thru_f(self):
         now = pendulum.now(tz=self.bitbar_tz)
-        if (7 <= now.hour <= 18) and (1 <= now.day_of_week < 5):
+        if (7 <= now.hour <= 18) and (1 <= now.day_of_week <= 5):
             logger.info("inside run window")
             # for slack alerts, don't mention tc quarantined hosts
             # - will still appear if offline in devicepool
