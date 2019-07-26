@@ -9,5 +9,5 @@ install:
 
 script:
   - pyflakes *.py
-  - pytest
+  - pytest -v
   - ./test_help.sh
