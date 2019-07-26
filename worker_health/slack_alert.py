@@ -61,6 +61,8 @@ webhook_url = ""
             )
             if pw:
                 message = "problem workers: %s" % pw
+                # TODO: show count?
+                # message = "problem workers: %s %s" % (len(pw), pw)
                 if self.alerting_enabled:
                     self.send_slack_message(message)
                 else:
@@ -103,13 +105,7 @@ webhook_url = ""
                 logger.warning("starting in %s seconds..." % testing_mode_start_delay)
                 time.sleep(testing_mode_start_delay)
 
-        if not self.testing_mode:
-            # run once every hour at specific minute
-            minute_of_hour_to_run = 7
-            minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
-            logger.info("job will run every hour at %s" % minute_at_string)
-            schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
-        else:
+        if self.testing_mode:
             minutes_to_run = 10
             logger.info("job will run every %s minutes" % minutes_to_run)
             # run one right now
@@ -117,6 +113,12 @@ webhook_url = ""
             self.slack_alert_m_thru_f()
             # test schedule
             schedule.every(minutes_to_run).minutes.do(self.slack_alert_m_thru_f)
+        else:
+            # run once every hour at specific minute
+            minute_of_hour_to_run = 7
+            minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
+            logger.info("job will run every hour at %s" % minute_at_string)
+            schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
 
         while True:
             schedule.run_pending()
