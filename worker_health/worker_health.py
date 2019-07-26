@@ -54,7 +54,7 @@ class WorkerHealth:
         #
         self.devicepool_config_yaml = None
         self.devicepool_bitbar_device_groups = {}
-        self.devicepool_project_to_device_group_name = {}
+        self.devicepool_project_to_tc_worker_type = {}
         # links device groups (in devicepool_bitbar_device_groups) to queues
         self.devicepool_queues_and_workers = {}
         # just the current queue names
@@ -174,11 +174,11 @@ class WorkerHealth:
                             "device_group_name"
                         ]
                     ]
-                    self.devicepool_project_to_device_group_name[
+                    self.devicepool_project_to_tc_worker_type[
                         project
                     ] = self.devicepool_config_yaml["projects"][project][
-                        "device_group_name"
-                    ]
+                            "additional_parameters"
+                        ]["TC_WORKER_TYPE"]
                 except KeyError:
                     pass
 
@@ -471,7 +471,7 @@ class WorkerHealth:
                 # TODO: use worker type as key vs project
                 # - gecko-t-bitbar-gw-perf-p2
                 project = m.group(1)
-                device_group_name = self.devicepool_project_to_device_group_name[
+                device_group_name = self.devicepool_project_to_tc_worker_type[
                     project
                 ]
                 # queue = m.group(2)
