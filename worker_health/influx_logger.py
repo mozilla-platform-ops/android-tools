@@ -104,7 +104,7 @@ verify_ssl = false
         pw = self.wh.influx_report(time_limit=self.time_limit, verbosity=self.log_level)
 
         if self.log_level:
-            print("problem workers: \n%s" % self.pp.pformat(pw))
+            print("problem workers (includes quarantined): \n%s" % self.pp.pformat(pw))
 
         logger.info("writing log lines to influx...")
         self.write_multiline_influx_data()
