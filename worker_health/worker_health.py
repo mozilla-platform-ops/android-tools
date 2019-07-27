@@ -256,7 +256,7 @@ class WorkerHealth:
                     pass
 
                 if strange_result:
-                    logger.info("strange json_result2: %s" % json_result2)
+                    logger.info("strange json_result2 for worker '%s': %s" % (worker, json_result2))
 
     def show_last_started_report(self, limit=95, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
