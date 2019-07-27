@@ -180,6 +180,7 @@ class WorkerHealth:
                             "additional_parameters"
                         ]["TC_WORKER_TYPE"]
                 except KeyError:
+                    # TODO: log an error here
                     pass
 
     # gets and sets the queues under proj-autophone
@@ -344,17 +345,27 @@ class WorkerHealth:
         mw2 = {}
         for queue in self.devicepool_queues_and_workers:
             mw2[queue] = []
-            # check that there are jobs in this queue, if not continue
+
+            # queue-level flags used in decisions below
+            #   - check that there are jobs in this queue, if not continue
+            queue_empty = False
             if self.tc_queue_counts[queue] == 0:
-                continue
-            # ensure # of jobs > # of workers, otherwise we're not 100% sure the device is having issues
+                queue_empty = True
+            #   - ensure # of jobs > # of workers
+            #     - only case we're sure the device is having issues
+            more_workers_than_jobs = False
             if self.tc_queue_counts[queue] < len(
-                self.devicepool_queues_and_workers[queue]
-            ):
-                continue
+                        self.devicepool_queues_and_workers[queue]
+                    ):
+                more_workers_than_jobs = True
+
             for worker in self.devicepool_queues_and_workers[queue]:
                 if worker in self.tc_current_worker_last_started:
                     # tardy workers
+                    if queue_empty:
+                        continue
+                    if more_workers_than_jobs:
+                        continue
                     now_dt = pendulum.now(tz="UTC")
                     last_started_dt = pendulum.parse(
                         self.tc_current_worker_last_started[worker]
