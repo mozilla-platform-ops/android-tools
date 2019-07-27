@@ -161,10 +161,10 @@ class WorkerHealth:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
                     self.devicepool_bitbar_device_groups[item] = list(keys)
 
-        # link device group data with queue names
         for project in self.devicepool_config_yaml["projects"]:
             if project.endswith("p2") or project.endswith("g5"):
                 try:
+                    # set the workers for a queue
                     self.devicepool_queues_and_workers[
                         self.devicepool_config_yaml["projects"][project][
                             "additional_parameters"
@@ -174,13 +174,19 @@ class WorkerHealth:
                             "device_group_name"
                         ]
                     ]
+                    # for linking dp project to tc worker type
                     self.devicepool_project_to_tc_worker_type[
                         project
                     ] = self.devicepool_config_yaml["projects"][project][
                             "additional_parameters"
                         ]["TC_WORKER_TYPE"]
                 except KeyError:
-                    logging.info('KeyError seen for project %s' % project)
+                    # TODO: explicitly catch and handle this above
+                    # happens when no devicepool data for a queue
+                    #   - when it's not being used
+                    #     - like mozilla-gw-unittest-g5
+                    # logging.info('KeyError seen for project %s' % project)
+                    pass
 
     # gets and sets the queues under proj-autophone
     def set_current_worker_types(self):
@@ -241,9 +247,15 @@ class WorkerHealth:
                     print("%s result2: " % worker["workerId"])
                     self.pp.pprint(json_result2)
 
+                # if a quarantined host's last job is old it will
+                # expire and we can't look at it
+                if 'code' in json_result2:
+                    if json_result2['code'] == 'ResourceNotFound':
+                        continue
+
                 # look at the last record for the task, could be rescheduled
+                strange_result = True
                 try:
-                    strange_result = True
                     if "status" in json_result2:
                         if "started" in json_result2["status"]["runs"][-1]:
                             started_time = json_result2["status"]["runs"][-1]["started"]
@@ -252,13 +264,11 @@ class WorkerHealth:
                             ] = started_time
                             strange_result = False
                 except KeyError:
-                    # seen when a quarantined worker's last job is expired
-                    #
                     # pass, because we mention the strange result below
                     pass
 
                 if strange_result:
-                    logger.info("strange json_result2 for worker %s: %s" % (worker["workerId"], json_result2))
+                    logger.warning("strange json_result2 for worker %s: %s" % (worker["workerId"], json_result2))
 
     def show_last_started_report(self, limit=95, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
