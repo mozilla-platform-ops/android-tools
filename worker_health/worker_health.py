@@ -180,8 +180,7 @@ class WorkerHealth:
                             "additional_parameters"
                         ]["TC_WORKER_TYPE"]
                 except KeyError:
-                    # TODO: log an error here
-                    pass
+                    logging.info('KeyError seen for project %s' % project)
 
     # gets and sets the queues under proj-autophone
     def set_current_worker_types(self):
@@ -253,11 +252,13 @@ class WorkerHealth:
                             ] = started_time
                             strange_result = False
                 except KeyError:
-                    # we will mention the strange result below
+                    # seen when a quarantined worker's last job is expired
+                    #
+                    # pass, because we mention the strange result below
                     pass
 
                 if strange_result:
-                    logger.info("strange json_result2 for worker '%s': %s" % (worker, json_result2))
+                    logger.info("strange json_result2 for worker %s: %s" % (worker["workerId"], json_result2))
 
     def show_last_started_report(self, limit=95, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
