@@ -240,15 +240,23 @@ class WorkerHealth:
                 if self.verbosity > 2:
                     print("%s result2: " % worker["workerId"])
                     self.pp.pprint(json_result2)
+
                 # look at the last record for the task, could be rescheduled
-                if "started" in json_result2["status"]["runs"][-1]:
-                    started_time = json_result2["status"]["runs"][-1]["started"]
-                    self.tc_current_worker_last_started[
-                        worker["workerId"]
-                    ] = started_time
-                else:
-                    # TODO: for debugging, print json
+                try:
+                    strange_result = True
+                    if "status" in json_result2:
+                        if "started" in json_result2["status"]["runs"][-1]:
+                            started_time = json_result2["status"]["runs"][-1]["started"]
+                            self.tc_current_worker_last_started[
+                                worker["workerId"]
+                            ] = started_time
+                            strange_result = False
+                except KeyError:
+                    # we will mention the strange result below
                     pass
+
+                if strange_result:
+                    logger.info("strange json_result2: %s" % json_result2)
 
     def show_last_started_report(self, limit=95, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
