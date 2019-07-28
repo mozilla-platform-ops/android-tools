@@ -391,6 +391,11 @@ class WorkerHealth:
                     # - devicepool lists these as offline
                     if exclude_quarantined and worker in self.quarantined_workers:
                         continue
+                    # continue here if no jobs or too few
+                    if queue_empty:
+                        continue
+                    if more_workers_than_jobs:
+                        continue
                     mw2[queue].append(worker)
         return mw2
 
