@@ -225,12 +225,12 @@ class WorkerHealth:
                 if retries_left == 0:
                     break
 
-            if json_result["workers"] == []:
-                logger.warning(
-                    "no workers in %s... strange. let aerickson know if it continues"
-                    % item
-                )
-                logger.warning(url)
+            # if json_result["workers"] == []:
+            #     logger.warning(
+            #         "no workers in %s... strange. let aerickson know if it continues"
+            #         % item
+            #     )
+            #     logger.warning(url)
 
             self.tc_workers[item] = []
             for worker in json_result["workers"]:
