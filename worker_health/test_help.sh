@@ -2,6 +2,9 @@
   
 set -e
 
+# find all executables in directory, and run with --help
+# we expect them to return with code 0, or there's an issue
+
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
         # ...
         find_cmd="find . -executable -type f"
