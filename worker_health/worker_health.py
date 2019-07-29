@@ -178,8 +178,10 @@ class WorkerHealth:
                     self.devicepool_project_to_tc_worker_type[
                         project
                     ] = self.devicepool_config_yaml["projects"][project][
-                            "additional_parameters"
-                        ]["TC_WORKER_TYPE"]
+                        "additional_parameters"
+                    ][
+                        "TC_WORKER_TYPE"
+                    ]
                 except KeyError:
                     # TODO: explicitly catch and handle this above
                     # happens when no devicepool data for a queue
@@ -249,8 +251,8 @@ class WorkerHealth:
 
                 # if a quarantined host's last job is old it will
                 # expire and we can't look at it
-                if 'code' in json_result2:
-                    if json_result2['code'] == 'ResourceNotFound':
+                if "code" in json_result2:
+                    if json_result2["code"] == "ResourceNotFound":
                         continue
 
                 # look at the last record for the task, could be rescheduled
@@ -268,7 +270,10 @@ class WorkerHealth:
                     pass
 
                 if strange_result:
-                    logger.warning("strange json_result2 for worker %s: %s" % (worker["workerId"], json_result2))
+                    logger.warning(
+                        "strange json_result2 for worker %s: %s"
+                        % (worker["workerId"], json_result2)
+                    )
 
     def show_last_started_report(self, limit=95, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
@@ -366,8 +371,8 @@ class WorkerHealth:
             #     - only case we're sure the device is having issues
             more_workers_than_jobs = False
             if self.tc_queue_counts[queue] < len(
-                        self.devicepool_queues_and_workers[queue]
-                    ):
+                self.devicepool_queues_and_workers[queue]
+            ):
                 more_workers_than_jobs = True
 
             for worker in self.devicepool_queues_and_workers[queue]:
@@ -509,9 +514,7 @@ class WorkerHealth:
                 # TODO: use worker type as key vs project
                 # - gecko-t-bitbar-gw-perf-p2
                 project = m.group(1)
-                device_group_name = self.devicepool_project_to_tc_worker_type[
-                    project
-                ]
+                device_group_name = self.devicepool_project_to_tc_worker_type[project]
                 # queue = m.group(2)
                 # disabled_count = m.group(3)
                 # offline_count = m.group(4)

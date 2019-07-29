@@ -40,19 +40,19 @@ class InfluxLogger:
         self.influx_ssl = True
         self.influx_verify_ssl = True
 
-        if 'host' in self.toml["influx"]:
+        if "host" in self.toml["influx"]:
             self.influx_host = self.toml["influx"]["host"]
-        if 'port' in self.toml["influx"]:
+        if "port" in self.toml["influx"]:
             self.influx_port = self.toml["influx"]["port"]
-        if 'user' in self.toml["influx"]:
+        if "user" in self.toml["influx"]:
             self.influx_user = self.toml["influx"]["user"]
-        if 'pass' in self.toml["influx"]:
+        if "pass" in self.toml["influx"]:
             self.influx_pass = self.toml["influx"]["pass"]
-        if 'db' in self.toml["influx"]:
-                    self.influx_db = self.toml["influx"]["db"]
-        if 'ssl' in self.toml["influx"]:
+        if "db" in self.toml["influx"]:
+            self.influx_db = self.toml["influx"]["db"]
+        if "ssl" in self.toml["influx"]:
             self.influx_ssl = self.toml["influx"]["ssl"]
-        if 'verify_ssl' in self.toml["influx"]:
+        if "verify_ssl" in self.toml["influx"]:
             self.influx_verify_ssl = self.toml["influx"]["verify_ssl"]
 
         if self.influx_host and self.influx_port and self.influx_db:
