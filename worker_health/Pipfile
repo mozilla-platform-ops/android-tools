@@ -4,7 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [requires]
-# can't specify 3.7 either
+# requires python 3+, but can't specify ranges in Pipfile
 #python_version = "3.6"
 
 [dev-packages]
