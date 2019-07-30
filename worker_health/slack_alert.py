@@ -77,7 +77,14 @@ webhook_url = ""
         # cli example:
         #   curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' WEBHOOK_URL
         data = {"text": message}
-        r = requests.post(url=self.webhook_url, json=data)
+        retries = 2
+        while retries >= 0:
+            r = requests.post(url=self.webhook_url, json=data)
+            if r.status_code == 200:
+                break
+            logger.info("got a non-200 status code, retrying...")
+            retries -= 1
+
         if r.status_code == 200:
             logger.info("slack message sent. message: '%s'" % message)
         else:
