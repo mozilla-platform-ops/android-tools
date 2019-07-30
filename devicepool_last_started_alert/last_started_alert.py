@@ -54,6 +54,9 @@ class LastStarted:
         self.pd_session = None
         self.journalctl_lines_of_output = None
 
+        # TODO: persist in state dict/file?
+        self.consecutive_failed_checks = 0
+
         # TODO: load state from dict
         self.state_dict = self.read_toml()
 
@@ -281,10 +284,16 @@ current_dedup_key = ""
                 if not started_lines_present:
                     triggered_now = True
 
+            consecutive_failed_checks_to_alert_at = 2
             if triggered_now:
-                    print("*** Alert conditions met! Sending trigger event.")
+                self.consecutive_failed_checks += 1
+                if self.consecutive_failed_checks >= consecutive_failed_checks_to_alert_at:
+                    print("*** Alert conditions met (%s consecutive failed checks)! Sending trigger event." % self.consecutive_failed_checks)
                     self.trigger_event()
+                else:
+                    print("*** Alert conditions met, but threshold not met (%s/%s consecutive failed checks)." % (self.consecutive_failed_checks, consecutive_failed_checks_to_alert_at))
             else:
+                self.consecutive_failed_checks = 0
                 if currently_alerting:
                     print(
                         "*** Alert conditions not met. Resolving current incident."
