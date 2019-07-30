@@ -249,7 +249,7 @@ current_dedup_key = ""
         currently_alerting = self.currently_alerting()
         jobs_in_queues = self.jobs_in_queues()
         started_lines_present = self.started_lines_present()
-        completed_lines_present = self.completed_lines_present()
+        # completed_lines_present = self.completed_lines_present()
         enough_journalctl_lines = self.enough_journalctl_lines()
 
         # INFO
@@ -265,7 +265,7 @@ current_dedup_key = ""
                 print(
                     "  Enough lines of journalctl output?: %s" % enough_journalctl_lines
                 )
-                print("  Completed lines present?: %s" % completed_lines_present)
+                # print("  Completed lines present?: %s" % completed_lines_present)
             print("Decision metrics:")
             print("  Jobs in queues: %s" % jobs_in_queues)
             print("  Started lines present?: %s" % started_lines_present)
