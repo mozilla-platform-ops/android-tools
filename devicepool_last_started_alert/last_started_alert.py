@@ -287,17 +287,27 @@ current_dedup_key = ""
             consecutive_failed_checks_to_alert_at = 2
             if triggered_now:
                 self.consecutive_failed_checks += 1
-                if self.consecutive_failed_checks >= consecutive_failed_checks_to_alert_at:
-                    print("*** Alert conditions met (%s consecutive failed checks)! Sending trigger event." % self.consecutive_failed_checks)
+                if (
+                    self.consecutive_failed_checks
+                    >= consecutive_failed_checks_to_alert_at
+                ):
+                    print(
+                        "*** Alert conditions met (%s consecutive failed checks)! Sending trigger event."
+                        % self.consecutive_failed_checks
+                    )
                     self.trigger_event()
                 else:
-                    print("*** Alert conditions met, but threshold not met (%s/%s consecutive failed checks)." % (self.consecutive_failed_checks, consecutive_failed_checks_to_alert_at))
+                    print(
+                        "*** Alert conditions met, but threshold not met (%s/%s consecutive failed checks)."
+                        % (
+                            self.consecutive_failed_checks,
+                            consecutive_failed_checks_to_alert_at,
+                        )
+                    )
             else:
                 self.consecutive_failed_checks = 0
                 if currently_alerting:
-                    print(
-                        "*** Alert conditions not met. Resolving current incident."
-                    )
+                    print("*** Alert conditions not met. Resolving current incident.")
                     self.resolve_incident()
                 else:
                     print("*** Alert conditions not met.")
