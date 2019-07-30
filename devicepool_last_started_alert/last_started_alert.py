@@ -9,7 +9,6 @@ import pprint
 import re
 import socket
 import subprocess
-import sys
 import time
 from urllib.request import urlopen
 
