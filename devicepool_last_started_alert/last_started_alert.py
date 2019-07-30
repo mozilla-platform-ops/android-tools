@@ -20,6 +20,7 @@ from pdpyras import EventsAPISession
 MINUTES_OF_LOGS_TO_INSPECT = 15
 MINIMUM_LINES_OF_JOURNALCTL_OUTPUT = 10
 DAEMON_MODE_CHECK_FREQUENCY_SECONDS = 5 * 60
+# TODO: load this from config file
 PD_SERVICE_ID = "PAYN6NV"
 
 # constants
