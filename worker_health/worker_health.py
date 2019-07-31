@@ -128,12 +128,22 @@ class WorkerHealth:
     # handles continuationToken
     def get_jsonc(self, an_url):
         headers = {"User-Agent": USER_AGENT_STRING}
+        retries_left = 2
 
-        if self.verbosity > 2:
-            print(an_url)
-        response = requests.get(an_url, headers=headers)
-        result = response.text
-        output = json.loads(result)
+        while retries_left >= 0:
+            if self.verbosity > 2:
+                print(an_url)
+            response = requests.get(an_url, headers=headers)
+            result = response.text
+            try:
+                output = json.loads(result)
+                # will only break on good decode
+                break
+            except json.decoder.JSONDecodeError as e:
+                logger.warning("json decode error. input: %s" % result)
+                if retries_left == 0:
+                    raise e
+            retries_left -= 1
 
         while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
