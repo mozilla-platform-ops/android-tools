@@ -283,7 +283,7 @@ current_dedup_key = ""
                 if not started_lines_present:
                     triggered_now = True
 
-            consecutive_failed_checks_to_alert_at = 2
+            consecutive_failed_checks_to_alert_at = 3
             if triggered_now:
                 self.consecutive_failed_checks += 1
                 if (
