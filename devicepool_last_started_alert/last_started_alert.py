@@ -194,7 +194,8 @@ class LastStarted:
         return False
 
     def running_lines_present(self, output):
-        for line in output:
+        lines = output.split("\n")
+        for line in lines:
             matches = re.search(RUNNING_REGEX, line)
             if matches:
                 count = matches.group(1)
