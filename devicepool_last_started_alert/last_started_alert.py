@@ -28,7 +28,7 @@ STATE_FILE = os.path.join(os.path.expanduser("~"), ".last_started_alert_state.to
 INCIDENT_KEY = "Devicepool Last Started Alert: "
 STARTED_REGEX = r"test run [\d]+ started"
 FINISHED_REGEX = r"test run [\d]+ finished"
-RUNNING_REGEX = r"RUNNING (\d+)"
+RUNNING_REGEX = r"DISABLED \d+ RUNNING (\d+)"
 URLS = [
     #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-unit-p2",
     #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-perf-p2",
