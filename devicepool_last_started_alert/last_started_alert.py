@@ -198,7 +198,7 @@ class LastStarted:
             matches = re.search(RUNNING_REGEX, line)
             if matches:
                 count = matches.group(1)
-                if count != 0:
+                if int(count) != 0:
                     return True
         return False
 
