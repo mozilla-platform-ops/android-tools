@@ -28,6 +28,7 @@ STATE_FILE = os.path.join(os.path.expanduser("~"), ".last_started_alert_state.to
 INCIDENT_KEY = "Devicepool Last Started Alert: "
 STARTED_REGEX = r"test run [\d]+ started"
 FINISHED_REGEX = r"test run [\d]+ finished"
+RUNNING_REGEX = r"RUNNING (\d+)"
 URLS = [
     #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-unit-p2",
     #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-perf-p2",
@@ -182,16 +183,23 @@ class LastStarted:
         self.pd_session.resolve(self.get_dedup_key(get_new_if_not_set=False))
         self.set_currently_alerting(False)
 
-    def started_lines_present(self):
-        output = self.get_journalctl_output()
+    def started_lines_present(self, output):
         if re.search(STARTED_REGEX, output):
             return True
         return False
 
-    def completed_lines_present(self):
-        output = self.get_journalctl_output()
+    def completed_lines_present(self, output):
         if re.search(FINISHED_REGEX, output):
             return True
+        return False
+
+    def running_lines_present(self, output):
+        for line in output:
+            matches = re.search(RUNNING_REGEX, line)
+            if matches:
+                count = matches.group(1)
+                if count != 0:
+                    return True
         return False
 
     def get_journalctl_output(self):
@@ -248,9 +256,11 @@ current_dedup_key = ""
             return return_dict
 
     def perform_check(self, args):
-        currently_alerting = self.currently_alerting()
-        jobs_in_queues = self.jobs_in_queues()
-        started_lines_present = self.started_lines_present()
+        # TODO: make this set an instance var, default functions to use it
+        output = self.get_journalctl_output()
+        currently_alerting = self.currently_alerting(output)
+        jobs_in_queues = self.jobs_in_queues(output)
+        started_lines_present = self.started_lines_present(output)
         # completed_lines_present = self.completed_lines_present()
         enough_journalctl_lines = self.enough_journalctl_lines()
 
