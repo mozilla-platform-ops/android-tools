@@ -291,6 +291,8 @@ current_dedup_key = ""
             # alert decision logic
             triggered_now = False
             if jobs_in_queues > 5:
+                # TODO: also ensure that there are no jobs running before alerting?
+                #   - would reduce false alerts...
                 if not started_lines_present:
                     triggered_now = True
 
