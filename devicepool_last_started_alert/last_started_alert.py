@@ -258,7 +258,7 @@ current_dedup_key = ""
     def perform_check(self, args):
         # TODO: make this set an instance var, default functions to use it
         output = self.get_journalctl_output()
-        currently_alerting = self.currently_alerting(output)
+        currently_alerting = self.currently_alerting()
         jobs_in_queues = self.jobs_in_queues(output)
         started_lines_present = self.started_lines_present(output)
         running_lines_present = self.running_lines_present(output)
