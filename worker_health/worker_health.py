@@ -14,6 +14,8 @@ log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
 logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
+import utils
+
 try:
     import pendulum
     import requests
@@ -512,7 +514,7 @@ class WorkerHealth:
         return list(csv.reader([csv_string], skipinitialspace=True))[0]
 
     def get_offline_workers_from_journalctl(self):
-        if not self.bitbar_systemd_service_present():
+        if not utils.bitbar_systemd_service_present():
             logger.debug("bitbar systemd service not present, returning early.")
             return {}
         pattern = r": (.*) WARNING (.*) DISABLED (\d+) OFFLINE (\d+) (.*)"
@@ -535,19 +537,6 @@ class WorkerHealth:
         #     print("%s: %s" % (k, v))
 
         return offline_dict
-
-    def bitbar_systemd_service_present(self, warn=False, error=False):
-        try:
-            self.run_cmd("systemctl status bitbar > /dev/null 2>&1")
-        except NonZeroExit:
-            if warn:
-                logger.warn(
-                    "this should be run on the primary devicepool host for maximum data."
-                )
-            if error:
-                logger.error("this must be run on the primary devicepool host!")
-            return False
-        return True
 
     # gathers and generates data
     def gather_data(self):
@@ -646,7 +635,7 @@ class WorkerHealth:
             if self.quarantined_workers:
                 print(output_format % ("tc-quarantined", self.quarantined_workers))
 
-            if self.bitbar_systemd_service_present():
+            if utils.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
                 print(output_format % ("devicepool", offline_workers_flattened))
