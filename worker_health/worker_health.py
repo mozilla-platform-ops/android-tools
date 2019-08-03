@@ -390,6 +390,9 @@ class WorkerHealth:
 
             for worker in self.devicepool_queues_and_workers[queue]:
                 if worker in self.tc_current_worker_last_started:
+                    # if quarantined, we don't need to check any further
+                    if not exclude_quarantined and worker in self.quarantined_workers:
+                        mw2[queue].append(worker)
                     # tardy workers
                     if queue_empty:
                         continue
