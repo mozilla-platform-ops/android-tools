@@ -18,12 +18,11 @@ except ImportError:
 
 
 class InfluxLogger:
-    def __init__(self, log_level, time_limit, testing_mode, verbosity):
-        self.wh = WorkerHealth(log_level)
+    def __init__(self, log_level, time_limit, testing_mode):
         self.time_limit = time_limit
         self.logging_enabled = False
         self.testing_mode = testing_mode
-        self.log_level = verbosity
+        self.log_level = log_level
 
         self.configuration_file = os.path.join(
             os.path.expanduser("~"), ".bitbar_influx_logger.toml"
@@ -196,6 +195,6 @@ if __name__ == "__main__":
 
     # TODO: just pass args?
     sa = InfluxLogger(
-        args.log_level, args.time_limit, args.testing_mode, args.log_level
+        args.log_level, args.time_limit, args.testing_mode
     )
     sa.main()
