@@ -363,6 +363,7 @@ class WorkerHealth:
                     )
                     show_details = False
 
+    # TODO: unit test this
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
