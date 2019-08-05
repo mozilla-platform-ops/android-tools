@@ -178,7 +178,7 @@ class WorkerHealth:
                     self.devicepool_bitbar_device_groups[item] = list(keys)
 
         for project in self.devicepool_config_yaml["projects"]:
-            if project.endswith("p2") or project.endswith("g5"):
+            if project.endswith("p2") or project.endswith("g5") or 'test' in project:
                 try:
                     # set the workers for a queue
                     self.devicepool_queues_and_workers[
@@ -393,10 +393,11 @@ class WorkerHealth:
                 more_workers_than_jobs = True
 
             for worker in self.devicepool_queues_and_workers[queue]:
+                if not exclude_quarantined and worker in self.quarantined_workers:
+                    mw2[queue].append(worker)
+                    continue
+
                 if worker in self.tc_current_worker_last_started:
-                    # if quarantined, we don't need to check any further
-                    if not exclude_quarantined and worker in self.quarantined_workers:
-                        mw2[queue].append(worker)
                     # tardy workers
                     if queue_empty:
                         continue
@@ -413,12 +414,6 @@ class WorkerHealth:
                         mw2[queue].append(worker)
                 else:
                     # fully missing worker
-                    # - devicepool lists these as offline
-                    if exclude_quarantined and worker in self.quarantined_workers:
-                        continue
-                    # continue here if no jobs or too few
-                    if worker in self.quarantined_workers:
-                        mw2[queue].append(worker)
                     if queue_empty:
                         continue
                     if more_workers_than_jobs:
