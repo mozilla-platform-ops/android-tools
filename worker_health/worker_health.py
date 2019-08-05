@@ -114,7 +114,11 @@ class WorkerHealth:
             except subprocess.CalledProcessError:
                 # os x has whacked the repo, reclone
                 os.chdir("..")
-                shutil.rmtree(repo_path)
+                try:    
+                    shutil.rmtree(repo_path)
+                except FileNotFoundError:
+                    # if a file went away for some reason during this, fine...
+                    pass
                 cmd = "git clone %s %s" % (repo_url, repo_path)
                 args = cmd.split(" ")
                 subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
