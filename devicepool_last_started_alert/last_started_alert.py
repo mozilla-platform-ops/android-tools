@@ -208,12 +208,7 @@ class LastStarted:
         cmd = (
             "journalctl -u bitbar --since '%s minutes ago'" % MINUTES_OF_LOGS_TO_INSPECT
         )
-        try:
-            res = self.run_cmd(cmd)
-        except subprocess.TimeoutExpired:
-            # just try again for now... should work this time
-            # if not, explode and let systemd restart
-            res = self.run_cmd(cmd)
+        res = self.run_cmd(cmd)
 
         lines = res.split("\n")
         self.journalctl_lines_of_output = len(lines)
@@ -221,14 +216,10 @@ class LastStarted:
         return res
 
     def run_cmd(self, cmd):
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        proc.wait(timeout=10)
-        rc = proc.returncode
-        if rc == 0:
-            tmp = proc.stdout.read().strip()
-            return tmp.decode()
-        else:
-            raise Exception("non-zero code returned")
+        return subprocess.check_output(
+                    cmd,
+                    stderr=subprocess.STDOUT,
+                    shell=True).strip().decode()
 
     def write_toml(self, dict_to_write):
         with open(STATE_FILE, "w") as writer:
