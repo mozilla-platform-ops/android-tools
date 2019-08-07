@@ -8,20 +8,16 @@ class NonZeroExit(Exception):
 
 
 def run_cmd(cmd):
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    proc.wait(timeout=10)
-    rc = proc.returncode
-    if rc == 0:
-        tmp = proc.stdout.read().strip()
-        return tmp.decode()
-    else:
-        raise NonZeroExit("non-zero code returned")
+    return subprocess.check_output(
+                cmd,
+                stderr=subprocess.STDOUT,
+                shell=True).strip().decode()
 
 
 def bitbar_systemd_service_present(warn=False, error=False):
     try:
         run_cmd("systemctl status bitbar > /dev/null 2>&1")
-    except NonZeroExit:
+    except subprocess.CalledProcessError:
         if warn:
             logger.warn(
                 "this should be run on the primary devicepool host for maximum data."
