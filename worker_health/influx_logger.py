@@ -93,7 +93,10 @@ verify_ssl = false
     def write_multiline_influx_data(self, wh_instance):
         if self.logging_enabled:
             self.influx_client.write(
-                wh_instance.influx_log_lines_to_send, {"db": self.influx_db}, 204, "line"
+                wh_instance.influx_log_lines_to_send,
+                {"db": self.influx_db},
+                204,
+                "line",
             )
             logger.info(
                 "wrote %s line(s) to influx" % len(wh_instance.influx_log_lines_to_send)
@@ -196,7 +199,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # TODO: just pass args?
-    sa = InfluxLogger(
-        args.log_level, args.time_limit, args.testing_mode
-    )
+    sa = InfluxLogger(args.log_level, args.time_limit, args.testing_mode)
     sa.main()

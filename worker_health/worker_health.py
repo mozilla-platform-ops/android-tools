@@ -76,10 +76,11 @@ class WorkerHealth:
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
 
     def run_cmd(self, cmd):
-        return subprocess.check_output(
-                    cmd,
-                    stderr=subprocess.STDOUT,
-                    shell=True).strip().decode()
+        return (
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+            .strip()
+            .decode()
+        )
 
     def clone_or_update(self, repo_url, repo_path, force_update=False):
         devnull_fh = open(os.devnull, "w")
@@ -110,7 +111,7 @@ class WorkerHealth:
             except subprocess.CalledProcessError:
                 # os x has whacked the repo, reclone
                 os.chdir("..")
-                try:    
+                try:
                     shutil.rmtree(repo_path)
                 except FileNotFoundError:
                     # if a file went away for some reason during this, fine...
@@ -174,7 +175,7 @@ class WorkerHealth:
                     self.devicepool_bitbar_device_groups[item] = list(keys)
 
         for project in self.devicepool_config_yaml["projects"]:
-            if project.endswith("p2") or project.endswith("g5") or 'test' in project:
+            if project.endswith("p2") or project.endswith("g5") or "test" in project:
                 try:
                     # set the workers for a queue
                     self.devicepool_queues_and_workers[
