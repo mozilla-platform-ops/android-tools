@@ -1,4 +1,5 @@
 import csv
+import getpass
 import json
 import logging
 import os
@@ -45,8 +46,9 @@ class NonZeroExit(Exception):
 
 class WorkerHealth:
     def __init__(self, verbosity=0):
+        username = getpass.getuser()
         self.devicepool_client_dir = os.path.join(
-            "/", "tmp", "worker_health", "mozilla-bitbar-devicepool"
+            "/", "tmp", ("worker_health.%s" % username), "mozilla-bitbar-devicepool"
         )
         self.devicepool_git_clone_url = (
             "https://github.com/bclary/mozilla-bitbar-devicepool.git"
