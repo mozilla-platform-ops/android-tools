@@ -3,10 +3,6 @@ import subprocess
 from worker_health import logger
 
 
-class NonZeroExit(Exception):
-    pass
-
-
 def run_cmd(cmd):
     return subprocess.check_output(
                 cmd,
