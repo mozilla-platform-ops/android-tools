@@ -9,7 +9,6 @@ import pprint
 import re
 import socket
 import subprocess
-import sys
 import time
 from urllib.request import urlopen
 
@@ -20,6 +19,7 @@ from pdpyras import EventsAPISession
 MINUTES_OF_LOGS_TO_INSPECT = 15
 MINIMUM_LINES_OF_JOURNALCTL_OUTPUT = 10
 DAEMON_MODE_CHECK_FREQUENCY_SECONDS = 5 * 60
+# TODO: load this from config file
 PD_SERVICE_ID = "PAYN6NV"
 
 # constants
@@ -28,6 +28,7 @@ STATE_FILE = os.path.join(os.path.expanduser("~"), ".last_started_alert_state.to
 INCIDENT_KEY = "Devicepool Last Started Alert: "
 STARTED_REGEX = r"test run [\d]+ started"
 FINISHED_REGEX = r"test run [\d]+ finished"
+RUNNING_REGEX = r"DISABLED \d+ RUNNING (\d+)"
 URLS = [
     #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-unit-p2",
     #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-perf-p2",
@@ -52,6 +53,9 @@ class LastStarted:
         self.pp = pprint.PrettyPrinter(indent=4)
         self.pd_session = None
         self.journalctl_lines_of_output = None
+
+        # TODO: persist in state dict/file?
+        self.consecutive_failed_checks = 0
 
         # TODO: load state from dict
         self.state_dict = self.read_toml()
@@ -179,16 +183,24 @@ class LastStarted:
         self.pd_session.resolve(self.get_dedup_key(get_new_if_not_set=False))
         self.set_currently_alerting(False)
 
-    def started_lines_present(self):
-        output = self.get_journalctl_output()
+    def started_lines_present(self, output):
         if re.search(STARTED_REGEX, output):
             return True
         return False
 
-    def completed_lines_present(self):
-        output = self.get_journalctl_output()
+    def completed_lines_present(self, output):
         if re.search(FINISHED_REGEX, output):
             return True
+        return False
+
+    def running_lines_present(self, output):
+        lines = output.split("\n")
+        for line in lines:
+            matches = re.search(RUNNING_REGEX, line)
+            if matches:
+                count = matches.group(1)
+                if int(count) != 0:
+                    return True
         return False
 
     def get_journalctl_output(self):
@@ -196,12 +208,7 @@ class LastStarted:
         cmd = (
             "journalctl -u bitbar --since '%s minutes ago'" % MINUTES_OF_LOGS_TO_INSPECT
         )
-        try:
-            res = self.run_cmd(cmd)
-        except subprocess.TimeoutExpired:
-            # just try again for now... should work this time
-            # if not, explode and let systemd restart
-            res = self.run_cmd(cmd)
+        res = self.run_cmd(cmd)
 
         lines = res.split("\n")
         self.journalctl_lines_of_output = len(lines)
@@ -209,14 +216,10 @@ class LastStarted:
         return res
 
     def run_cmd(self, cmd):
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        proc.wait(timeout=10)
-        rc = proc.returncode
-        if rc == 0:
-            tmp = proc.stdout.read().strip()
-            return tmp.decode()
-        else:
-            raise Exception("non-zero code returned")
+        return subprocess.check_output(
+                    cmd,
+                    stderr=subprocess.STDOUT,
+                    shell=True).strip().decode()
 
     def write_toml(self, dict_to_write):
         with open(STATE_FILE, "w") as writer:
@@ -245,10 +248,12 @@ current_dedup_key = ""
             return return_dict
 
     def perform_check(self, args):
+        # TODO: make this set an instance var, default functions to use it
+        output = self.get_journalctl_output()
         currently_alerting = self.currently_alerting()
         jobs_in_queues = self.jobs_in_queues()
-        started_lines_present = self.started_lines_present()
-        completed_lines_present = self.completed_lines_present()
+        started_lines_present = self.started_lines_present(output)
+        running_lines_present = self.running_lines_present(output)
         enough_journalctl_lines = self.enough_journalctl_lines()
 
         # INFO
@@ -264,7 +269,7 @@ current_dedup_key = ""
                 print(
                     "  Enough lines of journalctl output?: %s" % enough_journalctl_lines
                 )
-                print("  Completed lines present?: %s" % completed_lines_present)
+                print("  Running lines present?: %s" % running_lines_present)
             print("Decision metrics:")
             print("  Jobs in queues: %s" % jobs_in_queues)
             print("  Started lines present?: %s" % started_lines_present)
@@ -277,17 +282,35 @@ current_dedup_key = ""
             # alert decision logic
             triggered_now = False
             if jobs_in_queues > 5:
+                # TODO: also ensure that there are no jobs running before alerting?
+                #   - would reduce false alerts...
                 if not started_lines_present:
                     triggered_now = True
 
+            consecutive_failed_checks_to_alert_at = 3
             if triggered_now:
-                    print("*** Alert conditions met! Sending trigger event.")
-                    self.trigger_event()
-            else:
-                if currently_alerting:
+                self.consecutive_failed_checks += 1
+                if (
+                    self.consecutive_failed_checks
+                    >= consecutive_failed_checks_to_alert_at
+                ):
                     print(
-                        "*** Alert conditions not met. Resolving current incident."
+                        "*** Alert conditions met (%s consecutive failed checks)! Sending trigger event."
+                        % self.consecutive_failed_checks
                     )
+                    self.trigger_event()
+                else:
+                    print(
+                        "*** Alert conditions met, but threshold not met (%s/%s consecutive failed checks)."
+                        % (
+                            self.consecutive_failed_checks,
+                            consecutive_failed_checks_to_alert_at,
+                        )
+                    )
+            else:
+                self.consecutive_failed_checks = 0
+                if currently_alerting:
+                    print("*** Alert conditions not met. Resolving current incident.")
                     self.resolve_incident()
                 else:
                     print("*** Alert conditions not met.")

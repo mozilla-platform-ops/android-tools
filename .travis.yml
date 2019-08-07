@@ -6,8 +6,15 @@ install:
   - pip install pipenv
   - cd worker_health
   - pipenv install --dev
+  - cd ..
 
 script:
+  # worker_health
+  - cd worker_health
   - pyflakes *.py
   - pytest -v
   - ./test_help.sh
+  - cd ..
+  # devicepool_last_started_alert
+  - cd devicepool_last_started_alert
+  - pyflakes *.py
