@@ -10,13 +10,14 @@ import requests
 import schedule
 import toml
 
+import utils
 from worker_health import WorkerHealth, logger
 
 
 class SlackAlert:
     def __init__(self, log_level, time_limit, testing_mode_enabled):
-        self.wh = WorkerHealth(log_level)
         self.time_limit = time_limit
+        self.log_level = log_level
         self.alerting_enabled = False
         self.testing_mode = testing_mode_enabled
         self.bitbar_tz = "America/Los_Angeles"
@@ -55,9 +56,10 @@ webhook_url = ""
         logger.info("now.hour %s, now.day_of_week %s" % (now.hour, now.day_of_week))
         if (7 <= now.hour <= 18) and (1 <= now.day_of_week <= 5):
             logger.info("inside run window")
+            wh = WorkerHealth(self.log_level)
             # for slack alerts, don't mention tc quarantined hosts
             # - will still appear if offline in devicepool
-            pw = self.wh.get_problem_workers(
+            pw = wh.get_problem_workers(
                 time_limit=self.time_limit, exclude_quarantined=True
             )
             if pw:
@@ -102,7 +104,7 @@ webhook_url = ""
             )
 
         # warn the user that all possible data is not available
-        self.wh.bitbar_systemd_service_present(warn=True)
+        utils.bitbar_systemd_service_present(warn=True)
 
         if args.testing_mode:
             testing_mode_start_delay = 10

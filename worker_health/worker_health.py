@@ -14,6 +14,8 @@ log_format = "%(levelname)-10s %(funcName)s: %(message)s"
 logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
+import utils
+
 try:
     import pendulum
     import requests
@@ -74,14 +76,11 @@ class WorkerHealth:
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
 
     def run_cmd(self, cmd):
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        proc.wait(timeout=10)
-        rc = proc.returncode
-        if rc == 0:
-            tmp = proc.stdout.read().strip()
-            return tmp.decode()
-        else:
-            raise NonZeroExit("non-zero code returned")
+        return (
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+            .strip()
+            .decode()
+        )
 
     def clone_or_update(self, repo_url, repo_path, force_update=False):
         devnull_fh = open(os.devnull, "w")
@@ -112,7 +111,11 @@ class WorkerHealth:
             except subprocess.CalledProcessError:
                 # os x has whacked the repo, reclone
                 os.chdir("..")
-                shutil.rmtree(repo_path)
+                try:
+                    shutil.rmtree(repo_path)
+                except FileNotFoundError:
+                    # if a file went away for some reason during this, fine...
+                    pass
                 cmd = "git clone %s %s" % (repo_url, repo_path)
                 args = cmd.split(" ")
                 subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
@@ -128,12 +131,22 @@ class WorkerHealth:
     # handles continuationToken
     def get_jsonc(self, an_url):
         headers = {"User-Agent": USER_AGENT_STRING}
+        retries_left = 2
 
-        if self.verbosity > 2:
-            print(an_url)
-        response = requests.get(an_url, headers=headers)
-        result = response.text
-        output = json.loads(result)
+        while retries_left >= 0:
+            if self.verbosity > 2:
+                print(an_url)
+            response = requests.get(an_url, headers=headers)
+            result = response.text
+            try:
+                output = json.loads(result)
+                # will only break on good decode
+                break
+            except json.decoder.JSONDecodeError as e:
+                logger.warning("json decode error. input: %s" % result)
+                if retries_left == 0:
+                    raise e
+            retries_left -= 1
 
         while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
@@ -162,7 +175,7 @@ class WorkerHealth:
                     self.devicepool_bitbar_device_groups[item] = list(keys)
 
         for project in self.devicepool_config_yaml["projects"]:
-            if project.endswith("p2") or project.endswith("g5"):
+            if project.endswith("p2") or project.endswith("g5") or "test" in project:
                 try:
                     # set the workers for a queue
                     self.devicepool_queues_and_workers[
@@ -351,6 +364,7 @@ class WorkerHealth:
                     )
                     show_details = False
 
+    # TODO: unit test this
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
@@ -376,6 +390,10 @@ class WorkerHealth:
                 more_workers_than_jobs = True
 
             for worker in self.devicepool_queues_and_workers[queue]:
+                if not exclude_quarantined and worker in self.quarantined_workers:
+                    mw2[queue].append(worker)
+                    continue
+
                 if worker in self.tc_current_worker_last_started:
                     # tardy workers
                     if queue_empty:
@@ -393,12 +411,6 @@ class WorkerHealth:
                         mw2[queue].append(worker)
                 else:
                     # fully missing worker
-                    # - devicepool lists these as offline
-                    if exclude_quarantined and worker in self.quarantined_workers:
-                        continue
-                    # continue here if no jobs or too few
-                    if worker in self.quarantined_workers:
-                        mw2[queue].append(worker)
                     if queue_empty:
                         continue
                     if more_workers_than_jobs:
@@ -502,7 +514,7 @@ class WorkerHealth:
         return list(csv.reader([csv_string], skipinitialspace=True))[0]
 
     def get_offline_workers_from_journalctl(self):
-        if not self.bitbar_systemd_service_present():
+        if not utils.bitbar_systemd_service_present():
             logger.debug("bitbar systemd service not present, returning early.")
             return {}
         pattern = r": (.*) WARNING (.*) DISABLED (\d+) OFFLINE (\d+) (.*)"
@@ -525,19 +537,6 @@ class WorkerHealth:
         #     print("%s: %s" % (k, v))
 
         return offline_dict
-
-    def bitbar_systemd_service_present(self, warn=False, error=False):
-        try:
-            self.run_cmd("systemctl status bitbar > /dev/null 2>&1")
-        except NonZeroExit:
-            if warn:
-                logger.warn(
-                    "this should be run on the primary devicepool host for maximum data."
-                )
-            if error:
-                logger.error("this must be run on the primary devicepool host!")
-            return False
-        return True
 
     # gathers and generates data
     def gather_data(self):
@@ -636,7 +635,7 @@ class WorkerHealth:
             if self.quarantined_workers:
                 print(output_format % ("tc-quarantined", self.quarantined_workers))
 
-            if self.bitbar_systemd_service_present():
+            if utils.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
                 print(output_format % ("devicepool", offline_workers_flattened))

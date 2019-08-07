@@ -7,6 +7,7 @@ import sys
 import time
 
 from worker_health import WorkerHealth, logger
+import utils
 
 try:
     from influxdb import InfluxDBClient
@@ -18,12 +19,11 @@ except ImportError:
 
 
 class InfluxLogger:
-    def __init__(self, log_level, time_limit, testing_mode, verbosity):
-        self.wh = WorkerHealth(log_level)
+    def __init__(self, log_level, time_limit, testing_mode):
         self.time_limit = time_limit
         self.logging_enabled = False
         self.testing_mode = testing_mode
-        self.log_level = verbosity
+        self.log_level = log_level
 
         self.configuration_file = os.path.join(
             os.path.expanduser("~"), ".bitbar_influx_logger.toml"
@@ -90,37 +90,41 @@ verify_ssl = false
             return return_dict
 
     # writes lists of strings to influx in line format
-    def write_multiline_influx_data(self):
+    def write_multiline_influx_data(self, wh_instance):
         if self.logging_enabled:
             self.influx_client.write(
-                self.wh.influx_log_lines_to_send, {"db": self.influx_db}, 204, "line"
+                wh_instance.influx_log_lines_to_send,
+                {"db": self.influx_db},
+                204,
+                "line",
             )
             logger.info(
-                "wrote %s line(s) to influx" % len(self.wh.influx_log_lines_to_send)
+                "wrote %s line(s) to influx" % len(wh_instance.influx_log_lines_to_send)
             )
             if self.log_level:
                 logger.info(
                     "lines written: \n%s"
-                    % self.pp.pformat(self.wh.influx_log_lines_to_send)
+                    % self.pp.pformat(wh_instance.influx_log_lines_to_send)
                 )
         else:
             logger.info(
                 "test mode: would have written: \n%s"
-                % self.pp.pformat(self.wh.influx_log_lines_to_send)
+                % self.pp.pformat(wh_instance.influx_log_lines_to_send)
             )
         # zero out lines to send
-        self.wh.influx_log_lines_to_send = []
+        wh_instance.influx_log_lines_to_send = []
 
     # logs both problem and configured data
     def do_worker_influx_logging(self):
         logger.info("gathering data and generating influx log lines...")
-        pw = self.wh.influx_report(time_limit=self.time_limit, verbosity=self.log_level)
+        wh = WorkerHealth(self.log_level)
+        pw = wh.influx_report(time_limit=self.time_limit, verbosity=self.log_level)
 
         if self.log_level:
             print("problem workers (includes quarantined): \n%s" % self.pp.pformat(pw))
 
         logger.info("writing log lines to influx...")
-        self.write_multiline_influx_data()
+        self.write_multiline_influx_data(wh)
 
     def main(self):
         if self.logging_enabled:
@@ -132,7 +136,7 @@ verify_ssl = false
             )
 
         if self.testing_mode:
-            self.wh.bitbar_systemd_service_present(warn=True)
+            utils.bitbar_systemd_service_present(warn=True)
 
             testing_mode_start_delay = 10
             logger.warning(
@@ -143,7 +147,7 @@ verify_ssl = false
                 time.sleep(testing_mode_start_delay)
 
         else:
-            if not self.wh.bitbar_systemd_service_present(error=True):
+            if not utils.bitbar_systemd_service_present(error=True):
                 # check call messages
                 sys.exit(1)
 
@@ -195,7 +199,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # TODO: just pass args?
-    sa = InfluxLogger(
-        args.log_level, args.time_limit, args.testing_mode, args.log_level
-    )
+    sa = InfluxLogger(args.log_level, args.time_limit, args.testing_mode)
     sa.main()
