@@ -1,0 +1,50 @@
+digraph G {
+    
+//     queue.taskcluster.net <=> mozilla-bitbar-devicepool service on
+// devicepool hosts <=> bitbar api server (mozilla.testdroid.com) <=>
+// bitbar cluster manager (andXX.mv.mozilla.hc.bitbar) <=> usb hub (some
+// use cambrionix programmable hubs) <=> phone (pixel2, motorola g5)
+    
+    
+  subgraph cluster_0 {
+    style=filled;
+    color=lightblue;
+    node [shape=Mrecord,style=filled,color=white];
+    label = "Mozilla                      ";
+    a0 [label="queue.taskcluster.net"];
+    a1 [label="mozilla-bitbar-devicepool service\n (primary devicepool-X.relops.mozops.net host)"];
+    a0 -> a1;
+  }    
+
+  subgraph cluster_1 {
+    style=filled;
+    color=cadetblue1;
+    node [shape=Mrecord,style=filled,color=white];
+    a4 [label="Bitbar API Server\n (mozilla.testdroid.com)"];
+    label = " Bitbar                  ";
+    a4 -> a5;
+    a5 -> phone [label="  ADB via Wifi  "];
+    
+    hub -> phone;
+    smart_hub -> phone;
+    
+    a5 -> hub [label="   ADB via USB   "];
+    hub [label="Cambrionix USB Hub\n (allows remote control of charging)"];
+
+    a5 -> smart_hub [label="   ADB via USB   "];
+    smart_hub [label="basic USB Hub"];
+    
+    a5 [label="bitbar cluster manager\n (andXX.mv.mozilla.hc.bitbar)\n - runs docker images"];
+    phone [label="mobile device\n (pixel2 or motog5)"];
+  }
+
+  // edges
+  start -> a0;
+  a1 -> a4
+  phone -> end;
+ 
+  start [shape=Mrecord,label="task creation", style=filled, color=gray];
+  end [shape=Mrecord, label="task completion", style=filled, color=gray];
+}
+
+
