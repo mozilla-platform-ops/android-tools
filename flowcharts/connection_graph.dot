@@ -1,13 +1,12 @@
 digraph G {
-    label=<<BR/><B>android hardware (bitbar) connection graph</B>>
+  label=<<BR/><B>android hardware (bitbar) connection graph</B>>
 
-    // rankdir=LR;
+  // rankdir=LR;
 
-//     queue.taskcluster.net <=> mozilla-bitbar-devicepool service on
-// devicepool hosts <=> bitbar api server (mozilla.testdroid.com) <=>
-// bitbar cluster manager (andXX.mv.mozilla.hc.bitbar) <=> usb hub (some
-// use cambrionix programmable hubs) <=> phone (pixel2, motorola g5)
-    
+  // queue.taskcluster.net <=> mozilla-bitbar-devicepool service on
+  // devicepool hosts <=> bitbar api server (mozilla.testdroid.com) <=>
+  // bitbar cluster manager (andXX.mv.mozilla.hc.bitbar) <=> usb hub (some
+  // use cambrionix programmable hubs) <=> phone (pixel2, motorola g5)
     
   subgraph cluster_0 {
     labeljust="r";
@@ -15,8 +14,10 @@ digraph G {
     color=lightblue;
     node [shape=Mrecord,style=filled,color=white];
     label = "Mozilla";
+
     a0 [label="queue.taskcluster.net", start="true"];
     a1 [label="mozilla-bitbar-devicepool service\n (active devicepool-X.relops.mozops.net host)"];
+
     a0 -> a1 [label="  HTTPS", dir="both"];
   }    
 
@@ -44,16 +45,10 @@ digraph G {
 
   // edges
   start -> a0;
-
   a1 -> a4 [label="  HTTPS", dir="both"];
-  
   a5 -> a0 [label="  HTTPS", dir="both", ];
-
-//   a1 -> a4;
-//   phone -> end;
-
   start [shape=Mrecord,label="task creation", style=filled, color=gray];
-//   end [shape=Mrecord, label="task completion", style=filled, color=gray];
+  // end [shape=Mrecord, label="task completion", style=filled, color=gray];
 
 }
 
