@@ -1,0 +1,54 @@
+digraph G {
+  label=<<BR/><B>android hardware (bitbar) connection graph</B>>
+
+  // rankdir=LR;
+
+  // queue.taskcluster.net <=> mozilla-bitbar-devicepool service on
+  // devicepool hosts <=> bitbar api server (mozilla.testdroid.com) <=>
+  // bitbar cluster manager (andXX.mv.mozilla.hc.bitbar) <=> usb hub (some
+  // use cambrionix programmable hubs) <=> phone (pixel2, motorola g5)
+    
+  subgraph cluster_0 {
+    labeljust="r";
+    style=filled;
+    color=lightblue;
+    node [shape=Mrecord,style=filled,color=white];
+    label = "Mozilla";
+
+    a0 [label="queue.taskcluster.net", start="true"];
+    a1 [label="mozilla-bitbar-devicepool service\n (active devicepool-X.relops.mozops.net host)"];
+
+    a0 -> a1 [label="  HTTPS", dir="both"];
+  }    
+
+  subgraph cluster_1 {
+    labeljust="r";
+    style=filled;
+    color=cadetblue1;
+    node [shape=Mrecord,style=filled,color=white];
+    label = "Bitbar";
+
+    a4 [label="Bitbar API Server\n (mozilla.testdroid.com)"];
+    hub  [label="USB Hubs"];
+    a5 [label="Bitbar Cluster Managers\n (andXX.mv.mozilla.hc.bitbar, \nruns mozilla-bitbar-docker images\n that run generic-worker)"];
+    phone [label="mobile devices in unit or perf queues\n (pixel2 or motog5)"];
+    batt_phone [label="mobile devices in batt queues\n (pixel2 or motog5)"];
+    smart_hub [label="Cambrionix USB Hubs\n (allows remote control of power,\ndisconnected during test)"];
+
+    a4 -> a5 [dir="both", label="   HTTPS"];
+    a5 -> hub [label=" ADB via USB   ", dir="both"];
+    a5 -> smart_hub [label="    power",style="dashed", dir="both"];
+    a5 -> batt_phone [label=" ADB via Wifi  ", dir="both"];
+    hub -> phone [dir="both"];
+    smart_hub -> batt_phone [style="dashed", dir="both"];
+  }
+
+  // edges
+  start -> a0;
+  a1 -> a4 [label="  HTTPS", dir="both"];
+  a5 -> a0 [label="  HTTPS", dir="both", ];
+  start [shape=Mrecord,label="task creation", style=filled, color=gray];
+  // end [shape=Mrecord, label="task completion", style=filled, color=gray];
+
+}
+
