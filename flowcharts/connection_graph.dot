@@ -1,4 +1,6 @@
 digraph G {
+    label=<<BR/><B>android hardware (bitbar) connection graph</B>>
+
     // rankdir=LR;
 
 //     queue.taskcluster.net <=> mozilla-bitbar-devicepool service on
