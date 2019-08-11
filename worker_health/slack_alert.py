@@ -50,6 +50,24 @@ webhook_url = ""
             self.write_toml(return_dict)
             return return_dict
 
+    def slack_alert(self):
+        wh = WorkerHealth(self.log_level)
+        # for slack alerts, don't mention tc quarantined hosts
+        # - will still appear if offline in devicepool
+        pw = wh.get_problem_workers(
+            time_limit=self.time_limit, exclude_quarantined=True
+        )
+        if pw:
+            message = "problem workers: %s" % pw
+            # TODO: show count?
+            # message = "problem workers: %s %s" % (len(pw), pw)
+            if self.alerting_enabled:
+                self.send_slack_message(message)
+            else:
+                logger.info("would have sent message: '%s'" % message)
+        else:
+            logger.info("no problem workers")
+
     # only fires if it's 8AM-6PM M-F in bitbar TZ
     def slack_alert_m_thru_f(self):
         now = pendulum.now(tz=self.bitbar_tz)
@@ -120,15 +138,15 @@ webhook_url = ""
             logger.info("job will run every %s minutes" % minutes_to_run)
             # run one right now
             logger.info("running once immediately")
-            self.slack_alert_m_thru_f()
+            self.slack_alert()
             # test schedule
-            schedule.every(minutes_to_run).minutes.do(self.slack_alert_m_thru_f)
+            schedule.every(minutes_to_run).minutes.do(self.slack_alert)
         else:
             # run once every hour at specific minute
             minute_of_hour_to_run = 7
             minute_at_string = ":%s" % str(minute_of_hour_to_run).zfill(2)
             logger.info("job will run every hour at %s" % minute_at_string)
-            schedule.every().hour.at(minute_at_string).do(self.slack_alert_m_thru_f)
+            schedule.every().hour.at(minute_at_string).do(self.slack_alert)
 
         while True:
             schedule.run_pending()
