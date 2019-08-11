@@ -58,9 +58,8 @@ webhook_url = ""
             time_limit=self.time_limit, exclude_quarantined=True
         )
         if pw:
-            message = "problem workers: %s" % pw
-            # TODO: show count?
-            # message = "problem workers: %s %s" % (len(pw), pw)
+            # message = "problem workers: %s" % pw
+            message = "problem workers (%s): %s" % (len(pw), pw)
             if self.alerting_enabled:
                 self.send_slack_message(message)
             else:
