@@ -288,7 +288,7 @@ current_dedup_key = ""
                     triggered_now = True
 
             # TODO: make this a class level var?
-            consecutive_failed_checks_to_alert_at = 3
+            consecutive_failed_checks_to_alert_at = 2
             if triggered_now:
                 self.consecutive_failed_checks += 1
                 if (
