@@ -527,7 +527,7 @@ class WorkerHealth:
             if m:
                 # TODO: use worker type as key vs project
                 # - gecko-t-bitbar-gw-perf-p2
-                project = m.group(1)
+                project = m.group(1).strip()
                 device_group_name = self.devicepool_project_to_tc_worker_type[project]
                 # queue = m.group(2)
                 # disabled_count = m.group(3)
