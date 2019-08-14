@@ -37,6 +37,7 @@ class Fitness:
         task_failures = 0
         # pprint.pprint(results)
         print("queue/device: %s/%s" % (queue, device))
+        print("- https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s" % (queue, device))
         for task in results['recentTasks']:
             taskid = task['taskId']
             results2 = self.get_task_status(taskid)
@@ -48,10 +49,11 @@ class Fitness:
                 task_successes += 1
             elif task_state == 'failed':
                 task_failures += 1
-
-            print("%s: %s" % (taskid, task_state))
-        success_ratio = task_successes / (task_failures + task_successes)
-        print("sr: %s" % success_ratio)
+            if self.verbosity:
+                print("%s: %s" % (taskid, task_state))
+        total = task_failures + task_successes
+        success_ratio = task_successes / total
+        print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
 
 
     # handles continuationToken
@@ -94,21 +96,8 @@ if __name__ == "__main__":
         default=0,
         help="specify multiple times for even more verbosity",
     )
-    parser.add_argument(
-        "-t",
-        "--time-limit",
-        type=int,
-        default=95,
-        help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 95.",
-    )
-    parser.add_argument(
-        "--testing-mode",
-        action="store_true",
-        default=False,
-        help="enable testing mode (special schedule).",
-    )
     args = parser.parse_args()
 
     # TODO: just pass args?
-    f = Fitness()
+    f = Fitness(log_level=args.log_level)
     f.main()
