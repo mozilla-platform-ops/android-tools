@@ -3,4 +3,5 @@
 set -e
 set -x
 
-./get_pending_jobs.py --filter 'android-hw' "$@"
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+$SCRIPTPATH/get_pending_jobs.py --filter 'android-hw' "$@"
