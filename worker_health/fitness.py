@@ -2,8 +2,8 @@
 
 import argparse
 import json
-import pprint
-import sys
+#import pprint
+#import sys
 
 import requests
 
