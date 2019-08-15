@@ -2,11 +2,13 @@
 
 import argparse
 import json
-#import pprint
-#import sys
+
+# import pprint
+# import sys
 
 from multiprocessing.pool import ThreadPool
 from time import time as timer
+
 # python2
 # from urllib2 import urlopen
 # python3
@@ -22,22 +24,27 @@ from worker_health import USER_AGENT_STRING, logger
 #     for each job listed in https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-bitbar-gw-unit-p2/workers/bitbar/pixel2-05
 #        check result in https://queue.taskcluster.net/v1/task/N8aF_LpZTWO7B1iGbKy3Yw
 
-class Fitness:
 
+class Fitness:
     def __init__(self, log_level=0, testing_mode=False):
-        self.verbosity=log_level
+        self.verbosity = log_level
         pass
 
     def get_worker_jobs(self, queue, worker):
-        return self.get_jsonc("https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s" % (queue, worker))
+        return self.get_jsonc(
+            "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s"
+            % (queue, worker)
+        )
 
     def get_task_status(self, taskid):
-        _url, output, exception = self.get_jsonc2("https://queue.taskcluster.net/v1/task/%s/status" % taskid)
+        _url, output, exception = self.get_jsonc2(
+            "https://queue.taskcluster.net/v1/task/%s/status" % taskid
+        )
         return taskid, output, exception
 
     def main(self):
         start = timer()
-        self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-21')
+        self.device_fitness_report("gecko-t-bitbar-gw-unit-p2", "pixel2-21")
         print("Elapsed Time: %s" % (timer() - start,))
         # self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-14')
 
@@ -47,21 +54,24 @@ class Fitness:
         task_failures = 0
         # pprint.pprint(results)
         print("queue/device: %s/%s" % (queue, device))
-        print("- https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s" % (queue, device))
+        print(
+            "- https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s"
+            % (queue, device)
+        )
 
         task_ids = []
         for task in results["recentTasks"]:
-            task_id = task['taskId']
+            task_id = task["taskId"]
             task_ids.append(task_id)
 
         results = ThreadPool(20).imap_unordered(self.get_task_status, task_ids)
         for task_id, result, error in results:
             if error is None:
-                task_state = result['status']['state']
+                task_state = result["status"]["state"]
                 # print("%r fetched in %ss" % (url, timer() - start))
-                if task_state == 'completed':
+                if task_state == "completed":
                     task_successes += 1
-                elif task_state == 'failed':
+                elif task_state == "failed":
                     task_failures += 1
                 if self.verbosity:
                     print("%s: %s" % (task_id, task_state))
@@ -90,7 +100,7 @@ class Fitness:
                 print(an_url)
             response = requests.get(an_url, headers=headers)
             result = response.text
-            try:                                                       
+            try:
                 output = json.loads(result)
                 # will only break on good decode
                 break
@@ -101,7 +111,7 @@ class Fitness:
             retries_left -= 1
 
         while "continuationToken" in output:
-            payload = {"continuationToken": output["continuationToken"]}            
+            payload = {"continuationToken": output["continuationToken"]}
             if self.verbosity > 2:
                 print("%s, %s" % (an_url, output["continuationToken"]))
             response = requests.get(an_url, headers=headers, params=payload)
@@ -119,7 +129,7 @@ class Fitness:
                 print(an_url)
             response = requests.get(an_url, headers=headers)
             result = response.text
-            try:                                                       
+            try:
                 output = json.loads(result)
                 # will only break on good decode
                 break
@@ -130,7 +140,7 @@ class Fitness:
             retries_left -= 1
 
         while "continuationToken" in output:
-            payload = {"continuationToken": output["continuationToken"]}            
+            payload = {"continuationToken": output["continuationToken"]}
             if self.verbosity > 2:
                 print("%s, %s" % (an_url, output["continuationToken"]))
             response = requests.get(an_url, headers=headers, params=payload)
