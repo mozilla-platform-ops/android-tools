@@ -107,23 +107,23 @@ class Fitness:
             response = requests.get(an_url, headers=headers)
             result = response.text
             try:                                                       
-                output = json.loads(result)                                        
+                output = json.loads(result)
                 # will only break on good decode
-                break                                                            
-            except json.decoder.JSONDecodeError as e:                                             
+                break
+            except json.decoder.JSONDecodeError as e:
                 logger.warning("json decode error. input: %s" % result)
                 if retries_left == 0:
                     raise e
-            retries_left -= 1       
-                                    
-        while "continuationToken" in output:      
+            retries_left -= 1
+
+        while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}            
             if self.verbosity > 2:
                 print("%s, %s" % (an_url, output["continuationToken"]))
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
-            output = json.loads(result)         
-        return output 
+            output = json.loads(result)
+        return output
 
 
 if __name__ == "__main__":
