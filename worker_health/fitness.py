@@ -7,7 +7,10 @@ import json
 
 from multiprocessing.pool import ThreadPool
 from time import time as timer
-from urllib2 import urlopen
+# python2
+# from urllib2 import urlopen
+# python3
+from urllib.request import urlopen
 
 
 import requests
@@ -32,7 +35,9 @@ class Fitness:
         return self.get_jsonc("https://queue.taskcluster.net/v1/task/%s/status" % taskid)
 
     def main(self):
+        start = timer()
         self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-21')
+        print("Elapsed Time: %s" % (timer() - start,))
         # self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-14')
 
 
