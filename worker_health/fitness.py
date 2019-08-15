@@ -32,14 +32,14 @@ class Fitness:
         return self.get_jsonc("https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s" % (queue, worker))
 
     def get_task_status(self, taskid):
-        return self.get_jsonc("https://queue.taskcluster.net/v1/task/%s/status" % taskid)
+        _url, output, exception = self.get_jsonc2("https://queue.taskcluster.net/v1/task/%s/status" % taskid)
+        return taskid, output, exception
 
     def main(self):
         start = timer()
         self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-21')
         print("Elapsed Time: %s" % (timer() - start,))
         # self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-14')
-
 
     def device_fitness_report(self, queue, device):
         results = self.get_worker_jobs(queue, device)
@@ -48,19 +48,27 @@ class Fitness:
         # pprint.pprint(results)
         print("queue/device: %s/%s" % (queue, device))
         print("- https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s" % (queue, device))
-        for task in results['recentTasks']:
-            taskid = task['taskId']
-            results2 = self.get_task_status(taskid)
-            # print("")
-            # pprint.pprint(results2)
-            task_state = results2['status']['state']
 
-            if task_state == 'completed':
-                task_successes += 1
-            elif task_state == 'failed':
-                task_failures += 1
-            if self.verbosity:
-                print("%s: %s" % (taskid, task_state))
+        task_ids = []
+        for task in results["recentTasks"]:
+            task_id = task['taskId']
+            task_ids.append(task_id)
+
+        results = ThreadPool(20).imap_unordered(self.get_task_status, task_ids)
+        for task_id, result, error in results:
+            if error is None:
+                task_state = result['status']['state']
+                # print("%r fetched in %ss" % (url, timer() - start))
+                if task_state == 'completed':
+                    task_successes += 1
+                elif task_state == 'failed':
+                    task_failures += 1
+                if self.verbosity:
+                    print("%s: %s" % (task_id, task_state))
+
+            else:
+                print("error fetching %r: %s" % (task_id, error))
+
         total = task_failures + task_successes
         success_ratio = task_successes / total
         print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
