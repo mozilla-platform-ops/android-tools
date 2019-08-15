@@ -5,6 +5,11 @@ import json
 #import pprint
 #import sys
 
+from multiprocessing.pool import ThreadPool
+from time import time as timer
+from urllib2 import urlopen
+
+
 import requests
 
 from worker_health import USER_AGENT_STRING, logger
@@ -55,6 +60,41 @@ class Fitness:
         success_ratio = task_successes / total
         print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
 
+    def fetch_url(self, url):
+        try:
+            response = urlopen(url)
+            return url, response.read(), None
+        except Exception as e:
+            return url, None, e
+
+    # handles continuationToken
+    def get_jsonc2(self, an_url):
+        headers = {"User-Agent": USER_AGENT_STRING}
+        retries_left = 2
+
+        while retries_left >= 0:
+            if self.verbosity > 2:
+                print(an_url)
+            response = requests.get(an_url, headers=headers)
+            result = response.text
+            try:                                                       
+                output = json.loads(result)
+                # will only break on good decode
+                break
+            except json.decoder.JSONDecodeError as e:
+                logger.warning("json decode error. input: %s" % result)
+                if retries_left == 0:
+                    return an_url, None, e
+            retries_left -= 1
+
+        while "continuationToken" in output:
+            payload = {"continuationToken": output["continuationToken"]}            
+            if self.verbosity > 2:
+                print("%s, %s" % (an_url, output["continuationToken"]))
+            response = requests.get(an_url, headers=headers, params=payload)
+            result = response.text
+            output = json.loads(result)
+        return an_url, output, None
 
     # handles continuationToken
     def get_jsonc(self, an_url):
