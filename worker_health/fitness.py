@@ -2,7 +2,8 @@
 
 import argparse
 import json
-import textwrap
+import pprint
+import sys
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 from urllib.request import urlopen
@@ -10,9 +11,6 @@ from urllib.request import urlopen
 import requests
 
 from worker_health import USER_AGENT_STRING, logger
-
-import pprint
-import sys
 
 # for each queue
 #   for each worker
