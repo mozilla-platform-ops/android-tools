@@ -173,6 +173,7 @@ class Fitness:
                     pprint.pprint(result)
                     print(result["code"] == "ResourceNotFound")
                     continue
+                # TODO: gather exception stats
                 if task_state == "running":
                     task_runnings += 1
                 elif task_state == "completed":
