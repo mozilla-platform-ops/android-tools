@@ -76,7 +76,7 @@ class Fitness:
             for provisioner in worker_types_result["workerTypes"]:
                 worker_type = provisioner["workerType"]
                 worker_types.append(worker_type)
-            print(worker_types)
+            # print(worker_types)
 
             for worker_type in worker_types:
                 # copied from block above
