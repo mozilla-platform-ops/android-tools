@@ -58,7 +58,9 @@ class Fitness:
             self.workertype_fitness_report(worker_type)
         else:
             ### provisioner mode
-            print("provisioner mode: not implemented yet...")
+            print("provisioner mode: not implemented yet. specify a worker-type or worker-type.worker-id.")
+            # TODO: have a mode where we only show popular queues: p2 and g5 perf, p2 unit
+            #   - or take --all and then do all of them? they don't take long...
         print("Elapsed Time: %s" % (timer() - start,))
 
     # for provisioner report...
@@ -74,6 +76,10 @@ class Fitness:
         for worker in workers_result['workers']:
             worker_id = worker['workerId']
             worker_ids.append((worker_type, worker_id))
+
+        if len(worker_ids) == 0:
+            print("%s: no workers reporting (could be due to no jobs)" % worker_type)
+            return
 
         results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(self.device_fitness_report, worker_ids)
         for worker_id, result, _error in results:
