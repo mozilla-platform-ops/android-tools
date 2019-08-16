@@ -30,10 +30,11 @@ class Fitness:
         self.alert_percent = alert_percent
         self.provisioner = provisioner
 
-    def get_worker_jobs(self, queue, worker):
+    def get_worker_jobs(self, queue, worker_type, worker):
         return self.get_jsonc(
-            "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s"
-            % (queue, worker)
+            # TODO: need to get worker-group...
+            "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
+            % (self.provisioner, queue, worker_type, worker)
         )
 
     def get_task_status(self, taskid):
@@ -51,7 +52,16 @@ class Fitness:
         start = timer()
         if worker_type and worker_id:
             ## host mode
-            _worker, res_obj, _e = self.device_fitness_report(worker_type, worker_id)
+            # TODO: get workr_group
+            url = "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5" % (self.provisioner, worker_type)
+            # print(url)
+            worker_group_result = self.get_jsonc(url)
+            # worker_group = worker_group_result['workerTypes'][0][]
+            # import pprint
+            # pprint.pprint(worker_group_result)
+            # sys.exit()
+            worker_group = worker_group_result['workers'][0]['workerGroup']
+            _worker, res_obj, _e = self.device_fitness_report(worker_type, worker_group, worker_id)
             print("%s.%s: %s" % (worker_type, worker_id, res_obj))
         elif worker_type:
             ### queue mode
@@ -88,7 +98,8 @@ class Fitness:
         worker_ids = []
         for worker in workers_result['workers']:
             worker_id = worker['workerId']
-            worker_ids.append((worker_type, worker_id))
+            worker_group = worker['workerGroup']
+            worker_ids.append((worker_type, worker_group, worker_id))
 
         if len(worker_ids) == 0:
             print("%s: no workers reporting (could be due to no jobs)" % worker_type)
@@ -102,8 +113,8 @@ class Fitness:
             worker_results.append(result)
         return worker_type, worker_results, None
 
-    def device_fitness_report(self, queue, device):
-        results = self.get_worker_jobs(queue, device)
+    def device_fitness_report(self, queue, worker_group, device):
+        results = self.get_worker_jobs(queue, worker_group, device)
         task_successes = 0
         task_failures = 0
         task_runnings = 0
@@ -115,6 +126,8 @@ class Fitness:
         # )
 
         task_ids = []
+        import pprint
+        pprint.pprint(results)
         for task in results["recentTasks"]:
             task_id = task["taskId"]
             task_ids.append(task_id)
