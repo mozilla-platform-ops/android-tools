@@ -89,7 +89,7 @@ class Fitness:
 
         if len(worker_ids) == 0:
             print("%s: no workers reporting (could be due to no jobs)" % worker_type)
-            return
+            worker_type, None, None
 
         results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(self.device_fitness_report, worker_ids)
         worker_results = []
