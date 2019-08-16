@@ -22,12 +22,13 @@ import sys
 WORKERTYPE_THREAD_COUNT = 4
 TASK_THREAD_COUNT = 6
 ALERT_PERCENT = 0.85
+DEFAULT_PROVISIONER = "proj-autophone"
 
 class Fitness:
-    def __init__(self, log_level=0, alert_percent=ALERT_PERCENT, testing_mode=False):
+    def __init__(self, log_level=0, provisioner=DEFAULT_PROVISIONER, alert_percent=ALERT_PERCENT, testing_mode=False):
         self.verbosity = log_level
         self.alert_percent = alert_percent
-        pass
+        self.provisioner = provisioner
 
     def get_worker_jobs(self, queue, worker):
         return self.get_jsonc(
@@ -65,6 +66,7 @@ class Fitness:
             for provisioner in worker_types_result["workerTypes"]:
                 worker_type = provisioner["workerType"]
                 worker_types.append(worker_type)
+            print(worker_types)
 
             for worker_type in worker_types:
                 # copied from block above
@@ -79,7 +81,8 @@ class Fitness:
         return self.get_jsonc("https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100" % provisioner)
 
     def workertype_fitness_report(self, worker_type):
-        url = "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=100" % worker_type
+        url = "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100" % (self.provisioner, worker_type)
+        print(url)
         workers_result = self.get_jsonc(url)
 
         worker_ids = []
@@ -231,9 +234,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p",
         "--provisioner",
-        default="proj-autophone",
+        default=DEFAULT_PROVISIONER,
         metavar="provisioner",
-        help="provisioner to inspect, defaults to proj-autophone.",
+        help="provisioner to inspect, defaults to %s." % DEFAULT_PROVISIONER,
     )
     parser.add_argument('worker_type_id', metavar='worker_type[.worker_id]',
                     help="e.g. 'gecko-t-bitbar-gw-perf-p2.pixel2-21' or 'gecko-t-bitbar-gw-batt-g5'",
@@ -254,5 +257,5 @@ if __name__ == "__main__":
             worker_id = worker_type_id_split[1]
 
     # TODO: just pass args?
-    f = Fitness(log_level=args.log_level, alert_percent=args.alert_percent)
+    f = Fitness(log_level=args.log_level, provisioner=args.provisioner, alert_percent=args.alert_percent)
     f.main(args.provisioner, worker_type, worker_id)
