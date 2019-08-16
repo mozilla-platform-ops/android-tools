@@ -11,7 +11,7 @@ import requests
 from worker_health import USER_AGENT_STRING, logger
 
 # import pprint
-# import sys
+import sys
 
 # for each queue
 #   for each worker
@@ -20,8 +20,9 @@ from worker_health import USER_AGENT_STRING, logger
 
 
 class Fitness:
-    def __init__(self, log_level=0, testing_mode=False):
+    def __init__(self, log_level=0, alert_percent=0.85, testing_mode=False):
         self.verbosity = log_level
+        self.alert_percent = alert_percent
         pass
 
     def get_worker_jobs(self, queue, worker):
@@ -113,9 +114,11 @@ class Fitness:
         success_ratio = task_successes / total
         # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
         results_obj = {'success_ratio': round(success_ratio, 2),
-                        'total_completed': total,
                         'successes': task_successes,
+                        'completed': total,
                         'running': task_runnings}
+        if success_ratio < self.alert_percent:
+            results_obj['alert'] = "Low health (less than %s)!" % self.alert_percent
         return device, results_obj, None
 
     def fetch_url(self, url):
@@ -195,6 +198,13 @@ if __name__ == "__main__":
         help="specify multiple times for even more verbosity",
     )
     parser.add_argument(
+        "-a",
+        "--alert-percent",
+        default=0.85,
+        type=float,
+        help="percentage of successful jobs to alert at. 0 to 1.",
+    )
+    parser.add_argument(
         "-p",
         "--provisioner",
         default="proj-autophone",
@@ -205,6 +215,10 @@ if __name__ == "__main__":
                     help='', nargs='?')
     args = parser.parse_args()
 
+    if not (0 < args.alert_percent < 1):
+        print("ERROR: --alert-percent must be between 0 and 1.")
+        sys.exit(1)
+
     worker_type = None
     worker_id = None
     if args.worker_type_id:
@@ -214,5 +228,5 @@ if __name__ == "__main__":
             worker_id = worker_type_id_split[1]
 
     # TODO: just pass args?
-    f = Fitness(log_level=args.log_level)
+    f = Fitness(log_level=args.log_level, alert_percent=args.alert_percent)
     f.main(args.provisioner, worker_type, worker_id)
