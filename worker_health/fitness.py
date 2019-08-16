@@ -36,15 +36,25 @@ class Fitness:
         )
         return taskid, output, exception
 
-    def main(self):
-        # start = timer()
-        # # self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-14')
-        # self.device_fitness_report("gecko-t-bitbar-gw-unit-p2", "pixel2-21")
-        # print("Elapsed Time: %s" % (timer() - start,))
-        #
-        self.workertype_fitness_report('gecko-t-bitbar-gw-unit-p2')
+    def main(self, provisioner, worker_type, worker_id):
+        # TODO: decide mode based on what's passed in...
+        # nothing: provisioner mode, -p, defaults to proj-autophone
+        # worker-type: queue mode, input: queue
+        # worker-type and worker-id: worker mode, input: queue.worker_id
 
-
+        if worker_type and worker_id:
+            ## host mode
+            start = timer()
+            worker, res_obj, e = self.device_fitness_report(worker_type, worker_id)
+            print("%s: %s" % (worker, res_obj))
+            print("Elapsed Time: %s" % (timer() - start,))
+        elif worker_type:
+            ### queue mode
+            # 'gecko-t-bitbar-gw-perf-p2'
+            self.workertype_fitness_report(worker_type)
+        else:
+            ### provisioner mode
+            print("provisioner mode: not implemented yet...")
 
     def get_worker_types(self, provisioner='proj-autophone'):
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
@@ -112,7 +122,7 @@ class Fitness:
         total = task_failures + task_successes
         success_ratio = task_successes / total
         # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
-        results_obj = {'success_ratio': success_ratio,
+        results_obj = {'success_ratio': round(success_ratio, 2),
                         'total': total,
                         'successes': task_successes}
         return device, results_obj, None
@@ -193,8 +203,25 @@ if __name__ == "__main__":
         default=0,
         help="specify multiple times for even more verbosity",
     )
+    parser.add_argument(
+        "-p",
+        "--provisioner",
+        default="proj-autophone",
+        metavar="P",
+        help="provisioner to inspect, defaults to proj-autophone",
+    )
+    parser.add_argument('worker_type_id', metavar='worker_type[.worker_id]',
+                    help='', nargs='?')
     args = parser.parse_args()
+
+    worker_type = None
+    worker_id = None
+    if args.worker_type_id:
+        worker_type_id_split = args.worker_type_id.split('.')
+        worker_type = worker_type_id_split[0]
+        if len(worker_type_id_split) == 2:
+            worker_id = worker_type_id_split[1]
 
     # TODO: just pass args?
     f = Fitness(log_level=args.log_level)
-    f.main()
+    f.main(args.provisioner, worker_type, worker_id)
