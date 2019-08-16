@@ -187,16 +187,19 @@ class Fitness:
                 # print("error fetching %r: %s" % (task_id, error))
 
         total = task_failures + task_successes
-        success_ratio = task_successes / total
-        # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
-        results_obj = {
-            "success_ratio": round(success_ratio, 2),
-            "successes": task_successes,
-            "completed": total,
-            "running": task_runnings,
-        }
-        if success_ratio < self.alert_percent:
-            results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
+        if total > 0:
+            success_ratio = task_successes / total
+            # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
+            results_obj = {
+                "success_ratio": round(success_ratio, 2),
+                "successes": task_successes,
+                "completed": total,
+                "running": task_runnings,
+            }
+            if success_ratio < self.alert_percent:
+                results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
+        else:
+            results_obj["alert"] = "No work done!" % self.alert_percent
         return device, results_obj, None
 
     def fetch_url(self, url):
