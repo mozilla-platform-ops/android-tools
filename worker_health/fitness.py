@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import textwrap
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 from urllib.request import urlopen
@@ -18,9 +19,12 @@ import sys
 #     for each job listed in https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-bitbar-gw-unit-p2/workers/bitbar/pixel2-05
 #        check result in https://queue.taskcluster.net/v1/task/N8aF_LpZTWO7B1iGbKy3Yw
 
+WORKERTYPE_THREAD_COUNT = 4
+TASK_THREAD_COUNT = 6
+ALERT_PERCENT = 0.85
 
 class Fitness:
-    def __init__(self, log_level=0, alert_percent=0.85, testing_mode=False):
+    def __init__(self, log_level=0, alert_percent=ALERT_PERCENT, testing_mode=False):
         self.verbosity = log_level
         self.alert_percent = alert_percent
         pass
@@ -71,7 +75,7 @@ class Fitness:
             worker_id = worker['workerId']
             worker_ids.append((worker_type, worker_id))
 
-        results = ThreadPool(2).starmap(self.device_fitness_report, worker_ids)
+        results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(self.device_fitness_report, worker_ids)
         for worker_id, result, _error in results:
             print("%s: %s" % (worker_id, result))
 
@@ -92,7 +96,7 @@ class Fitness:
             task_id = task["taskId"]
             task_ids.append(task_id)
 
-        results = ThreadPool(20).imap_unordered(self.get_task_status, task_ids)
+        results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(self.get_task_status, task_ids)
         for task_id, result, error in results:
             if error is None:
                 task_state = result["status"]["state"]
@@ -195,24 +199,26 @@ if __name__ == "__main__":
         action="count",
         dest="log_level",
         default=0,
-        help="specify multiple times for even more verbosity",
+        help="specify multiple times for even more verbosity.",
     )
     parser.add_argument(
         "-a",
         "--alert-percent",
-        default=0.85,
+        default=ALERT_PERCENT,
         type=float,
-        help="percentage of successful jobs to alert at. 0 to 1.",
+        help="percentage of successful jobs to alert at. 0 to 1, defaults to %s." % ALERT_PERCENT,
     )
     parser.add_argument(
         "-p",
         "--provisioner",
         default="proj-autophone",
-        metavar="P",
-        help="provisioner to inspect, defaults to proj-autophone",
+        metavar="provisioner",
+        help="provisioner to inspect, defaults to proj-autophone.",
     )
-    parser.add_argument('worker_type_id', metavar='gecko-t-bitbar-gw-perf-p2[.pixel2-21]',
-                    help='', nargs='?')
+    parser.add_argument('worker_type_id', metavar='worker_type[.worker_id]',
+                    help="e.g. 'gecko-t-bitbar-gw-perf-p2.pixel2-21' or 'gecko-t-bitbar-gw-batt-g5'",
+                    nargs='?')
+
     args = parser.parse_args()
 
     if not (0 < args.alert_percent < 1):
