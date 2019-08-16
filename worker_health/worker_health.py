@@ -171,7 +171,7 @@ class WorkerHealth:
 
         # get device group data
         for item in self.devicepool_config_yaml["device_groups"]:
-            if item.startswith("motog5") or item.startswith("pixel2"):
+            if item.startswith("motog5") or item.startswith("pixel2") or item.startswith("test"):
                 if self.devicepool_config_yaml["device_groups"][item]:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
                     self.devicepool_bitbar_device_groups[item] = list(keys)
@@ -189,21 +189,19 @@ class WorkerHealth:
                             "device_group_name"
                         ]
                     ]
-                    # for linking dp project to tc worker type
-                    self.devicepool_project_to_tc_worker_type[
-                        project
-                    ] = self.devicepool_config_yaml["projects"][project][
-                        "additional_parameters"
-                    ][
-                        "TC_WORKER_TYPE"
-                    ]
                 except KeyError:
-                    # TODO: explicitly catch and handle this above
                     # happens when no devicepool data for a queue
                     #   - when it's not being used
                     #     - like mozilla-gw-unittest-g5
-                    # logging.info('KeyError seen for project %s' % project)
                     pass
+                # for linking dp project to tc worker type
+                self.devicepool_project_to_tc_worker_type[
+                    project
+                ] = self.devicepool_config_yaml["projects"][project][
+                    "additional_parameters"
+                ][
+                    "TC_WORKER_TYPE"
+                ]
 
     # gets and sets the queues under proj-autophone
     def set_current_worker_types(self):
@@ -527,7 +525,7 @@ class WorkerHealth:
             if m:
                 # TODO: use worker type as key vs project
                 # - gecko-t-bitbar-gw-perf-p2
-                project = m.group(1)
+                project = m.group(1).strip()
                 device_group_name = self.devicepool_project_to_tc_worker_type[project]
                 # queue = m.group(2)
                 # disabled_count = m.group(3)
