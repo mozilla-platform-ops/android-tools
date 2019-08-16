@@ -142,6 +142,7 @@ class Fitness:
         task_successes = 0
         task_failures = 0
         task_runnings = 0
+        task_exceptions = 0
         # pprint.pprint(results)
         # print("queue/device: %s/%s" % (queue, device))
         # print(
@@ -176,6 +177,8 @@ class Fitness:
                 # TODO: gather exception stats
                 if task_state == "running":
                     task_runnings += 1
+                elif task_state == "exception":
+                    task_exceptions += 1
                 elif task_state == "completed":
                     task_successes += 1
                 elif task_state == "failed":
@@ -188,19 +191,21 @@ class Fitness:
                 # print("error fetching %r: %s" % (task_id, error))
 
         total = task_failures + task_successes
+        results_obj = {}
         if total > 0:
             success_ratio = task_successes / total
             # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
-            results_obj = {
-                "success_ratio": round(success_ratio, 2),
-                "successes": task_successes,
-                "completed": total,
-                "running": task_runnings,
-            }
-            if success_ratio < self.alert_percent:
-                results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
-        else:
+            results_obj["success_ratio"] = round(success_ratio, 2)
+        results_obj["successes"] = task_successes
+        results_obj["completed"] = total
+        results_obj["exceptions"] = task_exceptions
+        results_obj["running"] = task_runnings
+
+        if success_ratio < self.alert_percent:
+            results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
+        elif total == 0 and task_exceptions == 0:
             results_obj = {"alert": "No work done!"}
+
         return device, results_obj, None
 
     def fetch_url(self, url):
