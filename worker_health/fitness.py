@@ -11,7 +11,7 @@ import requests
 
 from worker_health import USER_AGENT_STRING, logger
 
-# import pprint
+import pprint
 import sys
 
 # for each queue
@@ -92,7 +92,7 @@ class Fitness:
 
     def workertype_fitness_report(self, worker_type):
         url = "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100" % (self.provisioner, worker_type)
-        print(url)
+        # print(url)
         workers_result = self.get_jsonc(url)
 
         worker_ids = []
@@ -126,8 +126,8 @@ class Fitness:
         # )
 
         task_ids = []
-        import pprint
-        pprint.pprint(results)
+        # import pprint
+        # pprint.pprint(results)
         for task in results["recentTasks"]:
             task_id = task["taskId"]
             task_ids.append(task_id)
@@ -135,8 +135,13 @@ class Fitness:
         results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(self.get_task_status, task_ids)
         for task_id, result, error in results:
             if error is None:
-                task_state = result["status"]["state"]
-                # print("%r fetched in %ss" % (url, timer() - start))
+                task_state = None
+                try:
+                    task_state = result["status"]["state"]
+                except KeyError:
+                    print("strange result: ")
+                    pprint.pprint(result)
+                    next
                 if task_state == "running":
                     task_runnings += 1
                 elif task_state == "completed":
