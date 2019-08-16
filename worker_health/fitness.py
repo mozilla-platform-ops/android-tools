@@ -37,21 +37,56 @@ class Fitness:
         return taskid, output, exception
 
     def main(self):
-        start = timer()
-        self.device_fitness_report("gecko-t-bitbar-gw-unit-p2", "pixel2-21")
-        print("Elapsed Time: %s" % (timer() - start,))
-        # self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-14')
+        # start = timer()
+        # # self.device_fitness_report('gecko-t-bitbar-gw-unit-p2', 'pixel2-14')
+        # self.device_fitness_report("gecko-t-bitbar-gw-unit-p2", "pixel2-21")
+        # print("Elapsed Time: %s" % (timer() - start,))
+        #
+        self.workertype_fitness_report('gecko-t-bitbar-gw-unit-p2')
+
+
+
+    def get_worker_types(self, provisioner='proj-autophone'):
+        # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
+        # TODO: fetch devices
+        return self.get_jsonc("https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100" % provisioner)
+
+    def workertype_fitness_report(self, worker_type):
+        url = "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=100" % worker_type
+        workers_result = self.get_jsonc(url)
+
+        worker_ids = []
+        for worker in workers_result['workers']:
+            worker_id = worker['workerId']
+            worker_ids.append((worker_type, worker_id))
+
+        results = ThreadPool(2).starmap(self.device_fitness_report, worker_ids)
+        for worker_id, result, _error in results:
+            print("%s: %s" % (worker_id, result))
+            # if error is None:
+            #     task_state = result["status"]["state"]
+            #     # print("%r fetched in %ss" % (url, timer() - start))
+            #     if task_state == "completed":
+            #         task_successes += 1
+            #     elif task_state == "failed":
+            #         task_failures += 1
+            #     if self.verbosity:
+            #         print("%s: %s" % (task_id, task_state))
+
+            # else:
+            #     print("error fetching %r: %s" % (task_id, error))
+
 
     def device_fitness_report(self, queue, device):
         results = self.get_worker_jobs(queue, device)
         task_successes = 0
         task_failures = 0
         # pprint.pprint(results)
-        print("queue/device: %s/%s" % (queue, device))
-        print(
-            "- https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s"
-            % (queue, device)
-        )
+        # print("queue/device: %s/%s" % (queue, device))
+        # print(
+        #     "- https://tools.taskcluster.net/provisioners/proj-autophone/worker-types/%s/workers/bitbar/%s"
+        #     % (queue, device)
+        # )
 
         task_ids = []
         for task in results["recentTasks"]:
@@ -68,14 +103,19 @@ class Fitness:
                 elif task_state == "failed":
                     task_failures += 1
                 if self.verbosity:
-                    print("%s: %s" % (task_id, task_state))
-
+                    pass
+                    # print("%s: %s" % (task_id, task_state))
             else:
-                print("error fetching %r: %s" % (task_id, error))
+                pass
+                # print("error fetching %r: %s" % (task_id, error))
 
         total = task_failures + task_successes
         success_ratio = task_successes / total
-        print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
+        # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
+        results_obj = {'success_ratio': success_ratio,
+                        'total': total,
+                        'successes': task_successes}
+        return device, results_obj, None
 
     def fetch_url(self, url):
         try:
