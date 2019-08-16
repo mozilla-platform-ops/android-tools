@@ -136,12 +136,17 @@ class Fitness:
         for task_id, result, error in results:
             if error is None:
                 task_state = None
+                # filter out jobs that are gone
+                if "code" in result:
+                    if result["code"] == "ResourceNotFound":
+                        continue
                 try:
                     task_state = result["status"]["state"]
                 except KeyError:
                     print("strange result: ")
                     pprint.pprint(result)
-                    next
+                    print(result["code"] == "ResourceNotFound")
+                    continue
                 if task_state == "running":
                     task_runnings += 1
                 elif task_state == "completed":
