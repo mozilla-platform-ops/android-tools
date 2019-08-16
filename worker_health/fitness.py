@@ -199,7 +199,7 @@ class Fitness:
             if success_ratio < self.alert_percent:
                 results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
         else:
-            results_obj["alert"] = "No work done!" % self.alert_percent
+            results_obj["alert"] = "No work done!"
         return device, results_obj, None
 
     def fetch_url(self, url):
