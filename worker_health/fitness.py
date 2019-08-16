@@ -41,6 +41,11 @@ class Fitness:
         )
         return taskid, output, exception
 
+    def disp_workertype_fitness_report_res(self, res):
+        worker_id = res['worker_id']
+        del res['worker_id']
+        print("%s: %s" % (worker_id, res))
+
     def main(self, provisioner, worker_type, worker_id):
         # decide mode based on what's passed in...
         #   nothing: provisioner mode, -p, defaults to proj-autophone
@@ -55,9 +60,24 @@ class Fitness:
         elif worker_type:
             ### queue mode
             # 'gecko-t-bitbar-gw-perf-p2'
-            self.workertype_fitness_report(worker_type)
+            _wt, res_obj, e = self.workertype_fitness_report(worker_type)
+            # import pprint
+            # pprint.pprint(res_obj)
+            for item in res_obj:
+                # print(item)
+                self.disp_workertype_fitness_report_res(item)
         else:
             ### provisioner mode
+            # import pprint
+            worker_types_result = self.get_worker_types(provisioner)
+            # pprint.pprint(worker_types_result)
+            worker_types = []
+            for provisioner in worker_types_result["workerTypes"]:
+                worker_type = provisioner["workerType"]
+                worker_types.append(worker_type)
+
+
+
             print("provisioner mode: not implemented yet. specify a worker-type or worker-type.worker-id.")
             # TODO: have a mode where we only show popular queues: p2 and g5 perf, p2 unit
             #   - or take --all and then do all of them? they don't take long...
@@ -82,8 +102,12 @@ class Fitness:
             return
 
         results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(self.device_fitness_report, worker_ids)
+        worker_results = []
         for worker_id, result, _error in results:
-            print("%s: %s" % (worker_id, result))
+            # print("%s: %s" % (worker_id, result))
+            result['worker_id'] = worker_id
+            worker_results.append(result)
+        return worker_type, worker_results, None
 
     def device_fitness_report(self, queue, device):
         results = self.get_worker_jobs(queue, device)
