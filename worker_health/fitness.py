@@ -37,17 +37,16 @@ class Fitness:
         return taskid, output, exception
 
     def main(self, provisioner, worker_type, worker_id):
-        # TODO: decide mode based on what's passed in...
-        # nothing: provisioner mode, -p, defaults to proj-autophone
-        # worker-type: queue mode, input: queue
-        # worker-type and worker-id: worker mode, input: queue.worker_id
+        # decide mode based on what's passed in...
+        #   nothing: provisioner mode, -p, defaults to proj-autophone
+        #   worker-type: queue mode, input: queue
+        #   worker-type and worker-id: worker mode, input: queue.worker_id
 
+        start = timer()
         if worker_type and worker_id:
             ## host mode
-            start = timer()
             worker, res_obj, e = self.device_fitness_report(worker_type, worker_id)
             print("%s: %s" % (worker, res_obj))
-            print("Elapsed Time: %s" % (timer() - start,))
         elif worker_type:
             ### queue mode
             # 'gecko-t-bitbar-gw-perf-p2'
@@ -55,10 +54,11 @@ class Fitness:
         else:
             ### provisioner mode
             print("provisioner mode: not implemented yet...")
+        print("Elapsed Time: %s" % (timer() - start,))
 
-    def get_worker_types(self, provisioner='proj-autophone'):
+    # for provisioner report...
+    def get_worker_types(self, provisioner):
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
-        # TODO: fetch devices
         return self.get_jsonc("https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100" % provisioner)
 
     def workertype_fitness_report(self, worker_type):
@@ -73,24 +73,12 @@ class Fitness:
         results = ThreadPool(2).starmap(self.device_fitness_report, worker_ids)
         for worker_id, result, _error in results:
             print("%s: %s" % (worker_id, result))
-            # if error is None:
-            #     task_state = result["status"]["state"]
-            #     # print("%r fetched in %ss" % (url, timer() - start))
-            #     if task_state == "completed":
-            #         task_successes += 1
-            #     elif task_state == "failed":
-            #         task_failures += 1
-            #     if self.verbosity:
-            #         print("%s: %s" % (task_id, task_state))
-
-            # else:
-            #     print("error fetching %r: %s" % (task_id, error))
-
 
     def device_fitness_report(self, queue, device):
         results = self.get_worker_jobs(queue, device)
         task_successes = 0
         task_failures = 0
+        task_runnings = 0
         # pprint.pprint(results)
         # print("queue/device: %s/%s" % (queue, device))
         # print(
@@ -108,14 +96,16 @@ class Fitness:
             if error is None:
                 task_state = result["status"]["state"]
                 # print("%r fetched in %ss" % (url, timer() - start))
-                if task_state == "completed":
+                if task_state == "running":
+                    task_runnings += 1
+                elif task_state == "completed":
                     task_successes += 1
                 elif task_state == "failed":
                     task_failures += 1
                 if self.verbosity:
-                    pass
-                    # print("%s: %s" % (task_id, task_state))
+                    print("%s.%s: %s: %s" % (queue, device, task_id, task_state))
             else:
+                # TODO: should return exception? only getting partial truth...
                 pass
                 # print("error fetching %r: %s" % (task_id, error))
 
@@ -123,8 +113,9 @@ class Fitness:
         success_ratio = task_successes / total
         # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
         results_obj = {'success_ratio': round(success_ratio, 2),
-                        'total': total,
-                        'successes': task_successes}
+                        'total_completed': total,
+                        'successes': task_successes,
+                        'running': task_runnings}
         return device, results_obj, None
 
     def fetch_url(self, url):
@@ -210,7 +201,7 @@ if __name__ == "__main__":
         metavar="P",
         help="provisioner to inspect, defaults to proj-autophone",
     )
-    parser.add_argument('worker_type_id', metavar='worker_type[.worker_id]',
+    parser.add_argument('worker_type_id', metavar='gecko-t-bitbar-gw-perf-p2[.pixel2-21]',
                     help='', nargs='?')
     args = parser.parse_args()
 
