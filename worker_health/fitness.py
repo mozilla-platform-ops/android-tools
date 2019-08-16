@@ -24,8 +24,15 @@ TASK_THREAD_COUNT = 6
 ALERT_PERCENT = 0.85
 DEFAULT_PROVISIONER = "proj-autophone"
 
+
 class Fitness:
-    def __init__(self, log_level=0, provisioner=DEFAULT_PROVISIONER, alert_percent=ALERT_PERCENT, testing_mode=False):
+    def __init__(
+        self,
+        log_level=0,
+        provisioner=DEFAULT_PROVISIONER,
+        alert_percent=ALERT_PERCENT,
+        testing_mode=False,
+    ):
         self.verbosity = log_level
         self.alert_percent = alert_percent
         self.provisioner = provisioner
@@ -44,8 +51,8 @@ class Fitness:
         return taskid, output, exception
 
     def format_workertype_fitness_report_result(self, res):
-        worker_id = res['worker_id']
-        del res['worker_id']
+        worker_id = res["worker_id"]
+        del res["worker_id"]
         return "%s: %s" % (worker_id, res)
 
     def main(self, provisioner, worker_type, worker_id):
@@ -53,22 +60,30 @@ class Fitness:
         if worker_type and worker_id:
             ## host mode
             # TODO: get workr_group
-            url = "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5" % (self.provisioner, worker_type)
+            url = (
+                "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
+                % (self.provisioner, worker_type)
+            )
             # print(url)
             worker_group_result = self.get_jsonc(url)
             # worker_group = worker_group_result['workerTypes'][0][]
             # import pprint
             # pprint.pprint(worker_group_result)
             # sys.exit()
-            worker_group = worker_group_result['workers'][0]['workerGroup']
-            _worker, res_obj, _e = self.device_fitness_report(worker_type, worker_group, worker_id)
+            worker_group = worker_group_result["workers"][0]["workerGroup"]
+            _worker, res_obj, _e = self.device_fitness_report(
+                worker_type, worker_group, worker_id
+            )
             print("%s.%s: %s" % (worker_type, worker_id, res_obj))
         elif worker_type:
             ### queue mode
             _wt, res_obj, e = self.workertype_fitness_report(worker_type)
             for item in res_obj:
                 # print(item)
-                print("%s.%s" % (worker_type, self.format_workertype_fitness_report_result(item)))
+                print(
+                    "%s.%s"
+                    % (worker_type, self.format_workertype_fitness_report_result(item))
+                )
         else:
             ### provisioner mode
             worker_types_result = self.get_worker_types(provisioner)
@@ -82,34 +97,45 @@ class Fitness:
                 # copied from block above
                 wt, res_obj, e = self.workertype_fitness_report(worker_type)
                 for item in res_obj:
-                    print("%s.%s" % (wt, self.format_workertype_fitness_report_result(item)))
+                    print(
+                        "%s.%s"
+                        % (wt, self.format_workertype_fitness_report_result(item))
+                    )
         print("Elapsed Time: %s" % (timer() - start,))
 
     # for provisioner report...
     def get_worker_types(self, provisioner):
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
-        return self.get_jsonc("https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100" % provisioner)
+        return self.get_jsonc(
+            "https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100"
+            % provisioner
+        )
 
     def workertype_fitness_report(self, worker_type):
-        url = "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100" % (self.provisioner, worker_type)
+        url = (
+            "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100"
+            % (self.provisioner, worker_type)
+        )
         # print(url)
         workers_result = self.get_jsonc(url)
 
         worker_ids = []
-        for worker in workers_result['workers']:
-            worker_id = worker['workerId']
-            worker_group = worker['workerGroup']
+        for worker in workers_result["workers"]:
+            worker_id = worker["workerId"]
+            worker_group = worker["workerGroup"]
             worker_ids.append((worker_type, worker_group, worker_id))
 
         if len(worker_ids) == 0:
             print("%s: no workers reporting (could be due to no jobs)" % worker_type)
             worker_type, None, None
 
-        results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(self.device_fitness_report, worker_ids)
+        results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(
+            self.device_fitness_report, worker_ids
+        )
         worker_results = []
         for worker_id, result, _error in results:
             # print("%s: %s" % (worker_id, result))
-            result['worker_id'] = worker_id
+            result["worker_id"] = worker_id
             worker_results.append(result)
         return worker_type, worker_results, None
 
@@ -132,7 +158,9 @@ class Fitness:
             task_id = task["taskId"]
             task_ids.append(task_id)
 
-        results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(self.get_task_status, task_ids)
+        results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
+            self.get_task_status, task_ids
+        )
         for task_id, result, error in results:
             if error is None:
                 task_state = None
@@ -163,12 +191,14 @@ class Fitness:
         total = task_failures + task_successes
         success_ratio = task_successes / total
         # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
-        results_obj = {'success_ratio': round(success_ratio, 2),
-                        'successes': task_successes,
-                        'completed': total,
-                        'running': task_runnings}
+        results_obj = {
+            "success_ratio": round(success_ratio, 2),
+            "successes": task_successes,
+            "completed": total,
+            "running": task_runnings,
+        }
         if success_ratio < self.alert_percent:
-            results_obj['alert'] = "Low health (less than %s)!" % self.alert_percent
+            results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
         return device, results_obj, None
 
     def fetch_url(self, url):
@@ -252,7 +282,8 @@ if __name__ == "__main__":
         "--alert-percent",
         default=ALERT_PERCENT,
         type=float,
-        help="percentage of successful jobs to alert at. 0 to 1, defaults to %s." % ALERT_PERCENT,
+        help="percentage of successful jobs to alert at. 0 to 1, defaults to %s."
+        % ALERT_PERCENT,
     )
     parser.add_argument(
         "-p",
@@ -261,9 +292,12 @@ if __name__ == "__main__":
         metavar="provisioner",
         help="provisioner to inspect, defaults to %s." % DEFAULT_PROVISIONER,
     )
-    parser.add_argument('worker_type_id', metavar='worker_type[.worker_id]',
-                    help="e.g. 'gecko-t-bitbar-gw-perf-p2.pixel2-21' or 'gecko-t-bitbar-gw-batt-g5'",
-                    nargs='?')
+    parser.add_argument(
+        "worker_type_id",
+        metavar="worker_type[.worker_id]",
+        help="e.g. 'gecko-t-bitbar-gw-perf-p2.pixel2-21' or 'gecko-t-bitbar-gw-batt-g5'",
+        nargs="?",
+    )
 
     args = parser.parse_args()
 
@@ -274,11 +308,15 @@ if __name__ == "__main__":
     worker_type = None
     worker_id = None
     if args.worker_type_id:
-        worker_type_id_split = args.worker_type_id.split('.')
+        worker_type_id_split = args.worker_type_id.split(".")
         worker_type = worker_type_id_split[0]
         if len(worker_type_id_split) == 2:
             worker_id = worker_type_id_split[1]
 
     # TODO: just pass args?
-    f = Fitness(log_level=args.log_level, provisioner=args.provisioner, alert_percent=args.alert_percent)
+    f = Fitness(
+        log_level=args.log_level,
+        provisioner=args.provisioner,
+        alert_percent=args.alert_percent,
+    )
     f.main(args.provisioner, worker_type, worker_id)
