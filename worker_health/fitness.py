@@ -41,46 +41,36 @@ class Fitness:
         )
         return taskid, output, exception
 
-    def disp_workertype_fitness_report_res(self, res):
+    def format_workertype_fitness_report_result(self, res):
         worker_id = res['worker_id']
         del res['worker_id']
-        print("%s: %s" % (worker_id, res))
+        return "%s: %s" % (worker_id, res)
 
     def main(self, provisioner, worker_type, worker_id):
-        # decide mode based on what's passed in...
-        #   nothing: provisioner mode, -p, defaults to proj-autophone
-        #   worker-type: queue mode, input: queue
-        #   worker-type and worker-id: worker mode, input: queue.worker_id
-
         start = timer()
         if worker_type and worker_id:
             ## host mode
-            worker, res_obj, e = self.device_fitness_report(worker_type, worker_id)
-            print("%s: %s" % (worker, res_obj))
+            _worker, res_obj, _e = self.device_fitness_report(worker_type, worker_id)
+            print("%s.%s: %s" % (worker_type, worker_id, res_obj))
         elif worker_type:
             ### queue mode
-            # 'gecko-t-bitbar-gw-perf-p2'
             _wt, res_obj, e = self.workertype_fitness_report(worker_type)
-            # import pprint
-            # pprint.pprint(res_obj)
             for item in res_obj:
                 # print(item)
-                self.disp_workertype_fitness_report_res(item)
+                print("%s.%s" % (worker_type, self.format_workertype_fitness_report_result(item)))
         else:
             ### provisioner mode
-            # import pprint
             worker_types_result = self.get_worker_types(provisioner)
-            # pprint.pprint(worker_types_result)
             worker_types = []
             for provisioner in worker_types_result["workerTypes"]:
                 worker_type = provisioner["workerType"]
                 worker_types.append(worker_type)
 
-
-
-            print("provisioner mode: not implemented yet. specify a worker-type or worker-type.worker-id.")
-            # TODO: have a mode where we only show popular queues: p2 and g5 perf, p2 unit
-            #   - or take --all and then do all of them? they don't take long...
+            for worker_type in worker_types:
+                # copied from block above
+                wt, res_obj, e = self.workertype_fitness_report(worker_type)
+                for item in res_obj:
+                    print("%s.%s" % (wt, self.format_workertype_fitness_report_result(item)))
         print("Elapsed Time: %s" % (timer() - start,))
 
     # for provisioner report...
