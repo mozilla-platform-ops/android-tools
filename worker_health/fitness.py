@@ -51,7 +51,7 @@ class Fitness:
     def format_workertype_fitness_report_result(self, res):
         worker_id = res["worker_id"]
         del res["worker_id"]
-        return "%s: %s" % (worker_id, res)
+        return "%s: %s" % (worker_id, self.dict_format_with_fload_padding(res))
 
     def main(self, provisioner, worker_type, worker_id):
         start = timer()
@@ -136,6 +136,25 @@ class Fitness:
             result["worker_id"] = worker_id
             worker_results.append(result)
         return worker_type, worker_results, None
+
+    # basically how print does it but with float padding
+    def dict_format_with_fload_padding(self, a_dict):
+        if not isinstance(a_dict, dict):
+            raise Exception("input should be a dict")
+        result_string = "{"
+        for key,value in a_dict.items():
+            result_string += "'%s': " % key
+            if isinstance(value, str):
+                result_string += "'%s'" % value
+            elif isinstance(value, int):
+                result_string += "%s" % value
+            elif isinstance(value, float):
+                result_string += '{:03.2f}'.format(value)
+            result_string += ", "
+        # on last, trim the space
+        result_string = result_string[0:-2]
+        result_string += "}"
+        return result_string
 
     def device_fitness_report(self, queue, worker_group, device):
         results = self.get_worker_jobs(queue, worker_group, device)
