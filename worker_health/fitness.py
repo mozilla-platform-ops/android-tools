@@ -192,18 +192,21 @@ class Fitness:
 
         total = task_failures + task_successes
         results_obj = {}
+        success_ratio_calculated = False
         if total > 0:
             success_ratio = task_successes / total
             # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
-            results_obj["success_ratio"] = round(success_ratio, 2)
+            results_obj["success_ratio"] = success_ratio
+            success_ratio_calculated = True
         results_obj["successes"] = task_successes
         results_obj["completed"] = total
         results_obj["exceptions"] = task_exceptions
         results_obj["running"] = task_runnings
 
-        if success_ratio < self.alert_percent:
-            results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
-        elif total == 0 and task_exceptions == 0:
+        if success_ratio_calculated:
+            if success_ratio < self.alert_percent:
+                results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
+        if total == 0 and task_exceptions == 0:
             results_obj = {"alert": "No work done!"}
 
         return device, results_obj, None
