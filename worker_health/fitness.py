@@ -143,7 +143,7 @@ class Fitness:
             raise Exception("input should be a dict")
         result_string = "{"
         for key,value in sr_dict.items():
-            result_string += "'%s': " % key
+            result_string += "%s: " % key
             if isinstance(value, str):
                 result_string += "'%s'" % value
             elif isinstance(value, int):
