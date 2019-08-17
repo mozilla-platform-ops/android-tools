@@ -147,7 +147,7 @@ class Fitness:
             if isinstance(value, str):
                 result_string += "'%s'" % value
             elif isinstance(value, int):
-                result_string += "%s" % value
+                result_string += '{:2d}'.format(value)
             elif isinstance(value, float):
                 result_string += '{:03.2f}'.format(value)
             result_string += ", "
