@@ -51,7 +51,7 @@ class Fitness:
     def format_workertype_fitness_report_result(self, res):
         worker_id = res["worker_id"]
         del res["worker_id"]
-        return "%s: %s" % (worker_id, self.dict_format_with_fload_padding(res))
+        return "%s: %s" % (worker_id, self.sr_dict_format_with_float_padding(res))
 
     def main(self, provisioner, worker_type, worker_id):
         start = timer()
@@ -138,7 +138,7 @@ class Fitness:
         return worker_type, worker_results, None
 
     # basically how print does it but with float padding
-    def dict_format_with_fload_padding(self, a_dict):
+    def sr_dict_format_with_float_padding(self, a_dict):
         if not isinstance(a_dict, dict):
             raise Exception("input should be a dict")
         result_string = "{"
