@@ -106,6 +106,8 @@ class Fitness:
             # print(worker_types)
             self.get_pending_tasks_multi(worker_types)
 
+            # TODO: process and then display? padding of worker_id is not consistent for whole provisioner report
+            #   because we haven't scanned the potentially longest worker_ids when we display the first worker_group's data
             for worker_type in worker_types:
                 # copied from block above
                 wt, res_obj, _e = self.workertype_fitness_report(worker_type)
