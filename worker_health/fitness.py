@@ -35,6 +35,7 @@ class Fitness:
         self.alert_percent = alert_percent
         self.provisioner = provisioner
         self.queue_counts = {}
+        self.worker_id_maxlen = 0
 
     def get_worker_jobs(self, queue, worker_type, worker):
         return self.get_jsonc(
@@ -50,9 +51,13 @@ class Fitness:
         return taskid, output, exception
 
     def format_workertype_fitness_report_result(self, res):
+        return_string = ""
         worker_id = res["worker_id"]
         del res["worker_id"]
-        return "%s: %s" % (worker_id, self.sr_dict_format(res))
+
+        return_string += worker_id.ljust(self.worker_id_maxlen + 2)
+        return_string += self.sr_dict_format(res)
+        return return_string
 
     def main(self, provisioner, worker_type, worker_id):
         start = timer()
@@ -144,6 +149,7 @@ class Fitness:
         for worker in workers_result["workers"]:
             worker_id = worker["workerId"]
             worker_group = worker["workerGroup"]
+            self.worker_id_maxlen = max(len(worker_id), self.worker_id_maxlen)
             worker_ids.append((worker_type, worker_group, worker_id))
 
         if len(worker_ids) == 0:
