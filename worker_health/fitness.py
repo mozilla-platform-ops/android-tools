@@ -76,11 +76,15 @@ class Fitness:
             _worker, res_obj, _e = self.device_fitness_report(
                 worker_type, worker_group, worker_id
             )
-            print("%s.%s: %s" % (worker_type, worker_id, res_obj))
+            res_obj["worker_id"] = worker_id
+            print(
+                "%s.%s"
+                % (worker_type, self.format_workertype_fitness_report_result(res_obj))
+            )
         elif worker_type:
             ### queue mode
             self.get_pending_tasks_multi([worker_type])
-            _wt, res_obj, e = self.workertype_fitness_report(worker_type)
+            _wt, res_obj, _e = self.workertype_fitness_report(worker_type)
             for item in res_obj:
                 # print(item)
                 print(
@@ -99,7 +103,7 @@ class Fitness:
 
             for worker_type in worker_types:
                 # copied from block above
-                wt, res_obj, e = self.workertype_fitness_report(worker_type)
+                wt, res_obj, _e = self.workertype_fitness_report(worker_type)
                 for item in res_obj:
                     print(
                         "%s.%s"
@@ -117,8 +121,8 @@ class Fitness:
         results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
             self.get_pending_tasks, queues
         )
-        for queue, result, error in results:
-            self.queue_counts[queue] = result['pendingTasks']
+        for queue, result, _error in results:
+            self.queue_counts[queue] = result["pendingTasks"]
 
     # for provisioner report...
     def get_worker_types(self, provisioner):
@@ -161,18 +165,20 @@ class Fitness:
         if not isinstance(sr_dict, dict):
             raise Exception("input should be a dict")
         result_string = "{"
-        for key,value in sr_dict.items():
+        for key, value in sr_dict.items():
             result_string += "%s: " % key
             if isinstance(value, str):
                 result_string += "'%s'" % value
             elif isinstance(value, int):
-                result_string += '{:2d}'.format(value)
+                result_string += "{:2d}".format(value)
             elif isinstance(value, list):
                 result_string += pprint.pformat(value)
             elif isinstance(value, float):
-                result_string += '{:03.2f}'.format(value)
+                # the only float is success rate
+                result_string += self.graph_percentage(value)
+                result_string += " {:.1%}".format(value).rjust(7)
             else:
-                raise Exception('unknown type')
+                raise Exception("unknown type")
             result_string += ", "
         # on last, trim the space
         result_string = result_string[0:-2]
@@ -245,22 +251,27 @@ class Fitness:
         results_obj["exc"] = task_exceptions
         results_obj["rng"] = task_runnings
 
-        if success_ratio_calculated:
-            if success_ratio < self.alert_percent:
-                if not 'alerts' in results_obj:
-                    results_obj['alerts'] = []
-                results_obj["alerts"].append("Low health (less than %s)!" % self.alert_percent)
-        if total == 0 and task_exceptions == 0:
-            if not 'alerts' in results_obj:
-                results_obj['alerts'] = []
-            results_obj["alerts"].append("No work done!")
+        # note if no jobs in queue
         if queue in self.queue_counts:
             if self.queue_counts[queue] == 0:
-                if not 'notes' in results_obj:
-                    results_obj['notes'] = []
+                if not "notes" in results_obj:
+                    results_obj["notes"] = []
                 results_obj["notes"].append("No jobs in queue.")
         else:
             logger.warn("Strange, no queue count data for %s" % queue)
+        # alert if success ratio is low
+        if success_ratio_calculated:
+            if success_ratio < self.alert_percent:
+                if not "alerts" in results_obj:
+                    results_obj["alerts"] = []
+                results_obj["alerts"].append(
+                    "Low health (less than %s)!" % self.alert_percent
+                )
+        # alert if no work done
+        if total == 0 and task_exceptions == 0:
+            if not "alerts" in results_obj:
+                results_obj["alerts"] = []
+            results_obj["alerts"].append("No work done!")
 
         return device, results_obj, None
 
@@ -270,6 +281,21 @@ class Fitness:
             return url, response.read(), None
         except Exception as e:
             return url, None, e
+
+    def graph_percentage(self, value, show_label=False, round_value=False):
+        return_string = ""
+        if round_value:
+            value = round(value, 1)
+        if show_label:
+            return_string += "%s: "
+        return_string += "["
+        for i in range(1, 11):
+            if value >= i * 0.1:
+                return_string += u"="
+            else:
+                return_string += " "
+        return_string += "]"
+        return return_string
 
     # handles continuationToken
     def get_jsonc2(self, an_url):
