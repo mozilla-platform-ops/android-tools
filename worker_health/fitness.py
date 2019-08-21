@@ -34,6 +34,7 @@ class Fitness:
         self.verbosity = log_level
         self.alert_percent = alert_percent
         self.provisioner = provisioner
+        self.queue_counts = {}
 
     def get_worker_jobs(self, queue, worker_type, worker):
         return self.get_jsonc(
@@ -57,7 +58,7 @@ class Fitness:
         start = timer()
         if worker_type and worker_id:
             ## host mode
-            # TODO: get workr_group
+            self.get_pending_tasks_multi([worker_type])
             url = (
                 "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
                 % (self.provisioner, worker_type)
@@ -68,6 +69,9 @@ class Fitness:
             # import pprint
             # pprint.pprint(worker_group_result)
             # sys.exit()
+            if len(worker_group_result["workers"]) == 0:
+                print("%s.%s: %s" % (worker_type, worker_id, "no data"))
+                return
             worker_group = worker_group_result["workers"][0]["workerGroup"]
             _worker, res_obj, _e = self.device_fitness_report(
                 worker_type, worker_group, worker_id
@@ -75,6 +79,7 @@ class Fitness:
             print("%s.%s: %s" % (worker_type, worker_id, res_obj))
         elif worker_type:
             ### queue mode
+            self.get_pending_tasks_multi([worker_type])
             _wt, res_obj, e = self.workertype_fitness_report(worker_type)
             for item in res_obj:
                 # print(item)
@@ -90,6 +95,7 @@ class Fitness:
                 worker_type = provisioner["workerType"]
                 worker_types.append(worker_type)
             # print(worker_types)
+            self.get_pending_tasks_multi(worker_types)
 
             for worker_type in worker_types:
                 # copied from block above
@@ -100,6 +106,19 @@ class Fitness:
                         % (wt, self.format_workertype_fitness_report_result(item))
                     )
         print("Elapsed Time: %s" % (timer() - start,))
+
+    def get_pending_tasks(self, queue):
+        _url, output, exception = self.get_jsonc2(
+            "https://queue.taskcluster.net/v1/pending/%s/%s" % (self.provisioner, queue)
+        )
+        return queue, output, exception
+
+    def get_pending_tasks_multi(self, queues):
+        results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
+            self.get_pending_tasks, queues
+        )
+        for queue, result, error in results:
+            self.queue_counts[queue] = result['pendingTasks']
 
     # for provisioner report...
     def get_worker_types(self, provisioner):
@@ -148,8 +167,12 @@ class Fitness:
                 result_string += "'%s'" % value
             elif isinstance(value, int):
                 result_string += '{:2d}'.format(value)
+            elif isinstance(value, list):
+                result_string += pprint.pformat(value)
             elif isinstance(value, float):
                 result_string += '{:03.2f}'.format(value)
+            else:
+                raise Exception('unknown type')
             result_string += ", "
         # on last, trim the space
         result_string = result_string[0:-2]
@@ -215,18 +238,29 @@ class Fitness:
         if total > 0:
             success_ratio = task_successes / total
             # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
-            results_obj["success_ratio"] = success_ratio
+            results_obj["sr"] = success_ratio
             success_ratio_calculated = True
-        results_obj["successes"] = task_successes
-        results_obj["completed"] = total
-        results_obj["exceptions"] = task_exceptions
-        results_obj["running"] = task_runnings
+        results_obj["suc"] = task_successes
+        results_obj["cmp"] = total
+        results_obj["exc"] = task_exceptions
+        results_obj["rng"] = task_runnings
 
         if success_ratio_calculated:
             if success_ratio < self.alert_percent:
-                results_obj["alert"] = "Low health (less than %s)!" % self.alert_percent
+                if not 'alerts' in results_obj:
+                    results_obj['alerts'] = []
+                results_obj["alerts"].append("Low health (less than %s)!" % self.alert_percent)
         if total == 0 and task_exceptions == 0:
-            results_obj = {"alert": "No work done!"}
+            if not 'alerts' in results_obj:
+                results_obj['alerts'] = []
+            results_obj["alerts"].append("No work done!")
+        if queue in self.queue_counts:
+            if self.queue_counts[queue] == 0:
+                if not 'notes' in results_obj:
+                    results_obj['notes'] = []
+                results_obj["notes"].append("No jobs in queue.")
+        else:
+            logger.warn("Strange, no queue count data for %s" % queue)
 
         return device, results_obj, None
 
