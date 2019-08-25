@@ -44,6 +44,9 @@ URLS = [
     "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-perf-g5",
     "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-unit-g5",
     "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-g5",
+    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-1",
+    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-2",
+    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-3",
 ]
 
 
@@ -216,10 +219,11 @@ class LastStarted:
         return res
 
     def run_cmd(self, cmd):
-        return subprocess.check_output(
-                    cmd,
-                    stderr=subprocess.STDOUT,
-                    shell=True).strip().decode()
+        return (
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+            .strip()
+            .decode()
+        )
 
     def write_toml(self, dict_to_write):
         with open(STATE_FILE, "w") as writer:
