@@ -46,24 +46,8 @@ set -e
 
 # now run as current user and remove relops user (fails in prior run)
 echo "performing second bootstrap phase"
-scp "$bootstrap_script_path" "$the_host":/tmp/
-ssh "$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh
+# scp "$bootstrap_script_path" "$the_host":/tmp/
+# ssh "$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh
+./devicepool_update.sh $the_host
 
-#
-# SETUP
-#
-
-scp "$bitbar_env_file_path" "$the_host":bitbar.env
-ssh "$the_host" 'sudo mv bitbar.env /etc/bitbar/ && sudo chown root:bitbar /etc/bitbar/bitbar.env && sudo chmod 660 /etc/bitbar/bitbar.env'
-
-# venvs are now created in puppet
-
-cat << 'EOF'
-
- ___ _   _  ___ ___ ___  ___ ___
-/ __| | | |/ __/ __/ _ \/ __/ __|
-\__ \ |_| | (_| (_|  __/\__ \__ \
-|___/\__,_|\___\___\___||___/___/
-                                 
-
-EOF
+# success message is done in devicepool_update.sh
