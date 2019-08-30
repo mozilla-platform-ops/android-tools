@@ -31,6 +31,7 @@ fi
 # UPDATE THINGS NOT DONE BY PUPPET
 #
 echo "updating repos..."
+# TODO: get user's ack to update these repos... could stomp on things...
 ssh "$the_host" 'sudo -iu bitbar bash -c "cd ~bitbar/android-tools && git pull --rebase"'
 ssh "$the_host" 'sudo -iu bitbar bash -c "cd ~bitbar/mozilla-bitbar-devicepool && git pull --rebase"'
 # TODO: pipenv install?
