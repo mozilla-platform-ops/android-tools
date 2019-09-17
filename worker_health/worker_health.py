@@ -253,6 +253,11 @@ class WorkerHealth:
                 # TODO: quarantine data
                 if "quarantineUntil" in worker:
                     self.quarantined_workers.append(worker["workerId"])
+                if "latestTask" not in worker:
+                    # worker has no lastesttask... brand new or tc restart?
+                    # TODO: eventually alert if this persists
+                    # print("worker %s has no latestTask" % worker["workerId"])
+                    continue
                 an_url = (
                     "https://queue.taskcluster.net/v1/task/%s/status"
                     % worker["latestTask"]["taskId"]
