@@ -45,6 +45,4 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 
 - create_new_host_utils_linux.sh: handle bug
   - line 69: handle when the build isn't /0
-- check that arch is correct
-  - `file` run on a binary will show
 - write report file with the manifest digests?
