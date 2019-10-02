@@ -18,8 +18,8 @@ set -e
 # - i686: 'Linux opt' on treeherder
 # - x86_64: 'Linux x64 opt' on treeherder
 
-#./create_new_host_utils_linux.sh TASK_ID i686
 #./create_new_host_utils_linux.sh TASK_ID x86_64
+#./create_new_host_utils_linux.sh TASK_ID i686
 #./create_new_host_utils_mac.sh BUILD_URL
 EOL
 
