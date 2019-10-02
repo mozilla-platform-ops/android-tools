@@ -5,9 +5,25 @@ set -x
 
 # create_new_host_utils
 
-# Treeherder variants to use:
-#   x86_64: Linux x64 opt
-#   x86: Linux opt
+function check_arch {
+  file_arch="$(file firefox/ssltunnel)"
+  if [ "$arch" = "x86_64" ]; then
+    if [[ "$file_arch" =~ "ELF 64-bit" ]]; then
+      echo "* examined binary's arch is good"
+    else
+      exit 1
+    fi
+  elif [ "$arch" == "i686" ]; then
+    if [[ "$file_arch" =~ "ELF 32-bit" ]]; then
+      echo "* examined binary's arch is good"
+    else
+      exit 1
+    fi  
+  else
+    echo "invalid ARCH specified ($arch)!"
+    exit 1
+  fi
+}
 
 # use gnu tar vs bsd tar... not sure if important (they do produce differently sized archives).
 os=`uname -s`
@@ -82,7 +98,10 @@ tar xf target.common.tests.tar.gz -C 'temp_common'
 rm firefox/firefox*
 rm -r firefox/browser
 mv 'temp_common'/bin/* firefox
-# TODO: how to determine the version number to use here?
+# double check arch of binary
+echo "-------------------------------"
+check_arch
+echo "-------------------------------"
 mv firefox host-utils-${FFVER}.en-US.linux-${arch}
 tar cf host-utils-${FFVER}.en-US.linux-${arch}.tar host-utils-${FFVER}.en-US.linux-${arch}
 gzip host-utils-${FFVER}.en-US.linux-${arch}.tar
