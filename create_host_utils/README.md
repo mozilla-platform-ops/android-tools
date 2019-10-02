@@ -26,7 +26,9 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - `./get_current.sh`
     - fetches all 3, no need to run for each
   - `./compare_versions.sh`
-  - ensure things look good (same files, etc)
+    - ensure things look good
+      - same directories
+      - should mostly be binaries that change
 - `./upload.sh ARCH MESSAGE`
   - ARCH should be one of i686, x86_64, or mac
   - MESSAGE should be similar to "Bug 123456789: update linux hostutils"
