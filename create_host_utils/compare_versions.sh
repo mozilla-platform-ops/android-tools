@@ -37,6 +37,7 @@ echo ""
 if [ -d ./hu_mac_* ]; then
   echo diff current/host-utils-*.en-US.mac hu_mac_*/host-utils-$FFVER.en-US.mac
   if [ "$araxis_present" -eq "1" ]; then
+    echo ""
     echo compare2 -swap current/host-utils-*.en-US.mac hu_mac_*/host-utils-$FFVER.en-US.mac
   fi
 fi
