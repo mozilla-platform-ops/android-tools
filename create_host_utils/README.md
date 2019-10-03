@@ -14,10 +14,11 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 - create a new build script
   - `create_build_script.sh`
   - the script will output the new build script's name
-- identify a good taskcluster build and configure script
+- identify a good taskcluster build and edit script
   - find task IDs and URL for builds (see reference doc above for tips on picking)
     - ideally pick a job without retries on the build step. there's a known issue, see TODO section below.
   - enter the taskcluster ids for the selected build into the build script
+  - for mac: no trailing slash
 - run the build script
   - comment out builds we're not ready for (I usually do linux first, then mac)
   - `./build_DATE.sh`

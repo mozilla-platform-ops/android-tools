@@ -14,6 +14,8 @@ if [ "${os}" != "Darwin" ]; then
   exit 1
 fi
 
+# TODO: ensure URL doesn't have a trailing space
+
 if [ -z "$1" ]; then
   echo "please provide a FTP url (like https://ftp.mozilla.org/pub/firefox/nightly/2019/01/2019-01-24-10-40-34-mozilla-central)"
   exit 1
