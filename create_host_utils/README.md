@@ -14,10 +14,11 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 - create a new build script
   - `create_build_script.sh`
   - the script will output the new build script's name
-- identify a good taskcluster build and configure script
+- identify a good taskcluster build and edit script
   - find task IDs and URL for builds (see reference doc above for tips on picking)
-    - ideally pick a job without retries on the build step
+    - ideally pick a job without retries on the build step. there's a known issue, see TODO section below.
   - enter the taskcluster ids for the selected build into the build script
+  - for mac: no trailing slash
 - run the build script
   - comment out builds we're not ready for (I usually do linux first, then mac)
   - `./build_DATE.sh`
@@ -26,14 +27,19 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - `./get_current.sh`
     - fetches all 3, no need to run for each
   - `./compare_versions.sh`
-  - ensure things look good (same files, etc)
+    - ensure things look good
+      - same directories
+      - should mostly be binaries that change
 - `./upload.sh ARCH MESSAGE`
   - ARCH should be one of i686, x86_64, or mac
   - MESSAGE should be similar to "Bug 123456789: update linux hostutils"
 - copy manifests to mozilla client, inspect, and commit
+  - make sure the mozilla client is on the tip of central
+    - could possibly be on the linux hostutils change you did earlier
   - `./copy_manifests.sh`
   - cd to mozilla-central repo and `hg diff` to check that the size is close
-  - commit change, make two separate PR's. one for mac, one for linux.
+  - commit change and create review
+    - make separate diffs for mac and linux
 - run tests
   - see reference doc
 - create phabricator diff
@@ -43,8 +49,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 
 ## TODO
 
+- compare: output lines for programs other than araxis
 - create_new_host_utils_linux.sh: handle bug
   - line 69: handle when the build isn't /0
-- check that arch is correct
-  - `file` run on a binary will show
 - write report file with the manifest digests?
