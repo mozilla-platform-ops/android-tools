@@ -139,6 +139,19 @@ class WorkerHealth:
 
         return dict3
 
+    def mergeDict2(self, dict1, dict2):
+        from itertools import chain
+        from collections import defaultdict
+        # dict1 = {'bookA': 1, 'bookB': 2, 'bookC': 3}
+        # dict2 = {'bookC': 2, 'bookD': 4, 'bookE': 5}
+        dict3 = defaultdict(list)
+        for k, v in chain(dict1.items(), dict2.items()):
+            dict3[k].append(v)
+
+        # for k, v in dict3.items():
+        #     print(k, v)
+        return dict3
+
     # handles continuationToken
     def get_jsonc(self, an_url):
         output_dict = {}
@@ -168,6 +181,12 @@ class WorkerHealth:
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
             output = json.loads(result)
+            # tc messes with us and send back and empty workers array
+            if 'workers' in output and len(output['workers']):
+                # we never hit this...
+                logging.error("shouldn't be here")
+                output_dict = output
+
         if self.verbosity > 2:
                 pprint.pprint(output_dict)
         return output_dict
