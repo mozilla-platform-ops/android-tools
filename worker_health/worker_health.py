@@ -132,6 +132,7 @@ class WorkerHealth:
 
     # handles continuationToken
     def get_jsonc(self, an_url):
+        output_dict = {}
         headers = {"User-Agent": USER_AGENT_STRING}
         retries_left = 2
 
@@ -149,15 +150,24 @@ class WorkerHealth:
                 if retries_left == 0:
                     raise e
             retries_left -= 1
+        output_dict = output
 
         while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
             if self.verbosity > 2:
-                print("%s, %s" % (an_url, output["continuationToken"]))
+                print("CONT %s, %s" % (an_url, output["continuationToken"]))
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
             output = json.loads(result)
-        return output
+            # tc messes with us and sends back and empty workers array
+            if 'workers' in output and len(output['workers']):
+                # we never hit this...
+                logging.error("shouldn't be here")
+                output_dict = output
+
+        if self.verbosity > 2:
+                pprint.pprint(output_dict)
+        return output_dict
 
     def set_configured_worker_counts(self):
         yaml_file_path = os.path.join(
