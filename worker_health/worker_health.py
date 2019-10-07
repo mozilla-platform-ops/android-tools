@@ -130,8 +130,18 @@ class WorkerHealth:
         open(last_updated_file, "a").close()
         os.utime(last_updated_file, None)
 
+    # Merge dictionaries and keep values of common keys in list
+    def mergeDict(self, dict1, dict2):
+        dict3 = {**dict1, **dict2}
+        for key, value in dict3.items():
+            if key in dict1 and key in dict2:
+                    dict3[key] = [value , dict1[key]]
+
+        return dict3
+
     # handles continuationToken
     def get_jsonc(self, an_url):
+        output_dict = {}
         headers = {"User-Agent": USER_AGENT_STRING}
         retries_left = 2
 
@@ -149,15 +159,22 @@ class WorkerHealth:
                 if retries_left == 0:
                     raise e
             retries_left -= 1
+        # pprint.pprint(output)
+        output_dict = self.mergeDict(output, output_dict)
+        # pprint.pprint(output_dict)
 
         while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
             if self.verbosity > 2:
-                print("%s, %s" % (an_url, output["continuationToken"]))
+                print("CONT %s, %s" % (an_url, output["continuationToken"]))
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
             output = json.loads(result)
-        return output
+            if self.verbosity > 2:
+                pprint.pprint(output)
+        if self.verbosity > 2:
+                pprint.pprint(output_dict)
+        return output_dict
 
     def set_configured_worker_counts(self):
         yaml_file_path = os.path.join(
