@@ -159,7 +159,7 @@ class WorkerHealth:
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
             output = json.loads(result)
-            # tc messes with us and send back and empty workers array
+            # tc messes with us and sends back and empty workers array
             if 'workers' in output and len(output['workers']):
                 # we never hit this...
                 logging.error("shouldn't be here")
