@@ -159,9 +159,7 @@ class WorkerHealth:
                 if retries_left == 0:
                     raise e
             retries_left -= 1
-        # pprint.pprint(output)
-        output_dict = self.mergeDict(output, output_dict)
-        # pprint.pprint(output_dict)
+        output_dict = output
 
         while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
@@ -170,8 +168,6 @@ class WorkerHealth:
             response = requests.get(an_url, headers=headers, params=payload)
             result = response.text
             output = json.loads(result)
-            if self.verbosity > 2:
-                pprint.pprint(output)
         if self.verbosity > 2:
                 pprint.pprint(output_dict)
         return output_dict
