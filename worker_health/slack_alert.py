@@ -63,7 +63,7 @@ currently_alerting = false
             time_limit=self.time_limit, exclude_quarantined=True
         )
         if pw:
-            # TODO: update state indicating we're alerting
+            # update state indicating we're alerting
             self.set_toml_value("currently_alerting", True)
             message = "problem workers (%s): %s" % (len(pw), pw)
             if self.alerting_enabled:
@@ -72,7 +72,14 @@ currently_alerting = false
                 logger.info("would have sent message: '%s'" % message)
         else:
             # TODO: if we were alerting previously, mention that we're all good now
+            if self.toml["currently_alerting"]:
+                message = "all issues resolved"
+                if self.alerting_enabled:
+                    self.send_slack_message(message)
+                else:
+                    logger.info("would have sent message: '%s'" % message)
             logger.info("no problem workers")
+            self.write_toml("currently_alerting", True)
 
     # only fires if it's 8AM-6PM M-F in bitbar TZ
     def slack_alert_m_thru_f(self):
