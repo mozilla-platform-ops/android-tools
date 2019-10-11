@@ -73,7 +73,7 @@ currently_alerting = false
         else:
             # TODO: if we were alerting previously, mention that we're all good now
             if self.toml["currently_alerting"]:
-                message = "all issues resolved"
+                message = "all device issues resolved"
                 if self.alerting_enabled:
                     self.send_slack_message(message)
                 else:
