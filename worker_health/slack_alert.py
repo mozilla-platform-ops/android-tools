@@ -28,13 +28,17 @@ class SlackAlert:
         )
         self.toml = self.read_toml()
 
+        # import pprint
+        # pprint.pprint(self.toml)
+
         # webhook url
         if "main" in self.toml and "webhook_url" in self.toml["main"]:
-            self.webhook_url = self.toml["main"]["webhook_url"]
-            self.alerting_enabled = True
+            if self.toml["main"]["webhook_url"]:
+                self.webhook_url = self.toml["main"]["webhook_url"]
+                self.alerting_enabled = True
 
     def set_toml_value(self, key, value):
-        self.toml[key] = value
+        self.toml["main"][key] = value
         self.write_toml(self.toml)
 
     def write_toml(self, dict_to_write):
@@ -72,14 +76,14 @@ currently_alerting = false
                 logger.info("would have sent message: '%s'" % message)
         else:
             # TODO: if we were alerting previously, mention that we're all good now
-            if self.toml["currently_alerting"]:
+            if self.toml["main"]["currently_alerting"]:
                 message = "all device issues resolved"
                 if self.alerting_enabled:
                     self.send_slack_message(message)
                 else:
                     logger.info("would have sent message: '%s'" % message)
             logger.info("no problem workers")
-            self.set_toml_value("currently_alerting", True)
+            self.set_toml_value("currently_alerting", False)
 
     # only fires if it's 8AM-6PM M-F in bitbar TZ
     def slack_alert_m_thru_f(self):
