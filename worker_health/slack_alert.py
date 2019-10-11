@@ -33,6 +33,10 @@ class SlackAlert:
             self.webhook_url = self.toml["main"]["webhook_url"]
             self.alerting_enabled = True
 
+    def set_toml_value(self, key, value):
+        self.toml[key] = value
+        self.write_toml(self.toml)
+
     def write_toml(self, dict_to_write):
         with open(self.configuration_file, "w") as writer:
             toml.dump(dict_to_write, writer)
@@ -45,6 +49,7 @@ class SlackAlert:
             default_doc = """
 [main]
 webhook_url = ""
+currently_alerting = false
           """
             return_dict = toml.loads(default_doc)
             self.write_toml(return_dict)
@@ -58,13 +63,15 @@ webhook_url = ""
             time_limit=self.time_limit, exclude_quarantined=True
         )
         if pw:
-            # message = "problem workers: %s" % pw
+            # TODO: update state indicating we're alerting
+            self.set_toml_value("currently_alerting", True)
             message = "problem workers (%s): %s" % (len(pw), pw)
             if self.alerting_enabled:
                 self.send_slack_message(message)
             else:
                 logger.info("would have sent message: '%s'" % message)
         else:
+            # TODO: if we were alerting previously, mention that we're all good now
             logger.info("no problem workers")
 
     # only fires if it's 8AM-6PM M-F in bitbar TZ
