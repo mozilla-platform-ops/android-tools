@@ -28,9 +28,6 @@ class SlackAlert:
         )
         self.toml = self.read_toml()
 
-        # import pprint
-        # pprint.pprint(self.toml)
-
         # webhook url
         if "main" in self.toml and "webhook_url" in self.toml["main"]:
             if self.toml["main"]["webhook_url"]:
