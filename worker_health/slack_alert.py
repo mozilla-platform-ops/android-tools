@@ -29,14 +29,18 @@ class SlackAlert:
         self.toml = self.read_toml()
 
         # webhook url
-        if "main" in self.toml and "webhook_url" in self.toml["main"]:
-            if self.toml["main"]["webhook_url"]:
-                self.webhook_url = self.toml["main"]["webhook_url"]
-                self.alerting_enabled = True
+        if self.get_toml_value("webhook_url"):
+            self.webhook_url = self.toml["main"]["webhook_url"]
+            self.alerting_enabled = True
 
     def set_toml_value(self, key, value):
         self.toml["main"][key] = value
         self.write_toml(self.toml)
+
+    def get_toml_value(self, key):
+        if "main" in self.toml and key in self.toml["main"]:
+            return self.toml["main"][key]
+        return False
 
     def write_toml(self, dict_to_write):
         with open(self.configuration_file, "w") as writer:
@@ -73,7 +77,8 @@ currently_alerting = false
                 logger.info("would have sent message: '%s'" % message)
         else:
             # TODO: if we were alerting previously, mention that we're all good now
-            if self.toml["main"]["currently_alerting"]:
+            if self.get_toml_value("currently_alerting"):
+                logger.info("sending all clear message")
                 message = "all device issues resolved"
                 if self.alerting_enabled:
                     self.send_slack_message(message)
