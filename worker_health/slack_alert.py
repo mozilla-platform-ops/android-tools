@@ -79,7 +79,7 @@ currently_alerting = false
                 else:
                     logger.info("would have sent message: '%s'" % message)
             logger.info("no problem workers")
-            self.write_toml("currently_alerting", True)
+            self.set_toml_value("currently_alerting", True)
 
     # only fires if it's 8AM-6PM M-F in bitbar TZ
     def slack_alert_m_thru_f(self):
