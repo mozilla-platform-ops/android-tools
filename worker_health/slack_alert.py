@@ -29,9 +29,18 @@ class SlackAlert:
         self.toml = self.read_toml()
 
         # webhook url
-        if "main" in self.toml and "webhook_url" in self.toml["main"]:
+        if self.get_toml_value("webhook_url"):
             self.webhook_url = self.toml["main"]["webhook_url"]
             self.alerting_enabled = True
+
+    def set_toml_value(self, key, value):
+        self.toml["main"][key] = value
+        self.write_toml(self.toml)
+
+    def get_toml_value(self, key):
+        if "main" in self.toml and key in self.toml["main"]:
+            return self.toml["main"][key]
+        return False
 
     def write_toml(self, dict_to_write):
         with open(self.configuration_file, "w") as writer:
@@ -45,6 +54,7 @@ class SlackAlert:
             default_doc = """
 [main]
 webhook_url = ""
+currently_alerting = false
           """
             return_dict = toml.loads(default_doc)
             self.write_toml(return_dict)
@@ -58,14 +68,24 @@ webhook_url = ""
             time_limit=self.time_limit, exclude_quarantined=True
         )
         if pw:
-            # message = "problem workers: %s" % pw
+            # update state indicating we're alerting
+            self.set_toml_value("currently_alerting", True)
             message = "problem workers (%s): %s" % (len(pw), pw)
             if self.alerting_enabled:
                 self.send_slack_message(message)
             else:
                 logger.info("would have sent message: '%s'" % message)
         else:
+            # if we were alerting previously, mention that we're all good now
+            if self.get_toml_value("currently_alerting"):
+                logger.info("sending all clear message")
+                message = "all device issues resolved"
+                if self.alerting_enabled:
+                    self.send_slack_message(message)
+                else:
+                    logger.info("would have sent message: '%s'" % message)
             logger.info("no problem workers")
+            self.set_toml_value("currently_alerting", False)
 
     # only fires if it's 8AM-6PM M-F in bitbar TZ
     def slack_alert_m_thru_f(self):
@@ -92,6 +112,7 @@ webhook_url = ""
         else:
             logger.info("outside run window")
 
+    # TODO: if alerting is not enabled, just mention we'd send a message 
     def send_slack_message(self, message):
         # cli example:
         #   curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' WEBHOOK_URL
