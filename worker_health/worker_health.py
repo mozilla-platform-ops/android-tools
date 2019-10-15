@@ -182,7 +182,7 @@ class WorkerHealth:
             "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=%s"
             % MAX_WORKER_TYPES
         )
-        json_1 = utils.get_jsonc(url)
+        json_1 = utils.get_jsonc(url, self.verbosity)
         for item in json_1["workerTypes"]:
             self.tc_current_worker_types.append(item["workerType"])
 
@@ -197,7 +197,7 @@ class WorkerHealth:
                 "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
                 % (item, MAX_WORKER_COUNT)
             )
-            json_result = utils.get_jsonc(url)
+            json_result = utils.get_jsonc(url, self.verbosity)
             if self.verbosity > 2:
                 print("")
                 print("%s (%s)" % (item, url))
@@ -206,7 +206,7 @@ class WorkerHealth:
             retries_left = 2
             # tc can sometimes return empty results for this query, retry a few times
             while json_result["workers"] == []:
-                json_result = utils.get_jsonc(url)
+                json_result = utils.get_jsonc(url, self.verbosity)
                 retries_left = retries_left - 1
                 if retries_left == 0:
                     break
@@ -233,7 +233,7 @@ class WorkerHealth:
                     "https://queue.taskcluster.net/v1/task/%s/status"
                     % worker["latestTask"]["taskId"]
                 )
-                json_result2 = utils.get_jsonc(an_url)
+                json_result2 = utils.get_jsonc(an_url, self.verbosity)
                 if self.verbosity > 2:
                     print("%s result2: " % worker["workerId"])
                     self.pp.pprint(json_result2)
@@ -419,7 +419,7 @@ class WorkerHealth:
             an_url = (
                 "https://queue.taskcluster.net/v1/pending/proj-autophone/%s" % queue
             )
-            json_result = utils.get_jsonc(an_url)
+            json_result = utils.get_jsonc(an_url, self.verbosity)
             self.tc_queue_counts[queue] = json_result["pendingTasks"]
 
     def flatten_list(self, list_to_flatten, sort_output=True):
