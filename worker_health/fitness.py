@@ -39,8 +39,8 @@ class Fitness:
         self.worker_id_maxlen = 0
 
     def get_worker_jobs(self, queue, worker_type, worker):
+        # TODO: need to get worker-group...
         return utils.get_jsonc(
-            # TODO: need to get worker-group...
             "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
             % (self.provisioner, queue, worker_type, worker)
         )
