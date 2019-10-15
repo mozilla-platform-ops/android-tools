@@ -1,6 +1,5 @@
 import csv
 import getpass
-import json
 import logging
 import os
 import pprint
@@ -19,7 +18,6 @@ import utils
 
 try:
     import pendulum
-    import requests
     import yaml
 except ImportError:
     print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
