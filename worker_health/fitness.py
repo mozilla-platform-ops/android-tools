@@ -42,7 +42,8 @@ class Fitness:
         # TODO: need to get worker-group...
         return utils.get_jsonc(
             "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
-            % (self.provisioner, queue, worker_type, worker)
+            % (self.provisioner, queue, worker_type, worker),
+            self.verbosity
         )
 
     def get_task_status(self, taskid):
@@ -70,7 +71,7 @@ class Fitness:
                 % (self.provisioner, worker_type)
             )
             # print(url)
-            worker_group_result = utils.get_jsonc(url)
+            worker_group_result = utils.get_jsonc(url, self.verbosity)
             # worker_group = worker_group_result['workerTypes'][0][]
             # import pprint
             # pprint.pprint(worker_group_result)
@@ -137,7 +138,7 @@ class Fitness:
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
         return utils.get_jsonc(
             "https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100"
-            % provisioner
+            % provisioner, self.verbosity
         )
 
     def workertype_fitness_report(self, worker_type):
@@ -146,7 +147,7 @@ class Fitness:
             % (self.provisioner, worker_type)
         )
         # print(url)
-        workers_result = utils.get_jsonc(url)
+        workers_result = utils.get_jsonc(url, self.verbosity)
 
         worker_ids = []
         for worker in workers_result["workers"]:
