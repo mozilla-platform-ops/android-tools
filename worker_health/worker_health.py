@@ -1,6 +1,5 @@
 import csv
 import getpass
-import json
 import logging
 import os
 import pprint
@@ -19,7 +18,6 @@ import utils
 
 try:
     import pendulum
-    import requests
     import yaml
 except ImportError:
     print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
@@ -130,45 +128,6 @@ class WorkerHealth:
         open(last_updated_file, "a").close()
         os.utime(last_updated_file, None)
 
-    # handles continuationToken
-    def get_jsonc(self, an_url):
-        output_dict = {}
-        headers = {"User-Agent": USER_AGENT_STRING}
-        retries_left = 2
-
-        while retries_left >= 0:
-            if self.verbosity > 2:
-                print(an_url)
-            response = requests.get(an_url, headers=headers)
-            result = response.text
-            try:
-                output = json.loads(result)
-                # will only break on good decode
-                break
-            except json.decoder.JSONDecodeError as e:
-                logger.warning("json decode error. input: %s" % result)
-                if retries_left == 0:
-                    raise e
-            retries_left -= 1
-        output_dict = output
-
-        while "continuationToken" in output:
-            payload = {"continuationToken": output["continuationToken"]}
-            if self.verbosity > 2:
-                print("CONT %s, %s" % (an_url, output["continuationToken"]))
-            response = requests.get(an_url, headers=headers, params=payload)
-            result = response.text
-            output = json.loads(result)
-            # tc messes with us and sends back and empty workers array
-            if 'workers' in output and len(output['workers']):
-                # we never hit this...
-                logging.error("shouldn't be here")
-                output_dict = output
-
-        if self.verbosity > 2:
-                pprint.pprint(output_dict)
-        return output_dict
-
     def set_configured_worker_counts(self):
         yaml_file_path = os.path.join(
             self.devicepool_client_dir, "config", "config.yml"
@@ -221,7 +180,7 @@ class WorkerHealth:
             "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=%s"
             % MAX_WORKER_TYPES
         )
-        json_1 = self.get_jsonc(url)
+        json_1 = utils.get_jsonc(url, self.verbosity)
         for item in json_1["workerTypes"]:
             self.tc_current_worker_types.append(item["workerType"])
 
@@ -236,7 +195,7 @@ class WorkerHealth:
                 "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
                 % (item, MAX_WORKER_COUNT)
             )
-            json_result = self.get_jsonc(url)
+            json_result = utils.get_jsonc(url, self.verbosity)
             if self.verbosity > 2:
                 print("")
                 print("%s (%s)" % (item, url))
@@ -245,7 +204,7 @@ class WorkerHealth:
             retries_left = 2
             # tc can sometimes return empty results for this query, retry a few times
             while json_result["workers"] == []:
-                json_result = self.get_jsonc(url)
+                json_result = utils.get_jsonc(url, self.verbosity)
                 retries_left = retries_left - 1
                 if retries_left == 0:
                     break
@@ -272,7 +231,7 @@ class WorkerHealth:
                     "https://queue.taskcluster.net/v1/task/%s/status"
                     % worker["latestTask"]["taskId"]
                 )
-                json_result2 = self.get_jsonc(an_url)
+                json_result2 = utils.get_jsonc(an_url, self.verbosity)
                 if self.verbosity > 2:
                     print("%s result2: " % worker["workerId"])
                     self.pp.pprint(json_result2)
@@ -458,7 +417,7 @@ class WorkerHealth:
             an_url = (
                 "https://queue.taskcluster.net/v1/pending/proj-autophone/%s" % queue
             )
-            json_result = self.get_jsonc(an_url)
+            json_result = utils.get_jsonc(an_url, self.verbosity)
             self.tc_queue_counts[queue] = json_result["pendingTasks"]
 
     def flatten_list(self, list_to_flatten, sort_output=True):

@@ -11,6 +11,7 @@ from urllib.request import urlopen
 import requests
 
 from worker_health import USER_AGENT_STRING, logger
+import utils
 
 # for each queue
 #   for each worker
@@ -38,10 +39,11 @@ class Fitness:
         self.worker_id_maxlen = 0
 
     def get_worker_jobs(self, queue, worker_type, worker):
-        return self.get_jsonc(
-            # TODO: need to get worker-group...
+        # TODO: need to get worker-group...
+        return utils.get_jsonc(
             "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
-            % (self.provisioner, queue, worker_type, worker)
+            % (self.provisioner, queue, worker_type, worker),
+            self.verbosity
         )
 
     def get_task_status(self, taskid):
@@ -69,7 +71,7 @@ class Fitness:
                 % (self.provisioner, worker_type)
             )
             # print(url)
-            worker_group_result = self.get_jsonc(url)
+            worker_group_result = utils.get_jsonc(url, self.verbosity)
             # worker_group = worker_group_result['workerTypes'][0][]
             # import pprint
             # pprint.pprint(worker_group_result)
@@ -134,9 +136,9 @@ class Fitness:
     # for provisioner report...
     def get_worker_types(self, provisioner):
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
-        return self.get_jsonc(
+        return utils.get_jsonc(
             "https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100"
-            % provisioner
+            % provisioner, self.verbosity
         )
 
     def workertype_fitness_report(self, worker_type):
@@ -145,7 +147,7 @@ class Fitness:
             % (self.provisioner, worker_type)
         )
         # print(url)
-        workers_result = self.get_jsonc(url)
+        workers_result = utils.get_jsonc(url, self.verbosity)
 
         worker_ids = []
         for worker in workers_result["workers"]:
@@ -333,36 +335,6 @@ class Fitness:
             result = response.text
             output = json.loads(result)
         return an_url, output, None
-
-    # handles continuationToken
-    def get_jsonc(self, an_url):
-        headers = {"User-Agent": USER_AGENT_STRING}
-        retries_left = 2
-
-        while retries_left >= 0:
-            if self.verbosity > 2:
-                print(an_url)
-            response = requests.get(an_url, headers=headers)
-            result = response.text
-            try:
-                output = json.loads(result)
-                # will only break on good decode
-                break
-            except json.decoder.JSONDecodeError as e:
-                logger.warning("json decode error. input: %s" % result)
-                if retries_left == 0:
-                    raise e
-            retries_left -= 1
-
-        while "continuationToken" in output:
-            payload = {"continuationToken": output["continuationToken"]}
-            if self.verbosity > 2:
-                print("%s, %s" % (an_url, output["continuationToken"]))
-            response = requests.get(an_url, headers=headers, params=payload)
-            result = response.text
-            output = json.loads(result)
-        return output
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
