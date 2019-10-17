@@ -59,9 +59,7 @@ def get_jsonc(an_url, verbosity=0):
         output = json.loads(result)
         # tc messes with us and sends back and empty workers array
         if 'workers' in output and len(output['workers']):
-            # we never hit this...
-            logger.error("shouldn't be here")
-            output_dict = output
+            output_dict.update(output)
 
     if verbosity > 2:
             pprint.pprint(output_dict)
