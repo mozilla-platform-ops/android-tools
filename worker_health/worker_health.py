@@ -252,7 +252,8 @@ class WorkerHealth:
                         self.tc_current_worker_last_started[
                                 worker["workerId"]
                             ] = None
-                        # set started_time if data
+                        # normal workers
+                        # - set started_time if data
                         if "started" in json_result2["status"]["runs"][-1]:
                             started_time = json_result2["status"]["runs"][-1]["started"]
                             self.tc_current_worker_last_started[
