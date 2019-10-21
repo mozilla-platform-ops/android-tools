@@ -246,19 +246,20 @@ class WorkerHealth:
                 strange_result = True
                 try:
                     if "status" in json_result2:
-                        # test pool workers, new workers
-                        # - workers that just started won't have a 'started'
-                        strange_result = False
-                        self.tc_current_worker_last_started[
-                                worker["workerId"]
-                            ] = None
-                        # normal workers
-                        # - set started_time if data
-                        if "started" in json_result2["status"]["runs"][-1]:
-                            started_time = json_result2["status"]["runs"][-1]["started"]
+                        if 'runs' in json_result2["status"]:
+                            # test pool workers, new workers
+                            # - workers that just started won't have a 'started'
+                            strange_result = False
                             self.tc_current_worker_last_started[
-                                worker["workerId"]
-                            ] = started_time
+                                    worker["workerId"]
+                                ] = None
+                            # normal workers
+                            # - set started_time if data
+                            if "started" in json_result2["status"]["runs"][-1]:
+                                started_time = json_result2["status"]["runs"][-1]["started"]
+                                self.tc_current_worker_last_started[
+                                    worker["workerId"]
+                                ] = started_time
                 except KeyError:
                     # pass, because we mention the strange result below
                     pass
