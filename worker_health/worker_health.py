@@ -246,12 +246,18 @@ class WorkerHealth:
                 strange_result = True
                 try:
                     if "status" in json_result2:
+                        # test pool workers, new workers
+                        # - workers that just started won't have a 'started'
+                        strange_result = False
+                        self.tc_current_worker_last_started[
+                                worker["workerId"]
+                            ] = None
+                        # set started_time if data
                         if "started" in json_result2["status"]["runs"][-1]:
                             started_time = json_result2["status"]["runs"][-1]["started"]
                             self.tc_current_worker_last_started[
                                 worker["workerId"]
                             ] = started_time
-                            strange_result = False
                 except KeyError:
                     # pass, because we mention the strange result below
                     pass
@@ -369,6 +375,9 @@ class WorkerHealth:
                     continue
 
                 if worker in self.tc_current_worker_last_started:
+                    # new workers
+                    if self.tc_current_worker_last_started[worker] == None:
+                        continue
                     # tardy workers
                     if queue_empty:
                         continue
@@ -384,12 +393,11 @@ class WorkerHealth:
                             continue
                         mw2[queue].append(worker)
                 else:
-                    # fully missing worker
                     if queue_empty:
                         continue
                     if more_workers_than_jobs:
                         continue
-                    # will we ever reach this?
+                    # fully missing worker
                     mw2[queue].append(worker)
         return mw2
 
