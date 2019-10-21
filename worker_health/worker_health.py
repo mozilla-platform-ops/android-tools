@@ -308,6 +308,9 @@ class WorkerHealth:
             if show_details:
                 for worker in self.devicepool_queues_and_workers[queue]:
                     if worker in self.tc_current_worker_last_started:
+                        if self.tc_current_worker_last_started[worker] == None:
+                            print("    %s: present, no task start time!" % worker)
+                            continue
                         now_dt = pendulum.now(tz="UTC")
                         last_started_dt = pendulum.parse(
                             self.tc_current_worker_last_started[worker]
