@@ -377,6 +377,9 @@ class WorkerHealth:
                 if worker in self.tc_current_worker_last_started:
                     # new workers
                     if self.tc_current_worker_last_started[worker] == None:
+                        # TODO: track these in a new datastructure
+                        #   - not a 'problem worker' per se
+                        #     - shouldn't alert partners or logging, but good to know
                         continue
                     # tardy workers
                     if queue_empty:
