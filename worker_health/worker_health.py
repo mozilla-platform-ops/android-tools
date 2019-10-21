@@ -381,11 +381,11 @@ class WorkerHealth:
                         #   - not a 'problem worker' per se
                         #     - shouldn't alert partners or logging, but good to know
                         continue
-                    # tardy workers
                     if queue_empty:
                         continue
                     if more_workers_than_jobs:
                         continue
+                    # tardy workers
                     now_dt = pendulum.now(tz="UTC")
                     last_started_dt = pendulum.parse(
                         self.tc_current_worker_last_started[worker]
