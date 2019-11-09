@@ -125,7 +125,9 @@ class Fitness:
 
     def get_pending_tasks(self, queue):
         _url, output, exception = self.get_jsonc2(
-            "https://queue.taskcluster.net/v1/pending/%s/%s" % (self.provisioner, queue)
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/%s/%s"
+            # "https://queue.taskcluster.net/v1/pending/%s/%s"
+            % (self.provisioner, queue)
         )
         return queue, output, exception
 
