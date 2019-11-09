@@ -149,7 +149,8 @@ class Fitness:
 
     def workertype_fitness_report(self, worker_type):
         url = (
-            "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100"
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
+            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100"
             % (self.provisioner, worker_type)
         )
         # print(url)
