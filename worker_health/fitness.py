@@ -67,7 +67,8 @@ class Fitness:
             ## host mode
             self.get_pending_tasks_multi([worker_type])
             url = (
-                "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
+                "https://firefox-ci-tc.services.mozilla.com/provisioners/%s/worker-types/%s"
+                # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
                 % (self.provisioner, worker_type)
             )
             # print(url)
