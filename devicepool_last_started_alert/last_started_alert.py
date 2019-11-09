@@ -30,23 +30,12 @@ STARTED_REGEX = r"test run [\d]+ started"
 FINISHED_REGEX = r"test run [\d]+ finished"
 RUNNING_REGEX = r"DISABLED \d+ RUNNING (\d+)"
 URLS = [
-    #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-unit-p2",
-    #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-perf-p2",
-    #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-batt-p2",
-    #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-unit-g5",
-    #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-perf-g5",
-    #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-batt-g5",
-    #    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-ap-test-g5",
-    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-batt-p2",
-    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-perf-p2",
-    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-unit-p2",
-    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-batt-g5",
-    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-perf-g5",
-    "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-unit-g5",
-    # "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-g5",
-    # "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-1",
-    # "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-2",
-    # "https://queue.taskcluster.net/v1/pending/proj-autophone/gecko-t-bitbar-gw-test-3",
+    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-batt-p2",
+    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-perf-p2",
+    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-unit-p2",
+    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-batt-g5",
+    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-perf-g5",
+    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-unit-g5",
 ]
 
 
