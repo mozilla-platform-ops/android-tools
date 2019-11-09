@@ -41,7 +41,7 @@ class Fitness:
     def get_worker_jobs(self, queue, worker_type, worker):
         # TODO: need to get worker-group...
         return utils.get_jsonc(
-            "https://firefox-ci-tc.services.mozilla.com/provisioners/%s/worker-types/%s/workers/%s/%s"
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
             #"https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
             % (self.provisioner, queue, worker_type, worker),
             self.verbosity
