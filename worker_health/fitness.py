@@ -48,7 +48,8 @@ class Fitness:
 
     def get_task_status(self, taskid):
         _url, output, exception = self.get_jsonc2(
-            "https://queue.taskcluster.net/v1/task/%s/status" % taskid
+            "https://firefox-ci-tc.services.mozilla.com/tasks/%s" % taskid
+            # "https://queue.taskcluster.net/v1/task/%s/status" % taskid
         )
         return taskid, output, exception
 
@@ -67,7 +68,7 @@ class Fitness:
             ## host mode
             self.get_pending_tasks_multi([worker_type])
             url = (
-                "https://firefox-ci-tc.services.mozilla.com/provisioners/%s/worker-types/%s"
+                "https://firefox-ci-tc.services.mozilla.com/provisioners/%s/worker-types/%s/workers/?limit=5"
                 # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
                 % (self.provisioner, worker_type)
             )
