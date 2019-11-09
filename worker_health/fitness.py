@@ -49,7 +49,7 @@ class Fitness:
 
     def get_task_status(self, taskid):
         _url, output, exception = self.get_jsonc2(
-            "https://firefox-ci-tc.services.mozilla.com/tasks/%s" % taskid
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s/status" % taskid
             # "https://queue.taskcluster.net/v1/task/%s/status" % taskid
         )
         return taskid, output, exception
