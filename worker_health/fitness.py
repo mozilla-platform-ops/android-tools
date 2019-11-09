@@ -41,14 +41,16 @@ class Fitness:
     def get_worker_jobs(self, queue, worker_type, worker):
         # TODO: need to get worker-group...
         return utils.get_jsonc(
-            "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
+            #"https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
             % (self.provisioner, queue, worker_type, worker),
             self.verbosity
         )
 
     def get_task_status(self, taskid):
         _url, output, exception = self.get_jsonc2(
-            "https://queue.taskcluster.net/v1/task/%s/status" % taskid
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s/status" % taskid
+            # "https://queue.taskcluster.net/v1/task/%s/status" % taskid
         )
         return taskid, output, exception
 
@@ -67,7 +69,8 @@ class Fitness:
             ## host mode
             self.get_pending_tasks_multi([worker_type])
             url = (
-                "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
+                "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=5"
+                # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
                 % (self.provisioner, worker_type)
             )
             # print(url)
@@ -122,7 +125,9 @@ class Fitness:
 
     def get_pending_tasks(self, queue):
         _url, output, exception = self.get_jsonc2(
-            "https://queue.taskcluster.net/v1/pending/%s/%s" % (self.provisioner, queue)
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/%s/%s"
+            # "https://queue.taskcluster.net/v1/pending/%s/%s"
+            % (self.provisioner, queue)
         )
         return queue, output, exception
 
@@ -137,13 +142,15 @@ class Fitness:
     def get_worker_types(self, provisioner):
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
         return utils.get_jsonc(
-            "https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100"
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types?limit=100"
+            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100"
             % provisioner, self.verbosity
         )
 
     def workertype_fitness_report(self, worker_type):
         url = (
-            "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100"
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
+            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100"
             % (self.provisioner, worker_type)
         )
         # print(url)

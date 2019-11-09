@@ -177,8 +177,9 @@ class WorkerHealth:
         # get the queues with data
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=100
         url = (
-            "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=%s"
-            % MAX_WORKER_TYPES
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/?limit=%s"
+            # "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=%s"
+            % ('proj-autophone', MAX_WORKER_TYPES)
         )
         json_1 = utils.get_jsonc(url, self.verbosity)
         for item in json_1["workerTypes"]:
@@ -192,8 +193,9 @@ class WorkerHealth:
 
         for item in self.tc_current_worker_types:
             url = (
-                "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
-                % (item, MAX_WORKER_COUNT)
+                "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=%s"
+                # "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
+                % ('proj-autophone', item, MAX_WORKER_COUNT)
             )
             json_result = utils.get_jsonc(url, self.verbosity)
             if self.verbosity > 2:
@@ -228,7 +230,8 @@ class WorkerHealth:
                     # print("worker %s has no latestTask" % worker["workerId"])
                     continue
                 an_url = (
-                    "https://queue.taskcluster.net/v1/task/%s/status"
+                    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s/status"
+                    # "https://queue.taskcluster.net/v1/task/%s/status"
                     % worker["latestTask"]["taskId"]
                 )
                 json_result2 = utils.get_jsonc(an_url, self.verbosity)
@@ -282,7 +285,7 @@ class WorkerHealth:
 
         if verbosity > 1:
             print(
-                "  - from https://tools.taskcluster.net/provisioners/proj-autophone/worker-types"
+                "  - from https://firefox-ci-tc.services.mozilla.com/provisioners/proj-autophone"
             )
             # print(
             #     "  - config has %s projects/queues"
@@ -431,7 +434,9 @@ class WorkerHealth:
     def set_queue_counts(self):
         for queue in self.devicepool_queues_and_workers:
             an_url = (
-                "https://queue.taskcluster.net/v1/pending/proj-autophone/%s" % queue
+                "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/%s/%s"
+                # "https://queue.taskcluster.net/v1/pending/proj-autophone/%s"
+                % ('proj-autophone', queue)
             )
             json_result = utils.get_jsonc(an_url, self.verbosity)
             self.tc_queue_counts[queue] = json_result["pendingTasks"]
