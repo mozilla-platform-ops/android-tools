@@ -164,7 +164,7 @@ class PendingJobs:
                                 # step 2:
                                 #   https://queue.taskcluster.net/v1/task/N96nO0GqT7KohTC9MrVZlQ
                                 s2_url = (
-                                    "https://queue.taskcluster.net/v1/task/%s" % tc_id
+                                    "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s" % tc_id
                                 )
                                 s2_res = self.get_json(s2_url)
 
