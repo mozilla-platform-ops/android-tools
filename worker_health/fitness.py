@@ -9,6 +9,7 @@ from time import time as timer
 from urllib.request import urlopen
 
 import requests
+from natsort import natsorted, ns
 
 from worker_health import USER_AGENT_STRING, logger
 import utils
@@ -175,6 +176,8 @@ class Fitness:
             # print("%s: %s" % (worker_id, result))
             result["worker_id"] = worker_id
             worker_results.append(result)
+        # sort naturally/numerically
+        worker_results = natsorted(worker_results, key = lambda i: i['worker_id'])
         return worker_type, worker_results, None
 
     # basically how print does it but with float padding
