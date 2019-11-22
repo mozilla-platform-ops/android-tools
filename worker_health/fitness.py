@@ -66,7 +66,9 @@ class Fitness:
 
     def main(self, provisioner, worker_type, worker_id):
         start = timer()
+        worker_count = 0
         if worker_type and worker_id:
+            worker_count = 1
             ## host mode
             self.get_pending_tasks_multi([worker_type])
             url = (
@@ -98,6 +100,7 @@ class Fitness:
             _wt, res_obj, _e = self.workertype_fitness_report(worker_type)
             for item in res_obj:
                 # print(item)
+                worker_count += 1
                 print(
                     "%s.%s"
                     % (worker_type, self.format_workertype_fitness_report_result(item))
@@ -118,11 +121,16 @@ class Fitness:
                 # copied from block above
                 wt, res_obj, _e = self.workertype_fitness_report(worker_type)
                 for item in res_obj:
+                    worker_count += 1
                     print(
                         "%s.%s"
                         % (wt, self.format_workertype_fitness_report_result(item))
                     )
-        print("Elapsed Time: %s" % (timer() - start,))
+        print("%s workers queried in %s seconds" % (
+                worker_count,
+                round((timer() - start), 2)
+            )
+        )
 
     def get_pending_tasks(self, queue):
         _url, output, exception = self.get_jsonc2(
