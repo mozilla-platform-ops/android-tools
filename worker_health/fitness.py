@@ -9,7 +9,7 @@ from time import time as timer
 from urllib.request import urlopen
 
 import requests
-from natsort import natsorted, ns
+from natsort import natsorted
 
 from worker_health import USER_AGENT_STRING, logger
 import utils
