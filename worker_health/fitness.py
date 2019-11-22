@@ -266,6 +266,8 @@ class Fitness:
             # print("sr: %s/%s=%s" % (task_successes, total, success_ratio))
             results_obj["sr"] = success_ratio
             success_ratio_calculated = True
+        else:
+            results_obj["sr"] = float(0)
         results_obj["suc"] = task_successes
         results_obj["cmp"] = total
         results_obj["exc"] = task_exceptions
