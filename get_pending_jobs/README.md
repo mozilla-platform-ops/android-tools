@@ -1,5 +1,9 @@
 # get_pending_jobs
 
+## deprecated
+
+https://sql.telemetry.mozilla.org/queries/66371/source is more exhaustive and a quicker way to get this data.
+
 ## usage
 
 - install pipenv
