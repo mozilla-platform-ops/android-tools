@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from natsort import natsorted
-
 import fitness
 
 if __name__ == "__main__":
