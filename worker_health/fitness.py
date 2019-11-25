@@ -156,6 +156,32 @@ class Fitness:
             % provisioner, self.verbosity
         )
 
+    def simple_worker_report(self, worker_type, worker_prefix="machine-", worker_count=60):
+        url = (
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
+            % (self.provisioner, worker_type)
+        )
+        # print(url)
+        workers_result = utils.get_jsonc(url, self.verbosity)
+
+        expected_workers = []
+        for i in range(0, worker_count):
+            expected_workers.append("%s%s" % (worker_prefix, i))
+
+        seen_workers = []
+        for item in workers_result['workers']:
+            seen_workers.append(item['workerId'])
+        # pprint.pprint(workers_result)
+
+        # for item in natsorted(seen_workers):
+        #     print(item)
+
+        # should show 46
+        e_w = set(expected_workers)
+        s_w = set(seen_workers)
+        missing = natsorted(s_w.symmetric_difference(e_w))
+        print("missing workers: %s" % missing)
+
     def workertype_fitness_report(self, worker_type):
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
