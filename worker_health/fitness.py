@@ -414,6 +414,8 @@ if __name__ == "__main__":
         nargs="?",
     )
 
+    # TODO: add an --alert-only option to show only alerting hosts
+
     args = parser.parse_args()
 
     if not (0 < args.alert_percent < 1):
