@@ -145,8 +145,8 @@ class Fitness:
             results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
                 self.get_pending_tasks, queues
             )
-        except urllib.exceptions.NewConnectionError:
-            pass
+        except urllib.exceptions.NewConnectionError as e:
+            print(e)
         for queue, result, _error in results:
             self.queue_counts[queue] = result["pendingTasks"]
 
