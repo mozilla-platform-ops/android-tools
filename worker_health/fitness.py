@@ -7,6 +7,7 @@ import sys
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 from urllib.request import urlopen
+import urllib.error
 
 import requests
 from natsort import natsorted
@@ -145,7 +146,7 @@ class Fitness:
             results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
                 self.get_pending_tasks, queues
             )
-        except urllib.exceptions.NewConnectionError as e:
+        except urllib.error.NewConnectionError as e:
             print(e)
         for queue, result, _error in results:
             self.queue_counts[queue] = result["pendingTasks"]
