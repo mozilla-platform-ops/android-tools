@@ -439,7 +439,10 @@ class WorkerHealth:
                 % ('proj-autophone', queue)
             )
             json_result = utils.get_jsonc(an_url, self.verbosity)
-            self.tc_queue_counts[queue] = json_result["pendingTasks"]
+            if "pendingTasks" in json_result:
+                self.tc_queue_counts[queue] = json_result["pendingTasks"]
+            else:
+                logger.warning("failed to get counts for queue '%s'", queue)
 
     def flatten_list(self, list_to_flatten, sort_output=True):
         flattened_list = []
