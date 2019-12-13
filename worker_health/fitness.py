@@ -10,6 +10,7 @@ from urllib.request import urlopen
 import urllib.error
 
 import requests
+from requests.exceptions import ConnectionError
 from natsort import natsorted
 
 from worker_health import USER_AGENT_STRING, logger
@@ -146,7 +147,7 @@ class Fitness:
             results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
                 self.get_pending_tasks, queues
             )
-        except urllib.error.NewConnectionError as e:
+        except Exception as e:
             print(e)
         for queue, result, _error in results:
             self.queue_counts[queue] = result["pendingTasks"]
@@ -206,9 +207,12 @@ class Fitness:
             print("%s: no workers reporting (could be due to no jobs)" % worker_type)
             worker_type, None, None
 
-        results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(
-            self.device_fitness_report, worker_ids
-        )
+        try:
+            results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(
+                self.device_fitness_report, worker_ids
+            )
+        except Exception as e:
+            print(e)
         worker_results = []
         for worker_id, result, _error in results:
             # print("%s: %s" % (worker_id, result))
@@ -263,9 +267,12 @@ class Fitness:
             task_id = task["taskId"]
             task_ids.append(task_id)
 
-        results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
-            self.get_task_status, task_ids
-        )
+        try:
+            results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
+                self.get_task_status, task_ids
+            )
+        except Exception as e:
+            print(e)
         for task_id, result, error in results:
             if error is None:
                 task_state = None
