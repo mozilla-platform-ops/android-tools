@@ -7,10 +7,8 @@ import sys
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 from urllib.request import urlopen
-import urllib.error
 
 import requests
-from requests.exceptions import ConnectionError
 from natsort import natsorted
 
 from worker_health import USER_AGENT_STRING, logger
