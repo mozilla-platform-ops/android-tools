@@ -32,7 +32,8 @@ def bitbar_systemd_service_present(warn=False, error=False):
 def get_jsonc(an_url, verbosity=0):
     output_dict = {}
     headers = {"User-Agent": USER_AGENT_STRING}
-    retries_left = 2
+    retries_allowed = 2
+    retries_left = retries_allowed
 
     while retries_left >= 0:
         if verbosity > 2:
@@ -44,9 +45,11 @@ def get_jsonc(an_url, verbosity=0):
             # will only break on good decode
             break
         except json.decoder.JSONDecodeError as e:
-            logger.warning("json decode error. input: %s" % result)
+            logger.warning("get_jsonc: '%s': json decode error. input: %s" % (an_url, result))
+            logger.warning(e)
             if retries_left == 0:
-                raise e
+                logger.error("get_jsonc: '%s': failed %s times, returning empty" % an_url, retries_allowed + 1)
+                return output_dict
         retries_left -= 1
     output_dict = output
 
@@ -56,6 +59,7 @@ def get_jsonc(an_url, verbosity=0):
             print("CONT %s, %s" % (an_url, output["continuationToken"]))
         response = requests.get(an_url, headers=headers, params=payload)
         result = response.text
+        # TODO: handle exceptions here also
         output = json.loads(result)
         # tc messes with us and sends back and empty workers array
         if 'workers' in output and len(output['workers']):
