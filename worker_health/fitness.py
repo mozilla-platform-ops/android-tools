@@ -215,10 +215,15 @@ class Fitness:
         except Exception as e:
             print(e)
         worker_results = []
-        for worker_id, result, _error in results:
-            # print("%s: %s" % (worker_id, result))
-            result["worker_id"] = worker_id
-            worker_results.append(result)
+        for a_tuple in results:
+            worker_id = a_tuple[0]
+            result = a_tuple[1]
+            _error = a_tuple[2]
+            if result:
+                # _error
+                # print("%s: %s" % (worker_id, result))
+                result["worker_id"] = worker_id
+                worker_results.append(result)
         # sort naturally/numerically
         worker_results = natsorted(worker_results, key = lambda i: i['worker_id'])
         return worker_type, worker_results, None
