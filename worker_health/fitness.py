@@ -165,7 +165,10 @@ class Fitness:
             % (self.provisioner, worker_type)
         )
         # print(url)
-        workers_result = utils.get_jsonc(url, self.verbosity)
+        try:
+            workers_result = utils.get_jsonc(url, self.verbosity)
+        except Exception as e:
+            print(e)
 
         expected_workers = []
         for i in range(0, worker_count):
