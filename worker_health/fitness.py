@@ -218,10 +218,8 @@ class Fitness:
         for a_tuple in results:
             worker_id = a_tuple[0]
             result = a_tuple[1]
-            _error = a_tuple[2]
+            # error = a_tuple[2]
             if result:
-                # _error
-                # print("%s: %s" % (worker_id, result))
                 result["worker_id"] = worker_id
                 worker_results.append(result)
         # sort naturally/numerically
