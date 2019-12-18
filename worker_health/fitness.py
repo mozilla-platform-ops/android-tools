@@ -109,10 +109,13 @@ class Fitness:
             ### provisioner mode
             worker_types_result = self.get_worker_types(provisioner)
             worker_types = []
-            for provisioner in worker_types_result["workerTypes"]:
-                worker_type = provisioner["workerType"]
-                worker_types.append(worker_type)
-            # print(worker_types)
+            if 'workerTypes' in worker_types_result:
+                for provisioner in worker_types_result["workerTypes"]:
+                    worker_type = provisioner["workerType"]
+                    worker_types.append(worker_type)
+                # print(worker_types)
+            else:
+                logger.warning("error fetching workerTypes, results are incomplete!")
             self.get_pending_tasks_multi(worker_types)
 
             # TODO: process and then display? padding of worker_id is not consistent for whole provisioner report
@@ -175,8 +178,9 @@ class Fitness:
             expected_workers.append("%s%s" % (worker_prefix, i))
 
         seen_workers = []
-        for item in workers_result['workers']:
-            seen_workers.append(item['workerId'])
+        if 'workers' in workers_result:
+            for item in workers_result['workers']:
+                seen_workers.append(item['workerId'])
         # pprint.pprint(workers_result)
 
         # for item in natsorted(seen_workers):
