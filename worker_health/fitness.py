@@ -420,6 +420,13 @@ if __name__ == "__main__":
         % ALERT_PERCENT,
     )
     parser.add_argument(
+        "-o",
+        "--only-show-alerting",
+        action="store_true",
+        default=False,
+        help="only show alerting hosts",
+    )
+    parser.add_argument(
         "-p",
         "--provisioner",
         default=DEFAULT_PROVISIONER,
