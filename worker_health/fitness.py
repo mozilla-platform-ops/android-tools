@@ -171,6 +171,7 @@ class Fitness:
         try:
             workers_result = utils.get_jsonc(url, self.verbosity)
         except Exception as e:
+            workers_result = []
             print(e)
 
         expected_workers = []
@@ -212,6 +213,7 @@ class Fitness:
             print("%s: no workers reporting (could be due to no jobs)" % worker_type)
             worker_type, None, None
 
+        results = []
         try:
             results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(
                 self.device_fitness_report, worker_ids
