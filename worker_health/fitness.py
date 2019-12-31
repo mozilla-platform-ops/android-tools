@@ -302,10 +302,27 @@ class Fitness:
                     task_runnings += 1
                 elif task_state == "exception":
                     task_exceptions += 1
-                elif task_state == "completed":
-                    task_successes += 1
                 elif task_state == "failed":
                     task_failures += 1
+                elif task_state == "completed":
+                    retries_left = result["status"]["retriesLeft"]
+                    if retries_left != 5:
+                        runs = result["status"]["runs"]
+                        for run in runs:
+                            if run['workerId'] == device:
+                                run_state = run['state']
+                                if run_state == 'exception':
+                                    task_exceptions += 1
+                                elif run_state == 'running':
+                                    task_runnings += 1
+                                elif run_state == 'completed':
+                                    task_successes += 1
+                                elif run_state == 'failed':
+                                    task_failures += 1
+                                else:
+                                    raise Exception("Shouldn't be here!")
+                    else:
+                        task_successes += 1
                 if self.verbosity:
                     print("%s.%s: %s: %s" % (queue, device, task_id, task_state))
             else:
