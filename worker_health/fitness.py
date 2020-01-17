@@ -190,8 +190,9 @@ class Fitness:
         # should show 46
         e_w = set(expected_workers)
         s_w = set(seen_workers)
-        missing = natsorted(s_w.symmetric_difference(e_w))
-        print("missing workers: %s" % missing)
+        # missing = natsorted(s_w.symmetric_difference(e_w))
+        missing = e_w - s_w
+        print("missing workers (%s total): %s" % (worker_count, sorted(missing)))
 
     def workertype_fitness_report(self, worker_type):
         url = (

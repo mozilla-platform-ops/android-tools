@@ -11,4 +11,4 @@ if __name__ == "__main__":
     )
 
     worker_type = 'gecko-t-linux'
-    f.simple_worker_report(worker_type)
+    f.simple_worker_report(worker_type, worker_count=70)
