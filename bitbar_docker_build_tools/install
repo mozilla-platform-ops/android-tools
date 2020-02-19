@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ -z "$1" ]; then
+  echo "usage: specify path where you'd like symlinks to be created"
+else
+  pwd=$(pwd)
+  set -x
+  cd $1
+  ln -sf ${pwd}/*.sh .
+  ln -sf ${pwd}/*.conf .
+  set +x
+fi
+
