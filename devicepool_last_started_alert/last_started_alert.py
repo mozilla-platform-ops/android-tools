@@ -11,6 +11,7 @@ import socket
 import subprocess
 import time
 from urllib.request import urlopen
+from urllib.error import HTTPError
 
 import toml
 from pdpyras import EventsAPISession
@@ -77,8 +78,11 @@ class LastStarted:
         sess.log.setLevel(logging.DEBUG)
 
     def get_url(self, url):
-        data = urlopen(url).read()
-        output = json.loads(data)
+        try:
+            data = urlopen(url).read()
+            output = json.loads(data)
+        except HTTPError:
+            print("HTTPError when fetching '%s'. Continuing..." % url)
         return output
 
     def jobs_in_queues(self):
