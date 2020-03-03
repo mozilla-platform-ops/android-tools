@@ -67,6 +67,8 @@ class Fitness:
     def main(self, provisioner, worker_type, worker_id):
         start = timer()
         worker_count = 0
+        # TODO: for this calculation, should we use a count of hosts that are reporting (vs all)?
+        sr_total = 0
         if worker_type and worker_id:
             worker_count = 1
             ## host mode
@@ -90,6 +92,7 @@ class Fitness:
                 worker_type, worker_group, worker_id
             )
             res_obj["worker_id"] = worker_id
+            sr_total += res_obj['sr']
             print(
                 "%s.%s"
                 % (worker_type, self.format_workertype_fitness_report_result(res_obj))
@@ -101,6 +104,8 @@ class Fitness:
             for item in res_obj:
                 # print(item)
                 worker_count += 1
+                sr_total += item['sr']
+                # print(item)
                 print(
                     "%s.%s"
                     % (worker_type, self.format_workertype_fitness_report_result(item))
@@ -125,13 +130,15 @@ class Fitness:
                 wt, res_obj, _e = self.workertype_fitness_report(worker_type)
                 for item in res_obj:
                     worker_count += 1
+                    sr_total += item['sr']
                     print(
                         "%s.%s"
                         % (wt, self.format_workertype_fitness_report_result(item))
                     )
-        print("%s workers queried in %s seconds" % (
+        print("%s workers queried in %s seconds, average SR %s%%" % (
                 worker_count,
-                round((timer() - start), 2)
+                round((timer() - start), 2),
+                round((sr_total / worker_count * 100), 2)
             )
         )
 
