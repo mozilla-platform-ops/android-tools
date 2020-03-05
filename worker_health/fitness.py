@@ -135,6 +135,7 @@ class Fitness:
                         "%s.%s"
                         % (wt, self.format_workertype_fitness_report_result(item))
                     )
+        # TODO: show alerting count
         print("%s workers queried in %s seconds, average SR %s%%" % (
                 worker_count,
                 round((timer() - start), 2),
