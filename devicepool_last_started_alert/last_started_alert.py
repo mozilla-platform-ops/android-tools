@@ -266,9 +266,9 @@ current_dedup_key = ""
                 print(
                     "  Enough lines of journalctl output?: %s" % enough_journalctl_lines
                 )
+                print("  Running lines present?: %s" % running_lines_present)
             print("Decision metrics:")
             print("  Jobs in queues: %s" % jobs_in_queues)
-            print("  Running lines present?: %s" % running_lines_present)
             print("  Started lines present?: %s" % started_lines_present)
 
         # ALERTING
@@ -281,7 +281,7 @@ current_dedup_key = ""
             if jobs_in_queues > 5:
                 # TODO: also ensure that there are no jobs running before alerting?
                 #   - would reduce false alerts...
-                if not started_lines_present and not running_lines_present:
+                if not started_lines_present:
                     triggered_now = True
 
             # TODO: make this a class level var?
