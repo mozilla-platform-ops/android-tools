@@ -28,3 +28,5 @@ if [ -d ./hu_mac_* ]; then
     ./hu_mac_*/manifest.tt \
     $mc_dir/testing/config/tooltool-manifests/macosx64/hostutils.manifest
 fi
+
+echo "success"
