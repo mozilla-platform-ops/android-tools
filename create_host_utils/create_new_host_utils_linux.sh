@@ -5,7 +5,7 @@ set -x
 
 # create_new_host_utils
 
-TC_ROOT="https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task"
+TC_ROOT='https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task'
 
 
 function check_arch {
