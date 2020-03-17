@@ -83,8 +83,9 @@ cd $dirname
 # things to get: target.tar.bz2 target.common.tests.tar.gz
 
 # TODO: check runs/1, runs/2, etc if runs/0 has error (means first build didn't start and was retried)
-wget https://queue.taskcluster.net/v1/task/${task_id}/runs/0/artifacts/public/build/target.tar.bz2
-wget https://queue.taskcluster.net/v1/task/${task_id}/runs/0/artifacts/public/build/target.common.tests.tar.gz
+run_id=0
+wget https://queue.taskcluster.net/v1/task/${task_id}/runs/$run_id/artifacts/public/build/target.tar.bz2
+wget https://queue.taskcluster.net/v1/task/${task_id}/runs/$run_id/artifacts/public/build/target.common.tests.tar.gz
 
 
 ## package host_utils
