@@ -5,6 +5,9 @@ set -x
 
 # create_new_host_utils
 
+TC_ROOT="https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task"
+
+
 function check_arch {
   file_arch="$(file firefox/ssltunnel)"
   if [ "$arch" = "x86_64" ]; then
@@ -84,9 +87,8 @@ cd $dirname
 
 # TODO: check runs/1, runs/2, etc if runs/0 has error (means first build didn't start and was retried)
 run_id=0
-wget https://queue.taskcluster.net/v1/task/${task_id}/runs/$run_id/artifacts/public/build/target.tar.bz2
-wget https://queue.taskcluster.net/v1/task/${task_id}/runs/$run_id/artifacts/public/build/target.common.tests.tar.gz
-
+wget ${TC_ROOT}/${task_id}/runs/$run_id/artifacts/public/build/target.tar.bz2
+wget ${TC_ROOT}/${task_id}/runs/$run_id/artifacts/public/build/target.common.tests.tar.gz
 
 ## package host_utils
 
