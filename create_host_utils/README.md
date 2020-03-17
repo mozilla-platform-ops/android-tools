@@ -9,7 +9,9 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 ## steps
 
 - edit common.sh to point to your mozilla-central client
-- update the mozilla-central client that the coniguration points at
+- update the mozilla-central client that the configuration points at
+  - `h pull`
+  - `h up central`
 - remove old 'hu_*' directories
 - create a new build script
   - `create_build_script.sh`
