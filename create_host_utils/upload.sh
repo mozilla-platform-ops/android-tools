@@ -21,19 +21,19 @@ message=$2
 if [ "$arch" == "i686" ]; then
   if [ -d ./hu_i686_* ]; then
     cd ./hu_i686_*
-    $TT_PATH upload --authentication-file=~/.tooltool-token --message $message
+    $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
     cd ..
   fi
 elif [ "$arch" == "x86_64" ]; then
   if [ -d ./hu_x86_64_* ]; then
     cd ./hu_x86_64_*
-    $TT_PATH upload --authentication-file=~/.tooltool-token --message $message
+    $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
     cd ..
   fi
 elif [ "$arch" == "mac" ]; then
   if [ -d ./hu_mac_* ]; then
     cd ./hu_mac_*
-    $TT_PATH upload --authentication-file=~/.tooltool-token --message $message
+    $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
     cd ..
   fi
 else
