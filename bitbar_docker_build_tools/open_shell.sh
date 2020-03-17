@@ -10,6 +10,11 @@ if [ -d "$root_dir/tests" ]; then
   TESTDIR_MOUNTPOINT="-v $root_dir/tests:/tests"
 fi
 
+SRCDIR_LOCATION="${HOME}/hg/mozilla-source"
+if [ -d "$SRCDIR_LOCATION" ]; then
+  SRCDIR_MOUNTPOINT="-v ${SRCDIR_LOCATION}:/source"
+fi
+
 # TODO: mount mozilla source in
 # -v $HOME/hg/mozilla-source:/source
 
@@ -31,5 +36,6 @@ docker run -u root \
   -e TESTDROID_APIKEY="SECRET_SECRET_SECRET_DO NOT LEAK 2" \
   -it --entrypoint '/bin/bash' \
   $TESTDIR_MOUNTPOINT \
+  $SRCDIR_MOUNTPOINT \
   test-docker
   
