@@ -42,12 +42,12 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - cd to mozilla-central repo and `hg diff` to check that the size is close
   - commit change and create review
     - make separate diffs for mac and linux
-- run tests
-  - see reference doc
 - create phabricator diff
   - `moz-phab` or `arc diff`
   - add the treeherder link to your test run
   - if the tests look good, request a review
+- run tests
+  - see reference doc
 
 ## TODO
 
