@@ -377,7 +377,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--project",
         "-p",
-        help="a single project to inspect for pending jobs (defaults to use mozilla-inbound, autoland, try, and mozilla-central)",
+        help="a single project to inspect for pending jobs (defaults to use autoland, try, and mozilla-central)",
     )
     parser.add_argument(
         "--filter", "-f", help="require pending jobs to match this string"
@@ -460,7 +460,7 @@ if __name__ == "__main__":
     # TODO: if -i and not -vv or greater, warn that results won't be visible
 
     # sanity check args.project
-    projects = ["try", "mozilla-inbound", "autoland", "mozilla-central", "mozilla-beta", "mozilla-release"]
+    projects = ["try", "autoland", "mozilla-central", "mozilla-beta", "mozilla-release"]
     if args.project:
         if args.project in projects:
             projects = [args.project]
