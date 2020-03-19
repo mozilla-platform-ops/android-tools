@@ -34,6 +34,7 @@ class Fitness:
         alert_percent=ALERT_PERCENT,
         testing_mode=False,
     ):
+        self.args = None
         self.verbosity = log_level
         self.alert_percent = alert_percent
         self.provisioner = provisioner
@@ -246,7 +247,12 @@ class Fitness:
                 result["worker_id"] = worker_id
                 worker_results.append(result)
         # sort naturally/numerically
-        worker_results = natsorted(worker_results, key = lambda i: i['worker_id'])
+        if self.args.sort_order == 'sr':
+            worker_results = natsorted(worker_results, key = lambda i: i['sr'])
+        elif self.args.sort_order == 'worker_id':
+            worker_results = natsorted(worker_results, key = lambda i: i['worker_id'])
+        else:
+            raise Exception('unknown sort_order (%s)' % self.args.sort_order)
         return worker_type, worker_results, None
 
     # basically how print does it but with float padding
@@ -446,6 +452,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # TODO: add option to allow sorting by SR
     parser.add_argument(
+        "-s",
+        "--success_rate",
+        action="store_const",
+        const="sr",
+        default="worker_id",
+        dest="sort_order",
+        help="sort results by success rate (default is worker_id).",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="count",
@@ -483,6 +498,8 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    # print(args)
+    # sys.exit(0)
 
     if not (0 < args.alert_percent < 1):
         print("ERROR: --alert-percent must be between 0 and 1.")
@@ -502,4 +519,5 @@ if __name__ == "__main__":
         provisioner=args.provisioner,
         alert_percent=args.alert_percent,
     )
+    f.args = args
     f.main(args.provisioner, worker_type, worker_id)
