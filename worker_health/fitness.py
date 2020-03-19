@@ -200,7 +200,9 @@ class Fitness:
         s_w = set(seen_workers)
         # missing = natsorted(s_w.symmetric_difference(e_w))
         missing = e_w - s_w
-        print("missing workers (%s total): %s" % (worker_count, sorted(missing)))
+        m_count = len(missing)
+        print("missing workers (%s): %s" % (m_count, sorted(missing)))
+        print("%s workers total"% worker_count)
 
     def workertype_fitness_report(self, worker_type):
         url = (
