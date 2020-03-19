@@ -13,6 +13,7 @@ from natsort import natsorted
 
 from worker_health import USER_AGENT_STRING, logger
 import utils
+import quarantine
 
 # for each queue
 #   for each worker
@@ -38,6 +39,8 @@ class Fitness:
         self.provisioner = provisioner
         self.queue_counts = {}
         self.worker_id_maxlen = 0
+        self.quarantine = quarantine.Quarantine()
+        self.quarantine_data = {}
 
     def get_worker_jobs(self, queue, worker_type, worker):
         # TODO: need to get worker-group...
@@ -205,6 +208,9 @@ class Fitness:
         print("%s workers total"% worker_count)
 
     def workertype_fitness_report(self, worker_type):
+        # load quarantine data
+        self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
+
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
             # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100"
@@ -377,6 +383,11 @@ class Fitness:
             if not "alerts" in results_obj:
                 results_obj["alerts"] = []
             results_obj["alerts"].append("No work done!")
+        # quarantine
+        if device in self.quarantine_data[queue]:
+            if not "alerts" in results_obj:
+                results_obj["alerts"] = []
+            results_obj["alerts"].append("Quarantined.")
 
         return device, results_obj, None
 
@@ -433,6 +444,7 @@ class Fitness:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    # TODO: add option to allow sorting by SR
     parser.add_argument(
         "-v",
         "--verbose",
@@ -469,8 +481,6 @@ if __name__ == "__main__":
         help="e.g. 'gecko-t-bitbar-gw-perf-p2.pixel2-21' or 'gecko-t-bitbar-gw-batt-g5'",
         nargs="?",
     )
-
-    # TODO: add an --alert-only option to show only alerting hosts
 
     args = parser.parse_args()
 
