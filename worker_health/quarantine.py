@@ -3,7 +3,6 @@
 import taskcluster
 import json
 import os
-import sys
 import argparse
 
 import pprint
