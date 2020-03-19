@@ -9,6 +9,9 @@ from time import time as timer
 from urllib.request import urlopen
 
 import requests
+from requests.adapters import HTTPAdapter
+# from requests.packages.urllib3.util.retry import Retry
+from urllib3.util import Retry
 from natsort import natsorted
 
 from worker_health import USER_AGENT_STRING, logger
@@ -24,6 +27,27 @@ WORKERTYPE_THREAD_COUNT = 4
 TASK_THREAD_COUNT = 6
 ALERT_PERCENT = 0.85
 DEFAULT_PROVISIONER = "proj-autophone"
+
+
+# https://www.peterbe.com/plog/best-practice-with-retries-with-requests
+def requests_retry_session(
+    retries=3,
+    backoff_factor=0.3,
+    status_forcelist=(500, 502, 504),
+    session=None,
+):
+    session = session or requests.Session()
+    retry = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
 
 
 class Fitness:
@@ -150,15 +174,17 @@ class Fitness:
                             "%s.%s"
                             % (wt, self.format_workertype_fitness_report_result(item))
                         )
-        # TODO: show alerting count
-        print(
-            "%s workers queried in %s seconds, average SR %s%%"
-            % (
-                worker_count,
-                round((timer() - start), 2),
-                round((sr_total / worker_count * 100), 2),
+        # if to protect from divide by 0 (happens on request failures)
+        if worker_count:
+            # TODO: show alerting count
+            print(
+                "%s workers queried in %s seconds, average SR %s%%"
+                % (
+                    worker_count,
+                    round((timer() - start), 2),
+                    round((sr_total / worker_count * 100), 2),
+                )
             )
-        )
 
     def get_pending_tasks(self, queue):
         _url, output, exception = self.get_jsonc2(
@@ -445,7 +471,7 @@ class Fitness:
         while retries_left >= 0:
             if self.verbosity > 2:
                 print(an_url)
-            response = requests.get(an_url, headers=headers)
+            response = requests_retry_session().get(an_url, headers=headers)
             result = response.text
             try:
                 output = json.loads(result)
@@ -455,13 +481,14 @@ class Fitness:
                 logger.warning("json decode error. input: %s" % result)
                 if retries_left == 0:
                     return an_url, None, e
+            print("request failure, manual retry")
             retries_left -= 1
 
         while "continuationToken" in output:
             payload = {"continuationToken": output["continuationToken"]}
             if self.verbosity > 2:
                 print("%s, %s" % (an_url, output["continuationToken"]))
-            response = requests.get(an_url, headers=headers, params=payload)
+            response = requests_retry_session().get(an_url, headers=headers, params=payload)
             result = response.text
             output = json.loads(result)
         return an_url, output, None
