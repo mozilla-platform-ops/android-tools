@@ -135,10 +135,17 @@ class Fitness:
                 for item in res_obj:
                     worker_count += 1
                     sr_total += item['sr']
-                    print(
-                        "%s.%s"
-                        % (wt, self.format_workertype_fitness_report_result(item))
-                    )
+                    if self.args.only_show_alerting:
+                        if 'alerts' in item:
+                            print(
+                                "%s.%s"
+                                % (wt, self.format_workertype_fitness_report_result(item))
+                            )
+                    else:
+                        print(
+                            "%s.%s"
+                            % (wt, self.format_workertype_fitness_report_result(item))
+                        )
         # TODO: show alerting count
         print("%s workers queried in %s seconds, average SR %s%%" % (
                 worker_count,
