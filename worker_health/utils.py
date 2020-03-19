@@ -7,6 +7,7 @@ from worker_health import logger
 
 USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-tools/tree/master/worker_health)"
 
+
 def run_cmd(cmd):
     return (
         subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
@@ -28,6 +29,7 @@ def bitbar_systemd_service_present(warn=False, error=False):
         return False
     return True
 
+
 # handles continuationToken
 def get_jsonc(an_url, verbosity=0):
     output_dict = {}
@@ -45,10 +47,15 @@ def get_jsonc(an_url, verbosity=0):
             # will only break on good decode
             break
         except json.decoder.JSONDecodeError as e:
-            logger.warning("get_jsonc: '%s': json decode error. input: %s" % (an_url, result))
+            logger.warning(
+                "get_jsonc: '%s': json decode error. input: %s" % (an_url, result)
+            )
             logger.warning(e)
             if retries_left == 0:
-                logger.error("get_jsonc: '%s': failed %s times, returning empty" % an_url, retries_allowed + 1)
+                logger.error(
+                    "get_jsonc: '%s': failed %s times, returning empty" % an_url,
+                    retries_allowed + 1,
+                )
                 return output_dict
         retries_left -= 1
     output_dict = output
@@ -62,9 +69,9 @@ def get_jsonc(an_url, verbosity=0):
         # TODO: handle exceptions here also
         output = json.loads(result)
         # tc messes with us and sends back and empty workers array
-        if 'workers' in output and len(output['workers']):
+        if "workers" in output and len(output["workers"]):
             output_dict.update(output)
 
     if verbosity > 2:
-            pprint.pprint(output_dict)
+        pprint.pprint(output_dict)
     return output_dict

@@ -112,7 +112,7 @@ currently_alerting = false
         else:
             logger.info("outside run window")
 
-    # TODO: if alerting is not enabled, just mention we'd send a message 
+    # TODO: if alerting is not enabled, just mention we'd send a message
     def send_slack_message(self, message):
         # cli example:
         #   curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' WEBHOOK_URL

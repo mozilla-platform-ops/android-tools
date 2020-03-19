@@ -47,14 +47,15 @@ class Fitness:
         # TODO: need to get worker-group...
         return utils.get_jsonc(
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
-            #"https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
+            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
             % (self.provisioner, queue, worker_type, worker),
-            self.verbosity
+            self.verbosity,
         )
 
     def get_task_status(self, taskid):
         _url, output, exception = self.get_jsonc2(
-            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s/status" % taskid
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s/status"
+            % taskid
             # "https://queue.taskcluster.net/v1/task/%s/status" % taskid
         )
         return taskid, output, exception
@@ -96,7 +97,7 @@ class Fitness:
                 worker_type, worker_group, worker_id
             )
             res_obj["worker_id"] = worker_id
-            sr_total += res_obj['sr']
+            sr_total += res_obj["sr"]
             print(
                 "%s.%s"
                 % (worker_type, self.format_workertype_fitness_report_result(res_obj))
@@ -108,7 +109,7 @@ class Fitness:
             for item in res_obj:
                 # print(item)
                 worker_count += 1
-                sr_total += item['sr']
+                sr_total += item["sr"]
                 # print(item)
                 print(
                     "%s.%s"
@@ -118,7 +119,7 @@ class Fitness:
             ### provisioner mode
             worker_types_result = self.get_worker_types(provisioner)
             worker_types = []
-            if 'workerTypes' in worker_types_result:
+            if "workerTypes" in worker_types_result:
                 for provisioner in worker_types_result["workerTypes"]:
                     worker_type = provisioner["workerType"]
                     worker_types.append(worker_type)
@@ -134,12 +135,15 @@ class Fitness:
                 wt, res_obj, _e = self.workertype_fitness_report(worker_type)
                 for item in res_obj:
                     worker_count += 1
-                    sr_total += item['sr']
+                    sr_total += item["sr"]
                     if self.args.only_show_alerting:
-                        if 'alerts' in item:
+                        if "alerts" in item:
                             print(
                                 "%s.%s"
-                                % (wt, self.format_workertype_fitness_report_result(item))
+                                % (
+                                    wt,
+                                    self.format_workertype_fitness_report_result(item),
+                                )
                             )
                     else:
                         print(
@@ -147,10 +151,12 @@ class Fitness:
                             % (wt, self.format_workertype_fitness_report_result(item))
                         )
         # TODO: show alerting count
-        print("%s workers queried in %s seconds, average SR %s%%" % (
+        print(
+            "%s workers queried in %s seconds, average SR %s%%"
+            % (
                 worker_count,
                 round((timer() - start), 2),
-                round((sr_total / worker_count * 100), 2)
+                round((sr_total / worker_count * 100), 2),
             )
         )
 
@@ -178,10 +184,13 @@ class Fitness:
         return utils.get_jsonc(
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types?limit=100"
             # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types?limit=100"
-            % provisioner, self.verbosity
+            % provisioner,
+            self.verbosity,
         )
 
-    def simple_worker_report(self, worker_type, worker_prefix="machine-", worker_count=60):
+    def simple_worker_report(
+        self, worker_type, worker_prefix="machine-", worker_count=60
+    ):
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
             % (self.provisioner, worker_type)
@@ -198,9 +207,9 @@ class Fitness:
             expected_workers.append("%s%s" % (worker_prefix, i))
 
         seen_workers = []
-        if 'workers' in workers_result:
-            for item in workers_result['workers']:
-                seen_workers.append(item['workerId'])
+        if "workers" in workers_result:
+            for item in workers_result["workers"]:
+                seen_workers.append(item["workerId"])
         # pprint.pprint(workers_result)
 
         # for item in natsorted(seen_workers):
@@ -213,11 +222,13 @@ class Fitness:
         missing = e_w - s_w
         m_count = len(missing)
         print("missing workers (%s): %s" % (m_count, sorted(missing)))
-        print("%s workers total"% worker_count)
+        print("%s workers total" % worker_count)
 
     def workertype_fitness_report(self, worker_type):
         # load quarantine data
-        self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
+        self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(
+            self.provisioner, worker_type
+        )
 
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
@@ -254,12 +265,12 @@ class Fitness:
                 result["worker_id"] = worker_id
                 worker_results.append(result)
         # sort naturally/numerically
-        if self.args.sort_order == 'sr':
-            worker_results = natsorted(worker_results, key = lambda i: i['sr'])
-        elif self.args.sort_order == 'worker_id':
-            worker_results = natsorted(worker_results, key = lambda i: i['worker_id'])
+        if self.args.sort_order == "sr":
+            worker_results = natsorted(worker_results, key=lambda i: i["sr"])
+        elif self.args.sort_order == "worker_id":
+            worker_results = natsorted(worker_results, key=lambda i: i["worker_id"])
         else:
-            raise Exception('unknown sort_order (%s)' % self.args.sort_order)
+            raise Exception("unknown sort_order (%s)" % self.args.sort_order)
         return worker_type, worker_results, None
 
     # basically how print does it but with float padding
@@ -339,15 +350,15 @@ class Fitness:
                     if retries_left != 5:
                         runs = result["status"]["runs"]
                         for run in runs:
-                            if run['workerId'] == device:
-                                run_state = run['state']
-                                if run_state == 'exception':
+                            if run["workerId"] == device:
+                                run_state = run["state"]
+                                if run_state == "exception":
                                     task_exceptions += 1
-                                elif run_state == 'running':
+                                elif run_state == "running":
                                     task_runnings += 1
-                                elif run_state == 'completed':
+                                elif run_state == "completed":
                                     task_successes += 1
-                                elif run_state == 'failed':
+                                elif run_state == "failed":
                                     task_failures += 1
                                 else:
                                     raise Exception("Shouldn't be here!")
@@ -454,6 +465,7 @@ class Fitness:
             result = response.text
             output = json.loads(result)
         return an_url, output, None
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

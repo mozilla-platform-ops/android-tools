@@ -140,7 +140,11 @@ class WorkerHealth:
 
         # get device group data
         for item in self.devicepool_config_yaml["device_groups"]:
-            if item.startswith("motog5") or item.startswith("pixel2") or item.startswith("test"):
+            if (
+                item.startswith("motog5")
+                or item.startswith("pixel2")
+                or item.startswith("test")
+            ):
                 if self.devicepool_config_yaml["device_groups"][item]:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
                     self.devicepool_bitbar_device_groups[item] = list(keys)
@@ -179,7 +183,7 @@ class WorkerHealth:
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/?limit=%s"
             # "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=%s"
-            % ('proj-autophone', MAX_WORKER_TYPES)
+            % ("proj-autophone", MAX_WORKER_TYPES)
         )
         json_1 = utils.get_jsonc(url, self.verbosity)
         for item in json_1["workerTypes"]:
@@ -195,7 +199,7 @@ class WorkerHealth:
             url = (
                 "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=%s"
                 # "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
-                % ('proj-autophone', item, MAX_WORKER_COUNT)
+                % ("proj-autophone", item, MAX_WORKER_COUNT)
             )
             json_result = utils.get_jsonc(url, self.verbosity)
             if self.verbosity > 2:
@@ -249,17 +253,19 @@ class WorkerHealth:
                 strange_result = True
                 try:
                     if "status" in json_result2:
-                        if 'runs' in json_result2["status"]:
+                        if "runs" in json_result2["status"]:
                             # test pool workers, new workers
                             # - workers that just started won't have a 'started'
                             strange_result = False
                             self.tc_current_worker_last_started[
-                                    worker["workerId"]
-                                ] = None
+                                worker["workerId"]
+                            ] = None
                             # normal workers
                             # - set started_time if data
                             if "started" in json_result2["status"]["runs"][-1]:
-                                started_time = json_result2["status"]["runs"][-1]["started"]
+                                started_time = json_result2["status"]["runs"][-1][
+                                    "started"
+                                ]
                                 self.tc_current_worker_last_started[
                                     worker["workerId"]
                                 ] = started_time
@@ -436,7 +442,7 @@ class WorkerHealth:
             an_url = (
                 "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/%s/%s"
                 # "https://queue.taskcluster.net/v1/pending/proj-autophone/%s"
-                % ('proj-autophone', queue)
+                % ("proj-autophone", queue)
             )
             json_result = utils.get_jsonc(an_url, self.verbosity)
             if "pendingTasks" in json_result:
