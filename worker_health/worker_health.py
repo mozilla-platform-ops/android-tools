@@ -634,21 +634,21 @@ class WorkerHealth:
                 time_limit, exclude_quarantined=True
             )
             missing_workers_flattened = self.flatten_list(missing_workers.values())
-            print(output_format % ("tc", missing_workers_flattened))
+            print(output_format % ("tc (%s)" % len(missing_workers_flattened), missing_workers_flattened))
 
             if self.quarantined_workers:
-                print(output_format % ("tc-quarantined", self.quarantined_workers))
+                print(output_format % ("tc-quarantined (%s)" % len(self.quarantined_workers), self.quarantined_workers))
 
             if utils.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
-                print(output_format % ("devicepool", offline_workers_flattened))
+                print(output_format % ("devicepool (%s)" % len(offline_workers_flattened), offline_workers_flattened))
 
                 merged = self.make_list_unique(
                     offline_workers_flattened + missing_workers_flattened
                 )
 
-                print(output_format % ("merged", merged))
+                print(output_format % ("merged (%s)" % len(merged), merged))
 
     def influx_report(self, time_limit=None, verbosity=0):
         problem_workers = self.get_problem_workers2(
