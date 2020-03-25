@@ -496,13 +496,13 @@ class Fitness:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # TODO: add option to allow sorting by SR
+    # TODO: currently only sorts within worker-group (so sometimes results aren't sorted)... ideally sort all results.
     parser.add_argument(
         "-s",
         "--success_rate",
         action="store_const",
         const="sr",
-        default="worker_id",
+        default="worker_id",  # sorts by worker name by default
         dest="sort_order",
         help="sort results by success rate (default is worker_id).",
     )
