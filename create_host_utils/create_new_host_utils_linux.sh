@@ -1,11 +1,12 @@
 #/usr/bin/env bash
 
 set -e
-set -x
+# set -x
 
 # create_new_host_utils
 
 TC_ROOT='https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task'
+info_string=""
 
 
 function check_arch {
@@ -21,12 +22,22 @@ function check_arch {
       echo "* examined binary's arch is good"
     else
       exit 1
-    fi  
+    fi
   else
     echo "invalid ARCH specified ($arch)!"
     exit 1
   fi
 }
+
+
+function set_info_string {
+    info_string+="FFVER: $FFVER\n"
+    info_string+="Current OS: $os\n"
+    info_string+="Build used: $build_used\n"
+    info_string+="Bsuild ID input: $task_id\n"
+    info_string+="Arch input: $arch\n"
+}
+
 
 # use gnu tar vs bsd tar... not sure if important (they do produce differently sized archives).
 os=`uname -s`
@@ -53,6 +64,11 @@ if [ -z "$2" ]; then
 fi
 arch=$2
 
+if [ -z "$3" ]; then
+  echo "please provide an the URL of the build used"
+  exit 1
+fi
+build_used=$3
 
 ## arg checking
 if [ "$arch" != "i686" ] && [ "$arch" != "x86_64" ]; then
@@ -62,11 +78,15 @@ fi
 
 # bring in common
 . common.sh
+# set info string
+set_info_string
 
-echo "FFVER: $FFVER"
-echo "Current OS: $os"
-echo "Build ID input: $task_id"
-echo "Arch input: $arch"
+echo ""
+echo "-------------------------------"
+printf "$info_string"
+printf "$info_string"
+echo "-------------------------------"
+echo ""
 
 dirname="hu_${arch}_${task_id}"
 
@@ -101,10 +121,14 @@ tar xf target.common.tests.tar.gz -C 'temp_common'
 rm firefox/firefox*
 rm -r firefox/browser
 mv 'temp_common'/bin/* firefox
+# write out info file
+printf "$info_string" > firefox/.hostutils_build_info
 # double check arch of binary
+echo ""
 echo "-------------------------------"
 check_arch
 echo "-------------------------------"
+echo ""
 mv firefox host-utils-${FFVER}.en-US.linux-${arch}
 tar cf host-utils-${FFVER}.en-US.linux-${arch}.tar host-utils-${FFVER}.en-US.linux-${arch}
 gzip host-utils-${FFVER}.en-US.linux-${arch}.tar
@@ -116,4 +140,5 @@ $TT_PATH add --unpack --visibility public host-utils*.tar.gz
 find . -name manifest.tt | xargs cat
 
 # show success message
+echo ""
 echo "SUCCESS"

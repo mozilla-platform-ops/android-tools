@@ -14,7 +14,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - `h up central`
 - remove old 'hu_*' directories
 - create a new build script
-  - `create_build_script.sh`
+  - `./generate_build_script.sh`
   - the script will output the new build script's name
 - identify a good taskcluster build and edit script
   - find task IDs and URL for builds (see reference doc above for tips on picking)
