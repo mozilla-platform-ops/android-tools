@@ -84,7 +84,6 @@ set_info_string
 echo ""
 echo "-------------------------------"
 printf "$info_string"
-printf "$info_string"
 echo "-------------------------------"
 echo ""
 
