@@ -32,7 +32,7 @@ set -e
 #
 #./create_new_host_utils_linux.sh \$X86_TASKID x86_64 "\$BUILD_SELECTED"
 #./create_new_host_utils_linux.sh \$I686_TASKID i686 "\$BUILD_SELECTED"
-#./create_new_host_utils_mac.sh BUILD_URL
+#./create_new_host_utils_mac.sh "\$MAC_BUILD_URL"
 EOL
 
 chmod 755 $filename
