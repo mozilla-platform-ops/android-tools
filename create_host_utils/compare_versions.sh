@@ -17,27 +17,30 @@ if [ -x "$(command -v compare2)" ]; then
 fi
 
 if [ -d ./hu_i686_* ]; then
-  echo diff current/host-utils-*.en-US.linux-i686 hu_i686_*/host-utils-${FFVER}.en-US.linux-i686
+  echo "i686: "
+  echo ""
+  echo "  " diff current/host-utils-*.en-US.linux-i686 hu_i686_*/host-utils-${FFVER}.en-US.linux-i686
   if [ "$araxis_present" -eq "1" ]; then
-    echo ""
-    echo compare2 -swap current/host-utils-*.en-US.linux-i686 hu_i686_*/host-utils-${FFVER}.en-US.linux-i686
+    echo "  " compare2 -swap current/host-utils-*.en-US.linux-i686 hu_i686_*/host-utils-${FFVER}.en-US.linux-i686
   fi
+  echo ""
 fi
-echo ""
 
 if [ -d ./hu_x86_64_* ]; then
-  echo diff current/host-utils-*.en-US.linux-x86_64 hu_x86_64_*/host-utils-$FFVER.en-US.linux-x86_64
+  echo "x86_64: "
+  echo ""
+  echo "  " diff current/host-utils-*.en-US.linux-x86_64 hu_x86_64_*/host-utils-$FFVER.en-US.linux-x86_64
   if [ "$araxis_present" -eq "1" ]; then
-    echo ""
-    echo compare2 -swap current/host-utils-*.en-US.linux-x86_64 hu_x86_64_*/host-utils-$FFVER.en-US.linux-x86_64
+    echo "  " compare2 -swap current/host-utils-*.en-US.linux-x86_64 hu_x86_64_*/host-utils-$FFVER.en-US.linux-x86_64
   fi
+  echo ""
 fi
-echo ""
 
 if [ -d ./hu_mac_* ]; then
-  echo diff current/host-utils-*.en-US.mac hu_mac_*/host-utils-$FFVER.en-US.mac
+  echo "Mac: "
+  echo ""
+  echo "  " diff current/host-utils-*.en-US.mac hu_mac_*/host-utils-$FFVER.en-US.mac
   if [ "$araxis_present" -eq "1" ]; then
-    echo ""
-    echo compare2 -swap current/host-utils-*.en-US.mac hu_mac_*/host-utils-$FFVER.en-US.mac
+    echo "  " compare2 -swap current/host-utils-*.en-US.mac hu_mac_*/host-utils-$FFVER.en-US.mac
   fi
 fi
