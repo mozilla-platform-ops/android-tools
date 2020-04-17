@@ -20,18 +20,15 @@ set -e
 
 # STEP 2: Uncomment and set TASK_IDs.
 #
-# notes on task ids and build url:
+# notes on task id and build url:
 # - x86_64: 'Linux x64 opt' on treeherder
-# - i686: 'Linux opt' on treeherder
 # - Mac: see https://wiki.mozilla.org/Packaging_Android_host_utilities#macOS
 #X86_TASKID=""
-#I686_TASKID=""
 #MAC_BUILD_URL=""
 
 # STEP 3: uncomment and run desired builds
 #
 #./create_new_host_utils_linux.sh \$X86_TASKID x86_64 "\$BUILD_SELECTED"
-#./create_new_host_utils_linux.sh \$I686_TASKID i686 "\$BUILD_SELECTED"
 #./create_new_host_utils_mac.sh "\$MAC_BUILD_URL"
 EOL
 
