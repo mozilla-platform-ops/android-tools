@@ -26,6 +26,7 @@ queue = taskcluster.Queue(
 )
 
 packet_hosts_to_unquarantine = [49, 23, 13, 6]
+hosts_to_unquarantine = []
 
 for h in packet_hosts_to_unquarantine:
   hosts_to_unquarantine.append("machine-%s" % h)
@@ -35,6 +36,6 @@ for a_host in hosts_to_unquarantine:
         "terraform-packet",
         "gecko-t-linux",
         "packet-sjc1",
-        a_host
+        a_host,
         {"quarantineUntil": taskcluster.fromNow("-1 year")},
     )
