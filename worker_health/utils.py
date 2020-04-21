@@ -53,8 +53,8 @@ def get_jsonc(an_url, verbosity=0):
             logger.warning(e)
             if retries_left == 0:
                 logger.error(
-                    "get_jsonc: '%s': failed %s times, returning empty" % an_url,
-                    retries_allowed + 1,
+                    "get_jsonc: '%s': failed %s times, returning empty"
+                    % (an_url, retries_allowed + 1)
                 )
                 return output_dict
         retries_left -= 1
