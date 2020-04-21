@@ -25,10 +25,16 @@ queue = taskcluster.Queue(
     {"rootUrl": "https://firefox-ci-tc.services.mozilla.com", "credentials": creds}
 )
 
-queue.quarantineWorker(
-    "terraform-packet",
-    "gecko-t-linux",
-    "packet-sjc1",
-    "machine-23",
-    {"quarantineUntil": taskcluster.fromNow("-1 year")},
-)
+packet_hosts_to_unquarantine = [49, 23, 13, 6]
+
+for h in packet_hosts_to_unquarantine:
+  hosts_to_unquarantine.append("machine-%s" % h)
+
+for a_host in hosts_to_unquarantine:
+    queue.quarantineWorker(
+        "terraform-packet",
+        "gecko-t-linux",
+        "packet-sjc1",
+        a_host
+        {"quarantineUntil": taskcluster.fromNow("-1 year")},
+    )
