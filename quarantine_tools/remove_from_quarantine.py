@@ -32,6 +32,7 @@ for h in packet_hosts_to_unquarantine:
   hosts_to_unquarantine.append("machine-%s" % h)
 
 for a_host in hosts_to_unquarantine:
+    print("removing %s from quarantine... " % a_host)
     queue.quarantineWorker(
         "terraform-packet",
         "gecko-t-linux",
