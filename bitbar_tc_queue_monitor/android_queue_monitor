@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+
+import taskcluster
+import json
+import os
+import sys
+
+#
+# docs: https://pypi.org/project/taskcluster/
+#
+
+# don't need to create separate credentials
+# per tomprince: 
+#   You can use taskcluster signin to get creds (and can use -s <scope>, possibly multiple times, to restrict scopes).
+
+#print("requires manual configuration currently. edit source and rerun.")
+#sys.exit()
+
+
+
+with open(os.path.expanduser('~/.tc_quarantine_token')) as json_file:
+    data = json.load(json_file)
+creds = {"clientId": data['clientId'],
+         "accessToken": data['accessToken']}
+
+queue_obj = taskcluster.Queue(
+    {"rootUrl": "https://firefox-ci-tc.services.mozilla.com", "credentials": creds}
+)
+
+queues_to_check = [
+  "terraform-packet/gecko-t-linux",
+  # "proj-autophone/gecko-t-bitbar-gw-batt-p2",
+  "proj-autophone/gecko-t-bitbar-gw-perf-p2",
+  "proj-autophone/gecko-t-bitbar-gw-unit-p2",
+  # "proj-autophone/gecko-t-bitbar-gw-batt-g5",
+  "proj-autophone/gecko-t-bitbar-gw-perf-g5",
+  # "proj-autophone/gecko-t-bitbar-gw-unit-g5",
+  # "proj-autophone/gecko-t-bitbar-gw-test-g5",
+]
+
+
+def pretty_print(data):
+  # print(data)
+  # # col_width = max(len(word) for row in data for word in row) + 2  # padding
+  # col_width = 20
+  # for row in data:
+  #   print("".join(word.ljust(col_width) for word in row))
+  for k , v in data.items(): # iterating freqa dictionary
+    print(k+"\t", v)
+
+
+for queue in queues_to_check:
+  provisioner = queue.split('/')[0]
+  workertype = queue.split('/')[1]
+  result = queue_obj.pendingTasks(provisioner, workertype)
+  # print(queue_obj.pendingTasks(provisioner, workertype))
+  # pretty_print(result)
+  print("%s%s" % ((provisioner + "/" + workertype).ljust(50, ' '), result['pendingTasks']))
+
+# import ipdb; ipdb.set_trace()
