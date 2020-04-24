@@ -36,6 +36,13 @@ def remove_single_whitespace_line(the_string):
   return the_string
 
 
+def pad_entire_string(a_string, pad_distance=2, pad_character=" "):
+  return_string = ""
+  for line in a_string.split('\n'):
+    line_len = len(line)
+    padded_line = line.rjust(line_len + pad_distance, pad_character)
+    return_string = return_string + padded_line + "\n"
+  return return_string.rstrip()
 
 
 
@@ -88,7 +95,9 @@ for queue in queues_to_check:
   f = Figlet(font='doh')
   string_to_render = str(result['pendingTasks'])
   rendered_string = f.renderText(string_to_render)
-  string_to_display = remove_single_whitespace_line(rendered_string.rstrip())
+
+  # string_to_display = remove_single_whitespace_line(rendered_string.rstrip())
+  string_to_display = pad_entire_string(remove_single_whitespace_line(rendered_string.rstrip()))
   print(string_to_display)
   print()
 
