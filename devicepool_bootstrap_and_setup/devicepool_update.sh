@@ -3,9 +3,7 @@
 set -e
 set -x
 
-bootstrap_script_path="$HOME/git/ronin_puppet/provisioners/linux/bootstrap_bitbar_devicepool.sh"
-bitbar_env_file_path="$HOME/git/mozilla-bitbar-devicepool/bitbar_env.sh"
-path_to_sops_repo="$HOME/git/sops"
+. ./common.sh
 
 # ensure critical scripts/files exist
 if [ ! -e "$bootstrap_script_path" ]; then
@@ -68,6 +66,7 @@ ssh "$the_host" sudo systemctl restart telegraf
 # TODO: grab this from SOPS vs local clone of devicepool
 scp "$bitbar_env_file_path" "$the_host":bitbar.env
 ssh "$the_host" 'sudo mv bitbar.env /etc/bitbar/ && sudo chown root:bitbar /etc/bitbar/bitbar.env && sudo chmod 660 /etc/bitbar/bitbar.env'
+./distribute_bitbar_env.sh $the_host
 
 # venvs are now created in puppet
 
