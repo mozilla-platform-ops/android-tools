@@ -215,7 +215,7 @@ class Fitness:
         )
 
     def simple_worker_report(
-        self, worker_type, worker_prefix="machine-", worker_count=60
+        self, worker_type, worker_prefix="packet-", worker_count=60
     ):
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
@@ -227,6 +227,7 @@ class Fitness:
         except Exception as e:
             workers_result = []
             print(e)
+        # print(workers_result)
 
         expected_workers = []
         for i in range(0, worker_count):
