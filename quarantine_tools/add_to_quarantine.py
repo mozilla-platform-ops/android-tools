@@ -41,7 +41,7 @@ packet_hosts_to_quarantine = [68]
 
 
 for h in packet_hosts_to_quarantine:
-  hosts_to_quarantine.append("machine-%s" % h)
+  hosts_to_quarantine.append("packet-%s" % h)
 
 for a_host in hosts_to_quarantine:
   print("adding %s to quarantine... " % a_host)
