@@ -83,6 +83,7 @@ class LastStarted:
             output = json.loads(data)
         except HTTPError:
             print("HTTPError when fetching '%s'. Continuing..." % url)
+            output = ""
         return output
 
     def jobs_in_queues(self):
