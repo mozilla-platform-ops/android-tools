@@ -24,9 +24,10 @@ fi
   # -e LIVELOG_SECRET='abc123' \
     # --tmpfs /builds \
 #  -p 5037:5037 \
+#  --expose 5037 \
+#  --network=host \  # doesn't work on mac
 
 docker run -u root \
-  --expose 5037 \
   -e DEVICE_NAME='aje-test' \
   -e TC_WORKER_TYPE='gecko-t-ap-test-g5' \
   -e TC_WORKER_GROUP='bitbar' \
