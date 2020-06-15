@@ -36,15 +36,6 @@ function set_info_string {
 
 # use gnu tar vs bsd tar... not sure if important (they do produce differently sized archives).
 os=`uname -s`
-# if [ "${os}" != "Linux" ]; then
-#   echo "Please run on linux!"
-#   exit 1
-# fi
-
-# TODO: take a TC push id and do all 3 archs (mac, x86, x86_64)
-# TODO: use xz vs gz? better compression.
-# TODO: fetch buildhub.json for the build and extract the milestone/version (e.g. 66.0a1)
-#   - reflects config/milestone.txt aka current nightly version
 
 ## arg requirements
 if [ -z "$1" ]; then
@@ -53,11 +44,7 @@ if [ -z "$1" ]; then
 fi
 task_id=$1
 
-# if [ -z "$2" ]; then
-#   echo "please provide an arch (i686 or x86_64)"
-#   exit 1
-# fi
-# arch=$2
+# used to be an arg
 arch="win32"
 
 if [ -z "$2" ]; then
@@ -65,12 +52,6 @@ if [ -z "$2" ]; then
   exit 1
 fi
 build_used=$2
-
-## arg checking
-# if [ "$arch" != "win" ] ; then
-#   echo "invalid arch"
-#   exit 1
-# fi
 
 # bring in common
 . common.sh
