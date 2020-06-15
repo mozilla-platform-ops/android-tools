@@ -22,8 +22,8 @@ set -e
 #
 # notes on task id and build url:
 # - x86_64: 'Linux x64 opt' on treeherder
-# - win: 'Windows 2012 opt' on treeherder
-# - Mac: see https://wiki.mozilla.org/Packaging_Android_host_utilities#macOS
+# - win32: 'Windows 2012 opt' on treeherder
+# - mac: see https://wiki.mozilla.org/Packaging_Android_host_utilities#macOS
 # X86_TASKID=""
 # WIN_TASKID=""
 # MAC_BUILD_URL=""
