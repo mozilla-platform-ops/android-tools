@@ -18,25 +18,14 @@ if [ -z "$2" ]; then
 fi
 message=$2
 
-if [ "$arch" == "i686" ]; then
-  if [ -d ./hu_i686_* ]; then
-    cd ./hu_i686_*
-    $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
-    cd ..
-  fi
-elif [ "$arch" == "x86_64" ]; then
-  if [ -d ./hu_x86_64_* ]; then
-    cd ./hu_x86_64_*
-    $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
-    cd ..
-  fi
-elif [ "$arch" == "mac" ]; then
-  if [ -d ./hu_mac_* ]; then
-    cd ./hu_mac_*
-    $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
-    cd ..
-  fi
+if [ -d ./hu_${arch}_* ]; then
+  cd ./hu_${arch}_*
+  $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
+  cd ..
 else
-  echo "ERROR: invalid arch!"
+  echo "ERROR: dir not found! './hu_${arch}_*'"
   exit 1
 fi
+
+echo ""
+echo "SUCCESS"
