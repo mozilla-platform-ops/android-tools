@@ -125,8 +125,8 @@ check_arch
 echo "-------------------------------"
 echo ""
 mv firefox host-utils-${FFVER}.en-US.${arch}
-tar cf host-utils-${FFVER}.en-US.linux-${arch}.tar host-utils-${FFVER}.en-US.${arch}
-gzip host-utils-${FFVER}.en-US.linux-${arch}.tar
+tar cf host-utils-${FFVER}.en-US.${arch}.tar host-utils-${FFVER}.en-US.${arch}
+gzip host-utils-${FFVER}.en-US.${arch}.tar
 
 # tooltool
 $TT_PATH add --unpack --visibility public host-utils*.tar.gz
