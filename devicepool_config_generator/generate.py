@@ -9,6 +9,7 @@ import yaml
 import hashlib
 import pprint
 import json
+import subprocess
 import sys
 import time
 
@@ -34,7 +35,7 @@ class DevicePoolConfigGenerator:
         self.prev_config_file_name = "config.yml.prev"
         self.original_config_file_name = "config.yml.original"
         self.raw_file = "config-dg-raw.yml"
-        self.sleep_time_min = 5
+        self.sleep_time_min = 15
         self.sleep_time_sec = self.sleep_time_min * 60
 
         self.total_managed_devices = None
@@ -229,6 +230,11 @@ class DevicePoolConfigGenerator:
             print("---------------- phase 2: get tc queue status")
             pprint.pprint(tasks_present)
 
+        ### TESTING
+        # tasks_present = {'motog5-perf-2': 100, 'pixel2-perf-2': 100, 'pixel2-unit-2': 0}
+        # tasks_present = {'motog5-perf-2': 100, 'pixel2-perf-2': 0, 'pixel2-unit-2': 100}
+        # tasks_present = {'motog5-perf-2': 100, 'pixel2-unit-2': 0, 'pixel2-perf-2': 100}
+
         # form decision
         decision = {}
         dev_split_dict = self.split_dict_based_on_device(tasks_present)
@@ -421,8 +427,12 @@ class DevicePoolConfigGenerator:
                     print(digest_new)
                     print(digest_old)
                 if self.daemon_mode:
-                    # TODO: do restart?
-                    pass
+                    # TODO: use a separate flag to whether we restart the service?
+                    restart_command = subprocess.run(["systemctl", "restart", "bitbar"])
+                    if restart_command.returncode == 0:
+                        print("service restarted")
+                    else:
+                        print("service NOT restarted. restart command likely failed (rc: %s)" % restart_command.returncode)
             else:
                 print("Config did not change.")
                 pass
