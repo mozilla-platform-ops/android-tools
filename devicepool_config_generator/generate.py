@@ -234,6 +234,7 @@ class DevicePoolConfigGenerator:
         # tasks_present = {'motog5-perf-2': 100, 'pixel2-perf-2': 100, 'pixel2-unit-2': 0}
         # tasks_present = {'motog5-perf-2': 100, 'pixel2-perf-2': 0, 'pixel2-unit-2': 100}
         # tasks_present = {'motog5-perf-2': 100, 'pixel2-unit-2': 0, 'pixel2-perf-2': 100}
+        # tasks_present = {'motog5-perf-2': 10, 'pixel2-perf-2': 38, 'pixel2-unit-2': 2}
 
         # form decision
         decision = {}
@@ -250,7 +251,7 @@ class DevicePoolConfigGenerator:
                     sum += v
                 for dg, v in queue_list.items():
                     if sum != 0:
-                        decision.setdefault(device_type, {})[dg] = v / sum
+                        decision.setdefault(device_type, {})[dg] = float(v) / float(sum)
                     else:
                         decision.setdefault(device_type, {})[dg] = 0
             else:
