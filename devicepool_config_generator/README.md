@@ -4,6 +4,21 @@
 
 allocates workers to queues based on queue counts among device types (p2, g5).
 
+## current issues/questions
+
+- would a single queue for all android work be simpler?
+  - is there benefit to the split system?
+- if p2-perf has 2000 jobs, and p2-unit has 300 very important jobs the program will currently allocate 85% to perf. p2-unit is higher priority (see assumptions) and should have a larger portion of workers.
+  - config should specify which queues can donate/share their capacity. p2-unit wouldn't share. better method than using ratio and using minimums.
+
+
+### assumptions
+
+in unit queues:
+- we see less abuse/accidental load?
+- unit tests are more time sensitive?
+  - used in gating more?
+
 ## setup
 
 ```
