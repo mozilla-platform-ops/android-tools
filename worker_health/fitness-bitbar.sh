@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -e
+# set -x
 
-# ./fitness.py -p terraform-packet | grep -E 'alert|workers'
-#./fitness.py $@ | grep -E 'alert|workers queried'
-./fitness.py $@ -s -o 
+./fitness.py $@ -s -o
