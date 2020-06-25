@@ -136,11 +136,18 @@ class Fitness:
                 # print(item)
                 worker_count += 1
                 sr_total += item["sr"]
-                # print(item)
-                print(
-                    "%s.%s"
-                    % (worker_type, self.format_workertype_fitness_report_result(item))
-                )
+                if self.args.only_show_alerting:
+                    if "alerts" in item:
+                        print(
+                            "%s.%s"
+                            % (worker_type, self.format_workertype_fitness_report_result(item))
+                        )
+                else:
+                    print(
+                        "%s.%s"
+                        % (worker_type, self.format_workertype_fitness_report_result(item))
+                    )
+
         else:
             ### provisioner mode
             worker_types_result = self.get_worker_types(provisioner)
