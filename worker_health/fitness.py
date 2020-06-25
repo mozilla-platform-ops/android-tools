@@ -2,8 +2,10 @@
 
 import argparse
 import json
+import os
 import pprint
 import sys
+import taskcluster
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 from urllib.request import urlopen
@@ -251,22 +253,29 @@ class Fitness:
         print("missing workers (%s): %s" % (m_count, sorted(missing)))
         print("%s workers total" % worker_count)
 
+    def get_workers(self, worker_type):
+        # TODO: improve this (don't explode if missing)
+        with open(os.path.expanduser('~/.tc_token')) as json_file:
+            data = json.load(json_file)
+        creds = {"clientId": data['clientId'],
+                "accessToken": data['accessToken']}
+        queue = taskcluster.Queue(
+            {"rootUrl": "https://firefox-ci-tc.services.mozilla.com", "credentials": creds}
+        )
+
+        outcome = queue.listWorkers(self.provisioner, worker_type)
+        return outcome
+
     def workertype_fitness_report(self, worker_type):
         # load quarantine data
         self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(
             self.provisioner, worker_type
         )
 
-        url = (
-            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
-            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=100"
-            % (self.provisioner, worker_type)
-        )
-        # print(url)
-        workers_result = utils.get_jsonc(url, self.verbosity)
+        outcome = self.get_workers(worker_type)
 
         worker_ids = []
-        for worker in workers_result["workers"]:
+        for worker in outcome["workers"]:
             worker_id = worker["workerId"]
             worker_group = worker["workerGroup"]
             self.worker_id_maxlen = max(len(worker_id), self.worker_id_maxlen)
