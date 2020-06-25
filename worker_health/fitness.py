@@ -425,6 +425,7 @@ class Fitness:
         # note if no jobs in queue
         if queue in self.queue_counts:
             if self.queue_counts[queue] == 0:
+                # TODO: use setdefault
                 if not "notes" in results_obj:
                     results_obj["notes"] = []
                 results_obj["notes"].append("No jobs in queue.")
