@@ -60,6 +60,9 @@ def get_jsonc(an_url, verbosity=0):
         retries_left -= 1
     output_dict = output
 
+    if verbosity > 2:
+        pprint.pprint(output_dict)
+
     while "continuationToken" in output:
         payload = {"continuationToken": output["continuationToken"]}
         if verbosity > 2:
@@ -70,6 +73,7 @@ def get_jsonc(an_url, verbosity=0):
         output = json.loads(result)
         # tc messes with us and sends back and empty workers array
         if "workers" in output and len(output["workers"]):
+            # THIS IS SQUASHING STUFF
             output_dict.update(output)
 
     if verbosity > 2:
