@@ -8,7 +8,7 @@ test:
 	pytest
 
 test-watch:
-  pytest-watch
+	pytest-watch
 
 black:
 	black *.py
