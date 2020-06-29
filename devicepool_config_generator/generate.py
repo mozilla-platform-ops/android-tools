@@ -15,15 +15,14 @@ import time
 
 verbose = False
 
-try:
-    # For Python 3.0 and later
-    from urllib.request import urlopen
-except ImportError:
-    # Fall back to Python 2's urllib2
-    from urllib2 import urlopen
+from urllib.request import urlopen
+from urllib.error import HTTPError
 
 from collections import OrderedDict
 
+if sys.version_info <= (3, 0):
+    print("Sorry, requires Python 3.x, not Python 2.x.")
+    sys.exit(1)
 
 class DPCGException(Exception):
     pass
@@ -128,14 +127,22 @@ class DevicePoolConfigGenerator:
 
     def main(self):
         if not self.daemon_mode:
-            self.generate()
+            try:
+                self.generate()
+            except HTTPError:
+                print("request failed")
+                sys.exit(1)
         else:
             while True:
                 # TODO: infinite loop over running and sleeping X minutes
-                self.generate()
+                try:
+                    self.generate()
+                except HTTPError:
+                    print("request failed, skipping this cycle...")
                 print("Sleeping for %s minutes..." % self.sleep_time_min)
                 print("--")
                 time.sleep(self.sleep_time_sec)
+
 
     def device_structure_count(self, a_dict):
         total = 0
@@ -469,5 +476,5 @@ if __name__ == "__main__":
     try:
         dpcg.main()
     except DPCGException as e:
-        print("ERROR: %s:" % e.message)
+        print("ERROR: %s:" % e)
         sys.exit(1)
