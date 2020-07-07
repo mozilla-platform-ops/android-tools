@@ -54,6 +54,7 @@ class WorkerHealth:
         self.pp = pprint.PrettyPrinter(indent=4)
         self.verbosity = verbosity
         #
+        self.devicepool_config_yaml_path = None
         self.devicepool_config_yaml = None
         self.devicepool_bitbar_device_groups = {}
         self.devicepool_project_to_tc_worker_type = {}
@@ -74,6 +75,8 @@ class WorkerHealth:
 
         # clone or update repo
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
+        # pick devicepool config file path
+        self.set_devicepool_configuration_path()
 
     def run_cmd(self, cmd):
         return (
@@ -128,10 +131,23 @@ class WorkerHealth:
         open(last_updated_file, "a").close()
         os.utime(last_updated_file, None)
 
-    def set_configured_worker_counts(self):
-        yaml_file_path = os.path.join(
+    def set_devicepool_configuration_path(self):
+        # the path to the config in the devicepool repo checkout we make
+        checkout_yaml_file_path = os.path.join(
             self.devicepool_client_dir, "config", "config.yml"
         )
+        # this is that path that we expect the config file to be
+        # at on a devicepool production host
+        devicepool_host_yaml_file_path = "/home/bitbar/mozilla-bitbar-devicepool/config/config.yml"
+        if os.path.exists(devicepool_host_yaml_file_path):
+            logger.debug("Found devicepool config in production location (not using repo checkout)!")
+            self.devicepool_config_yaml_path = devicepool_host_yaml_file_path
+        else:
+            logger.debug("Did NOT find devicepool config in production location. Using repo checkout.")
+            self.devicepool_config_yaml_path = checkout_yaml_file_path
+
+    def set_configured_worker_counts(self):
+        yaml_file_path = self.devicepool_config_yaml_path
         with open(yaml_file_path, "r") as stream:
             try:
                 self.devicepool_config_yaml = yaml.load(stream, Loader=yaml.Loader)
@@ -193,8 +209,6 @@ class WorkerHealth:
     def set_current_workers(self):
         # get the workers and count of workers
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=15
-        pass
-
         for item in self.tc_current_worker_types:
             url = (
                 "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=%s"
