@@ -13,16 +13,21 @@ import subprocess
 import sys
 import time
 
-verbose = False
+
+if sys.version_info <= (3, 0):
+    print("Sorry, requires Python 3.x, not Python 2.x.")
+    sys.exit(1)
+
 
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
 from collections import OrderedDict
 
-if sys.version_info <= (3, 0):
-    print("Sorry, requires Python 3.x, not Python 2.x.")
-    sys.exit(1)
+
+verbose = False
+
+
 
 class DPCGException(Exception):
     pass
