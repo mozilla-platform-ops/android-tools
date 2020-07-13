@@ -15,6 +15,7 @@ from requests.adapters import HTTPAdapter
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
 from natsort import natsorted
+import humanhash
 
 from worker_health import USER_AGENT_STRING, logger
 import utils
@@ -62,6 +63,7 @@ class Fitness:
     ):
         self.args = None
         self.verbosity = log_level
+        self.humanize_hashes = False
         self.alert_percent = alert_percent
         self.provisioner = provisioner
         self.queue_counts = {}
@@ -91,7 +93,15 @@ class Fitness:
         worker_id = res["worker_id"]
         del res["worker_id"]
 
-        return_string += worker_id.ljust(self.worker_id_maxlen + 2)
+        if self.args.humanize_hashes:
+            # TODO: have to do this per worker type? ugh!!!!!
+            # - currently only works for aws-metal (probably other tc worker ids also though...)
+            #   - format: i-${hexhash}
+            h_sanitized = worker_id.split('-')[1]
+            hh = humanhash.humanize(h_sanitized, words=3)
+            return_string += ("%s %s" % (worker_id, hh)).ljust(self.worker_id_maxlen + 36)
+        else:
+            return_string += worker_id.ljust(self.worker_id_maxlen + 2)
         return_string += self.sr_dict_format(res)
         return return_string
 
@@ -552,6 +562,13 @@ if __name__ == "__main__":
         default=DEFAULT_PROVISIONER,
         metavar="provisioner",
         help="provisioner to inspect, defaults to %s." % DEFAULT_PROVISIONER,
+    )
+    parser.add_argument(
+        "-hh",
+        "--humanize-hashes",
+        default=False,
+        action="store_true",
+        help="hostnames are human-hashed",
     )
     parser.add_argument(
         "worker_type_id",
