@@ -100,9 +100,9 @@ class Fitness:
         worker_count = 0
         # TODO: for this calculation, should we use a count of hosts that are reporting (vs all)?
         sr_total = 0
+        ## host mode
         if worker_type and worker_id:
             worker_count = 1
-            ## host mode
             self.get_pending_tasks_multi([worker_type])
             url = (
                 "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=5"
@@ -128,8 +128,8 @@ class Fitness:
                 "%s.%s"
                 % (worker_type, self.format_workertype_fitness_report_result(res_obj))
             )
+        ### queue mode
         elif worker_type:
-            ### queue mode
             self.get_pending_tasks_multi([worker_type])
             _wt, res_obj, _e = self.workertype_fitness_report(worker_type)
             for item in res_obj:
@@ -147,9 +147,8 @@ class Fitness:
                         "%s.%s"
                         % (worker_type, self.format_workertype_fitness_report_result(item))
                     )
-
+        ### provisioner mode
         else:
-            ### provisioner mode
             worker_types_result = self.get_worker_types(provisioner)
             worker_types = []
             if "workerTypes" in worker_types_result:
