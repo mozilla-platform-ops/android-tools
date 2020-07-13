@@ -447,7 +447,7 @@ class Fitness:
                     "Low health (less than %s)!" % self.alert_percent
                 )
         # alert if no work done
-        if total == 0 and task_exceptions == 0:
+        if total == 0 and task_exceptions == 0 and task_runnings == 0:
             if not "alerts" in results_obj:
                 results_obj["alerts"] = []
             results_obj["alerts"].append("No work done!")
