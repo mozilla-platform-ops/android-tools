@@ -372,6 +372,14 @@ class WorkerHealth:
                     )
                     show_details = False
 
+    # uses set operations vs for loop (can handle workers being in wrong queue)
+    def calculate_missing_workers_from_tc_2(self, limit, exclude_quarantined=False):
+        import pprint
+        pprint.pprint(self.devicepool_queues_and_workers)
+        # print("done")
+        # sys.exit(0)
+        pass
+
     # TODO: unit test this
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
         # TODO: get rid of intermittents
