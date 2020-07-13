@@ -99,7 +99,7 @@ class Fitness:
             #   - format: i-${hexhash}
             h_sanitized = worker_id.split('-')[1]
             hh = humanhash.humanize(h_sanitized, words=3)
-            return_string += ("%s %s" % (worker_id, hh)).ljust(self.worker_id_maxlen + 36)
+            return_string += ("%s (%s)" % (worker_id, hh)).ljust(self.worker_id_maxlen + 36)
         else:
             return_string += worker_id.ljust(self.worker_id_maxlen + 2)
         return_string += self.sr_dict_format(res)
