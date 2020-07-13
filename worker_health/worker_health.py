@@ -73,6 +73,11 @@ class WorkerHealth:
         self.problem_workers = {}
         self.quarantined_workers = []
 
+        if verbosity == 1:
+            logger.setLevel(logging.INFO)
+        if verbosity == 2:
+            logger.setLevel(logging.DEBUG)
+
         # clone or update repo
         self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
         # pick devicepool config file path
@@ -139,8 +144,12 @@ class WorkerHealth:
         # this is that path that we expect the config file to be
         # at on a devicepool production host
         devicepool_host_yaml_file_path = "/home/bitbar/mozilla-bitbar-devicepool/config/config.yml"
-        if os.path.exists(devicepool_host_yaml_file_path):
-            logger.debug("Found devicepool config in production location (not using repo checkout)!")
+        local_dev_path = os.path.join(os.path.expanduser("~"), "git/mozilla-bitbar-devicepool/config/config.yml")
+        if os.path.exists(local_dev_path):
+            logger.warning("Found devicepool config in local development location (not using repo checkout)!")
+            self.devicepool_config_yaml_path = local_dev_path
+        elif os.path.exists(devicepool_host_yaml_file_path):
+            logger.info("Found devicepool config in production location (not using repo checkout)!")
             self.devicepool_config_yaml_path = devicepool_host_yaml_file_path
         else:
             logger.debug("Did NOT find devicepool config in production location. Using repo checkout.")
