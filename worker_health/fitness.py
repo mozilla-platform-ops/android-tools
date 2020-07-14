@@ -5,22 +5,21 @@ import json
 import os
 import pprint
 import sys
-import taskcluster
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 from urllib.request import urlopen
 
+import humanhash
+import quarantine
 import requests
+import taskcluster
+import utils
+from natsort import natsorted
 from requests.adapters import HTTPAdapter
-
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
-from natsort import natsorted
-import humanhash
 
 from worker_health import USER_AGENT_STRING, logger
-import utils
-import quarantine
 
 # for each queue
 #   for each worker
