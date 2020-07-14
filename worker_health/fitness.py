@@ -10,6 +10,7 @@ from time import time as timer
 from urllib.request import urlopen
 
 import humanhash
+import pendulum
 import requests
 import taskcluster
 from natsort import natsorted
@@ -323,6 +324,9 @@ class Fitness:
         result_string = "{"
         for key, value in sr_dict.items():
             result_string += "%s: " % key
+            # debugging
+            # print()
+
             if isinstance(value, str):
                 result_string += "'%s'" % value
             elif isinstance(value, int):
@@ -333,8 +337,14 @@ class Fitness:
                 # the only float is success rate
                 result_string += self.graph_percentage(value)
                 result_string += " {:.1%}".format(value).rjust(7)
+            elif isinstance(value, pendulum.DateTime):
+                # result_string += str(value) # .diff_for_humans(pendulum.now())
+                # result_string += value.format('YYYY-MM-DD HH:mm:ss zz')
+
+                # result_string += value.diff_for_humans(pendulum.now(tz="UTC"))
+                result_string += pendulum.now(tz="UTC").diff_for_humans(value).replace('after', 'ago')  #value.diff_for_humans(pendulum.now())
             else:
-                raise Exception("unknown type")
+                raise Exception("unknown type (%s)" % type(value))
             result_string += ", "
         # on last, trim the space
         result_string = result_string[0:-2]
@@ -342,11 +352,13 @@ class Fitness:
         return result_string
 
     def device_fitness_report(self, queue, worker_group, device):
+        print("*****")
         results = self.get_worker_jobs(queue, worker_group, device)
         task_successes = 0
         task_failures = 0
         task_runnings = 0
         task_exceptions = 0
+        task_last_started_timestamp = None
         # pprint.pprint(results)
         # print("queue/device: %s/%s" % (queue, device))
         # print(
@@ -376,11 +388,34 @@ class Fitness:
                         continue
                 try:
                     task_state = result["status"]["state"]
+                    # DEBUGGING
+                    # pprint.pprint(result)
                 except KeyError:
                     print("strange result: ")
                     pprint.pprint(result)
                     print(result["code"] == "ResourceNotFound")
                     continue
+
+                # TODO: record the last started time
+                temp_date = None
+                if "runs" in result["status"]:
+                    for run in result["status"]["runs"]:
+                        if "started" in run:
+                            temp_date = pendulum.parse(run["started"])
+                            print(temp_date)
+                            if not task_last_started_timestamp:
+                                # print("temp reset")
+                                task_last_started_timestamp = temp_date
+                            if task_last_started_timestamp > temp_date:
+                                task_last_started_timestamp = temp_date
+                        # temp_task_last_expires_timestamp = pendulum.parse(result["status"]["expires"])
+                        # logger.info("%s temp: %s" % (task_last_started_timestamp, temp_task_last_expires_timestamp))
+
+                        # if temp_task_last_expires_timestamp > task_last_started_timestamp:
+                        #     print("temp is newer")
+                        #     task_last_started_timestamp = temp_task_last_expires_timestamp
+                print("final tst: %s" % task_last_started_timestamp)
+
                 # TODO: gather exception stats
                 if task_state == "running":
                     task_runnings += 1
@@ -428,6 +463,8 @@ class Fitness:
         results_obj["cmp"] = total
         results_obj["exc"] = task_exceptions
         results_obj["rng"] = task_runnings
+        results_obj["ls"] = task_last_started_timestamp
+        print("ls: %s" % task_last_started_timestamp)
 
         # note if no jobs in queue
         if queue in self.queue_counts:
