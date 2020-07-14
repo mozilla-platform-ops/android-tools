@@ -106,6 +106,9 @@ class Fitness:
         return return_string
 
     def main(self, provisioner, worker_type, worker_id):
+        # TODO: show when worker last started a task (taskStarted in TC)
+        # - aws metal nodes has quarantined nodes that have been deleted that never drop off from worker-data
+
         start = timer()
         worker_count = 0
         # TODO: for this calculation, should we use a count of hosts that are reporting (vs all)?
@@ -138,36 +141,21 @@ class Fitness:
                 "%s.%s"
                 % (worker_type, self.format_workertype_fitness_report_result(res_obj))
             )
-        ### queue mode
-        elif worker_type:
-            self.get_pending_tasks_multi([worker_type])
-            _wt, res_obj, _e = self.workertype_fitness_report(worker_type)
-            for item in res_obj:
-                # print(item)
-                worker_count += 1
-                sr_total += item["sr"]
-                if self.args.only_show_alerting:
-                    if "alerts" in item:
-                        print(
-                            "%s.%s"
-                            % (worker_type, self.format_workertype_fitness_report_result(item))
-                        )
-                else:
-                    print(
-                        "%s.%s"
-                        % (worker_type, self.format_workertype_fitness_report_result(item))
-                    )
-        ### provisioner mode
         else:
-            worker_types_result = self.get_worker_types(provisioner)
-            worker_types = []
-            if "workerTypes" in worker_types_result:
-                for provisioner in worker_types_result["workerTypes"]:
-                    worker_type = provisioner["workerType"]
-                    worker_types.append(worker_type)
-                # print(worker_types)
+            ### queue mode
+            if worker_type:
+                worker_types = [worker_type]
+            ### provisioner mode
             else:
-                logger.warning("error fetching workerTypes, results are incomplete!")
+                worker_types_result = self.get_worker_types(provisioner)
+                worker_types = []
+                if "workerTypes" in worker_types_result:
+                    for provisioner in worker_types_result["workerTypes"]:
+                        worker_type = provisioner["workerType"]
+                        worker_types.append(worker_type)
+                    # print(worker_types)
+                else:
+                    logger.warning("error fetching workerTypes, results are incomplete!")
             self.get_pending_tasks_multi(worker_types)
 
             # TODO: process and then display? padding of worker_id is not consistent for whole provisioner report
@@ -593,11 +581,11 @@ if __name__ == "__main__":
         if len(worker_type_id_split) == 2:
             worker_id = worker_type_id_split[1]
 
-    # TODO: just pass args?
     f = Fitness(
         log_level=args.log_level,
         provisioner=args.provisioner,
         alert_percent=args.alert_percent,
     )
+    # TODO: just pass args?
     f.args = args
     f.main(args.provisioner, worker_type, worker_id)
