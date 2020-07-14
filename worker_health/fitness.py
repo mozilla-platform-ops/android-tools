@@ -17,6 +17,7 @@ from requests.adapters import HTTPAdapter
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
 
+# TODO: figure out how to properly import
 from worker_health import USER_AGENT_STRING, logger
 import quarantine
 import utils
