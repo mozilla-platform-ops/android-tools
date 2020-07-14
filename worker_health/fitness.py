@@ -578,13 +578,13 @@ if __name__ == "__main__":
         print("ERROR: --alert-percent must be between 0 and 1.")
         sys.exit(1)
 
-    worker_type = None
-    worker_id = None
+    arg_worker_type = None
+    arg_worker_id = None
     if args.worker_type_id:
-        worker_type_id_split = args.worker_type_id.split(".")
-        worker_type = worker_type_id_split[0]
-        if len(worker_type_id_split) == 2:
-            worker_id = worker_type_id_split[1]
+        arg_worker_type_id_split = args.worker_type_id.split(".")
+        arg_worker_type = arg_worker_type_id_split[0]
+        if len(arg_worker_type_id_split) == 2:
+            arg_worker_id = arg_worker_type_id_split[1]
 
     f = Fitness(
         log_level=args.log_level,
@@ -593,4 +593,4 @@ if __name__ == "__main__":
     )
     # TODO: just pass args?
     f.args = args
-    f.main(args.provisioner, worker_type, worker_id)
+    f.main(args.provisioner, arg_worker_type, arg_worker_id)
