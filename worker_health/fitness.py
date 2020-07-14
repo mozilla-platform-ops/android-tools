@@ -12,6 +12,7 @@ from urllib.request import urlopen
 
 import requests
 from requests.adapters import HTTPAdapter
+
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
 from natsort import natsorted
@@ -34,10 +35,7 @@ DEFAULT_PROVISIONER = "proj-autophone"
 
 # https://www.peterbe.com/plog/best-practice-with-retries-with-requests
 def requests_retry_session(
-    retries=3,
-    backoff_factor=0.3,
-    status_forcelist=(500, 502, 504),
-    session=None,
+    retries=3, backoff_factor=0.3, status_forcelist=(500, 502, 504), session=None,
 ):
     session = session or requests.Session()
     retry = Retry(
@@ -48,8 +46,8 @@ def requests_retry_session(
         status_forcelist=status_forcelist,
     )
     adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
     return session
 
 
@@ -97,9 +95,11 @@ class Fitness:
             # TODO: have to do this per worker type? ugh!!!!!
             # - currently only works for aws-metal (probably other tc worker ids also though...)
             #   - format: i-${hexhash}
-            h_sanitized = worker_id.split('-')[1]
+            h_sanitized = worker_id.split("-")[1]
             hh = humanhash.humanize(h_sanitized, words=3)
-            return_string += ("%s (%s)" % (worker_id, hh)).ljust(self.worker_id_maxlen + 36)
+            return_string += ("%s (%s)" % (worker_id, hh)).ljust(
+                self.worker_id_maxlen + 36
+            )
         else:
             return_string += worker_id.ljust(self.worker_id_maxlen + 2)
         return_string += self.sr_dict_format(res)
@@ -155,13 +155,14 @@ class Fitness:
                         worker_types.append(worker_type)
                     # print(worker_types)
                 else:
-                    logger.warning("error fetching workerTypes, results are incomplete!")
+                    logger.warning(
+                        "error fetching workerTypes, results are incomplete!"
+                    )
             self.get_pending_tasks_multi(worker_types)
 
             # TODO: process and then display? padding of worker_id is not consistent for whole provisioner report
-            #   because we haven't scanned the potentially longest worker_ids when we display the first worker_group's data
+            # - because we haven't scanned the potentially longest worker_ids when we display the first worker_group's data
             for a_worker_type in worker_types:
-                # copied from block above
                 wt, res_obj, _e = self.workertype_fitness_report(a_worker_type)
                 for item in res_obj:
                     worker_count += 1
@@ -259,12 +260,14 @@ class Fitness:
 
     def get_workers(self, worker_type):
         # TODO: improve this (don't explode if missing)
-        with open(os.path.expanduser('~/.tc_token')) as json_file:
+        with open(os.path.expanduser("~/.tc_token")) as json_file:
             data = json.load(json_file)
-        creds = {"clientId": data['clientId'],
-                "accessToken": data['accessToken']}
+        creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
         queue = taskcluster.Queue(
-            {"rootUrl": "https://firefox-ci-tc.services.mozilla.com", "credentials": creds}
+            {
+                "rootUrl": "https://firefox-ci-tc.services.mozilla.com",
+                "credentials": creds,
+            }
         )
 
         outcome = queue.listWorkers(self.provisioner, worker_type)
@@ -503,7 +506,9 @@ class Fitness:
             payload = {"continuationToken": output["continuationToken"]}
             if self.verbosity > 2:
                 print("%s, %s" % (an_url, output["continuationToken"]))
-            response = requests_retry_session().get(an_url, headers=headers, params=payload)
+            response = requests_retry_session().get(
+                an_url, headers=headers, params=payload
+            )
             result = response.text
             output = json.loads(result)
         return an_url, output, None
