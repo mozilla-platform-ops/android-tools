@@ -389,9 +389,10 @@ class Fitness:
                     for run in result["status"]["runs"]:
                         if "started" in run:
                             temp_date = pendulum.parse(run["started"])
-                            if not task_last_started_timestamp:
+                            if task_last_started_timestamp is None:
                                 task_last_started_timestamp = temp_date
-                            if task_last_started_timestamp > temp_date:
+                            # if temp_date more recent (larger), use it as the oldest date
+                            if temp_date > task_last_started_timestamp:
                                 task_last_started_timestamp = temp_date
 
                 # TODO: gather exception stats
