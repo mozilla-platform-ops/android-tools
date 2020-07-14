@@ -337,6 +337,7 @@ class Fitness:
             elif isinstance(value, float):
                 # the only float is success rate
                 result_string += self.graph_percentage(value)
+                # can be up to 13... "a few seconds"
                 result_string += " {:.1%}".format(value).rjust(7)
             elif isinstance(value, pendulum.DateTime):
                 # result_string += str(value) # .diff_for_humans(pendulum.now())
