@@ -96,6 +96,7 @@ class Fitness:
             # TODO: have to do this per worker type? ugh!!!!!
             # - currently only works for aws-metal (probably other tc worker ids also though...)
             #   - format: i-${hexhash}
+            # possible solution: hash the entire name... best solution anyways.
             h_sanitized = worker_id.split("-")[1]
             hh = humanhash.humanize(h_sanitized, words=3)
             return_string += ("%s (%s)" % (worker_id, hh)).ljust(
@@ -340,7 +341,7 @@ class Fitness:
             elif isinstance(value, pendulum.DateTime):
                 # result_string += str(value) # .diff_for_humans(pendulum.now())
                 # result_string += value.format('YYYY-MM-DD HH:mm:ss zz')
-                result_string += pendulum.now(tz="UTC").diff_for_humans(value).replace('after', 'ago')
+                result_string += pendulum.now(tz="UTC").diff_for_humans(value, True).rjust(10)  # .replace('after', 'ago')
             else:
                 raise Exception("unknown type (%s)" % type(value))
             result_string += ", "
