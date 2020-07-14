@@ -10,16 +10,16 @@ from time import time as timer
 from urllib.request import urlopen
 
 import humanhash
-import quarantine
 import requests
 import taskcluster
-import utils
 from natsort import natsorted
 from requests.adapters import HTTPAdapter
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
 
 from worker_health import USER_AGENT_STRING, logger
+import quarantine
+import utils
 
 # for each queue
 #   for each worker
