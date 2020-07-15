@@ -28,7 +28,6 @@ from collections import OrderedDict
 verbose = False
 
 
-
 class DPCGException(Exception):
     pass
 
@@ -147,7 +146,6 @@ class DevicePoolConfigGenerator:
                 print("Sleeping for %s minutes..." % self.sleep_time_min)
                 print("--")
                 time.sleep(self.sleep_time_sec)
-
 
     def device_structure_count(self, a_dict):
         total = 0
@@ -445,7 +443,10 @@ class DevicePoolConfigGenerator:
                     if restart_command.returncode == 0:
                         print("service restarted")
                     else:
-                        print("service NOT restarted. restart command likely failed (rc: %s)" % restart_command.returncode)
+                        print(
+                            "service NOT restarted. restart command likely failed (rc: %s)"
+                            % restart_command.returncode
+                        )
             else:
                 print("Config did not change.")
                 pass

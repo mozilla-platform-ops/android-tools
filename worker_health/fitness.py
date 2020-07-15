@@ -15,6 +15,7 @@ import requests
 import taskcluster
 from natsort import natsorted
 from requests.adapters import HTTPAdapter
+
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
 
@@ -344,7 +345,9 @@ class Fitness:
             elif isinstance(value, pendulum.DateTime):
                 # result_string += str(value) # .diff_for_humans(pendulum.now())
                 # result_string += value.format('YYYY-MM-DD HH:mm:ss zz')
-                result_string += pendulum.now(tz="UTC").diff_for_humans(value, True).rjust(10)  # .replace('after', 'ago')
+                result_string += (
+                    pendulum.now(tz="UTC").diff_for_humans(value, True).rjust(10)
+                )  # .replace('after', 'ago')
             else:
                 raise Exception("unknown type (%s)" % type(value))
             result_string += ", "

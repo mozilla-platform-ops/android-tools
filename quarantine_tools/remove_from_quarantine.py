@@ -16,10 +16,9 @@ import sys
 # print("requires manual configuration currently. edit source and rerun.")
 # sys.exit()
 
-with open(os.path.expanduser('~/.tc_quarantine_token')) as json_file:
+with open(os.path.expanduser("~/.tc_quarantine_token")) as json_file:
     data = json.load(json_file)
-creds = {"clientId": data['clientId'],
-         "accessToken": data['accessToken']}
+creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
 
 queue = taskcluster.Queue(
     {"rootUrl": "https://firefox-ci-tc.services.mozilla.com", "credentials": creds}
@@ -30,9 +29,9 @@ hosts_to_unquarantine = []
 # 4/20 incident round 1
 # packet_hosts_to_unquarantine = [1, 14, 15, 2, 22, 28, 29, 33]
 # round 2
-#packet_hosts_to_unquarantine = [13, 23, 44, 6]
+# packet_hosts_to_unquarantine = [13, 23, 44, 6]
 # round 3: can't view logs... unknown
-#packet_hosts_to_unquarantine = [64, 53]
+# packet_hosts_to_unquarantine = [64, 53]
 # round 4
 # 49, 68 insufficient bogomips
 # 7 fetch issues
@@ -44,7 +43,7 @@ packet_hosts_to_unquarantine = [68]
 
 
 for h in packet_hosts_to_unquarantine:
-  hosts_to_unquarantine.append("packet-%s" % h)
+    hosts_to_unquarantine.append("packet-%s" % h)
 
 for a_host in hosts_to_unquarantine:
     print("removing %s from quarantine... " % a_host)

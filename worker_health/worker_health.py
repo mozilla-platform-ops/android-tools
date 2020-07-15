@@ -143,16 +143,26 @@ class WorkerHealth:
         )
         # this is that path that we expect the config file to be
         # at on a devicepool production host
-        devicepool_host_yaml_file_path = "/home/bitbar/mozilla-bitbar-devicepool/config/config.yml"
-        local_dev_path = os.path.join(os.path.expanduser("~"), "git/mozilla-bitbar-devicepool/config/config.yml")
+        devicepool_host_yaml_file_path = (
+            "/home/bitbar/mozilla-bitbar-devicepool/config/config.yml"
+        )
+        local_dev_path = os.path.join(
+            os.path.expanduser("~"), "git/mozilla-bitbar-devicepool/config/config.yml"
+        )
         if os.path.exists(local_dev_path):
-            logger.warning("Found devicepool config in local development location (not using repo checkout)!")
+            logger.warning(
+                "Found devicepool config in local development location (not using repo checkout)!"
+            )
             self.devicepool_config_yaml_path = local_dev_path
         elif os.path.exists(devicepool_host_yaml_file_path):
-            logger.info("Found devicepool config in production location (not using repo checkout)!")
+            logger.info(
+                "Found devicepool config in production location (not using repo checkout)!"
+            )
             self.devicepool_config_yaml_path = devicepool_host_yaml_file_path
         else:
-            logger.debug("Did NOT find devicepool config in production location. Using repo checkout.")
+            logger.debug(
+                "Did NOT find devicepool config in production location. Using repo checkout."
+            )
             self.devicepool_config_yaml_path = checkout_yaml_file_path
 
     def set_configured_worker_counts(self):
@@ -286,9 +296,19 @@ class WorkerHealth:
                                 started_time = json_result2["status"]["runs"][-1][
                                     "started"
                                 ]
-                                if worker["workerId"] in self.tc_current_worker_last_started:
-                                    if self.tc_current_worker_last_started[worker["workerId"]] < started_time:
-                                        self.tc_current_worker_last_started[worker["workerId"]] = started_time
+                                if (
+                                    worker["workerId"]
+                                    in self.tc_current_worker_last_started
+                                ):
+                                    if (
+                                        self.tc_current_worker_last_started[
+                                            worker["workerId"]
+                                        ]
+                                        < started_time
+                                    ):
+                                        self.tc_current_worker_last_started[
+                                            worker["workerId"]
+                                        ] = started_time
                                 else:
                                     self.tc_current_worker_last_started[
                                         worker["workerId"]
@@ -385,6 +405,7 @@ class WorkerHealth:
     # uses set operations vs for loop (can handle workers being in wrong queue)
     def calculate_missing_workers_from_tc_2(self, limit, exclude_quarantined=False):
         import pprint
+
         pprint.pprint(self.devicepool_queues_and_workers)
         # print("done")
         # sys.exit(0)
@@ -666,15 +687,33 @@ class WorkerHealth:
                 time_limit, exclude_quarantined=True
             )
             missing_workers_flattened = self.flatten_list(missing_workers.values())
-            print(output_format % ("tc (%s)" % len(missing_workers_flattened), missing_workers_flattened))
+            print(
+                output_format
+                % (
+                    "tc (%s)" % len(missing_workers_flattened),
+                    missing_workers_flattened,
+                )
+            )
 
             if self.quarantined_workers:
-                print(output_format % ("tc-quarantined (%s)" % len(self.quarantined_workers), self.quarantined_workers))
+                print(
+                    output_format
+                    % (
+                        "tc-quarantined (%s)" % len(self.quarantined_workers),
+                        self.quarantined_workers,
+                    )
+                )
 
             if utils.bitbar_systemd_service_present():
                 offline_workers = self.get_offline_workers_from_journalctl()
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
-                print(output_format % ("devicepool (%s)" % len(offline_workers_flattened), offline_workers_flattened))
+                print(
+                    output_format
+                    % (
+                        "devicepool (%s)" % len(offline_workers_flattened),
+                        offline_workers_flattened,
+                    )
+                )
 
                 merged = self.make_list_unique(
                     offline_workers_flattened + missing_workers_flattened
