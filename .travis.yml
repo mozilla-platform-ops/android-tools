@@ -9,6 +9,7 @@ install:
   - cd ..
 
 script:
+  # TODO: use pre-commit to double check stuff
   # worker_health
   - cd worker_health
   - pyflakes *.py
