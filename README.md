@@ -2,6 +2,8 @@
 
 tools for working with Android things at Mozilla
 
+[![Build Status](https://travis-ci.com/mozilla-platform-ops/android-tools.svg?branch=master)](https://travis-ci.com/mozilla-platform-ops/android-tools)
+
 ## tool information
 
 ### adb_check_if_booted
