@@ -29,4 +29,3 @@ elif [ "`echo "$OUTPUT" | tr -d '\r' `" != "1" ]; then
 else
 	echo "booted (${PROP_3} true)"
 fi
-

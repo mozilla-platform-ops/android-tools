@@ -12,4 +12,3 @@ else
   ln -sf ${pwd}/*.conf .
   set +x
 fi
-

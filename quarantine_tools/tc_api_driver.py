@@ -10,7 +10,7 @@ import sys
 #
 
 # don't need to create separate credentials
-# per tomprince: 
+# per tomprince:
 #   You can use taskcluster signin to get creds (and can use -s <scope>, possibly multiple times, to restrict scopes).
 
 

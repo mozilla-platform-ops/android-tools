@@ -8,7 +8,7 @@ set -x
 # see if polipo is up
 status=0
 nc -v -z localhost 8123 || status=$?
- 
+
 if [ "$status" == 0 ] ; then
 	# polipo is running
 	echo "* using proxy"

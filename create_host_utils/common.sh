@@ -30,4 +30,3 @@ TT_PATH="$MC_CLIENT_PATH/$TOOLTOOL"
 # load version from config/milestone.txt in moz-central clone
 FFVER=`cat $MC_CLIENT_PATH/config/milestone.txt | tail -n 1`
 # echo $FFVER
-

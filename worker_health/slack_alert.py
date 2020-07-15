@@ -91,7 +91,7 @@ currently_alerting = false
     def slack_alert_m_thru_f(self):
         # TODO: require a verification cycle if there are problem workers... try to eliminate spurious reports
         #   due to TC requests failing.
-        
+
         now = pendulum.now(tz=self.bitbar_tz)
         logger.info("now.hour %s, now.day_of_week %s" % (now.hour, now.day_of_week))
         if (7 <= now.hour <= 18) and (1 <= now.day_of_week <= 5):

@@ -7,7 +7,7 @@ digraph G {
   // devicepool hosts <=> bitbar api server (mozilla.testdroid.com) <=>
   // bitbar cluster manager (andXX.mv.mozilla.hc.bitbar) <=> usb hub (some
   // use cambrionix programmable hubs) <=> phone (pixel2, motorola g5)
-    
+
   subgraph cluster_0 {
     labeljust="r";
     style=filled;
@@ -19,7 +19,7 @@ digraph G {
     a1 [label="mozilla-bitbar-devicepool service\n (active devicepool-X.relops.mozops.net host)"];
 
     a0 -> a1 [label="  HTTPS", dir="both"];
-  }    
+  }
 
   subgraph cluster_1 {
     labeljust="r";
@@ -51,4 +51,3 @@ digraph G {
   // end [shape=Mrecord, label="task completion", style=filled, color=gray];
 
 }
-

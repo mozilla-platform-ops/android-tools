@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-  
+
 set -e
 
 # find all executables in directory, and run with --help

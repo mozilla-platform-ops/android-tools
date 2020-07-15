@@ -1,6 +1,6 @@
 digraph {
     label=<<BR/><B>android hardware (bitbar) g-w execution flow</B>>
- 
+
     m1[shape="box", style=rounded, label="task is enqueued"];
     m2[shape="box", style="", label=<<B>mozilla-devicepool</B><BR/>sees queued jobs and starts bitbar run via api<BR/>(credentials provided by env vars)>]
     m3[shape="box", style="", label=<<B>bitbar api &amp; framework</B><BR/>starts a mozilla-docker container>]

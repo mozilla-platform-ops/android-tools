@@ -39,4 +39,3 @@ docker run -u root \
   $TESTDIR_MOUNTPOINT \
   $SRCDIR_MOUNTPOINT \
   test-docker
-  
