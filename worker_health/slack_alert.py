@@ -91,6 +91,8 @@ currently_alerting = false
     def slack_alert_m_thru_f(self):
         # TODO: require a verification cycle if there are problem workers... try to eliminate spurious reports
         #   due to TC requests failing.
+        # TODO: offer a confidence percentage? match between TC and devicepool? TC is usually right now though...
+        #   - intermittent check (see above) might be better
 
         now = pendulum.now(tz=self.bitbar_tz)
         logger.info("now.hour %s, now.day_of_week %s" % (now.hour, now.day_of_week))
