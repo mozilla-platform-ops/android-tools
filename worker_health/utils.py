@@ -1,9 +1,11 @@
 import json
+import logging
 import pprint
-import requests
 import subprocess
 
-from worker_health import logger
+import requests
+
+logger = logging.getLogger(__name__)
 
 USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-tools/tree/master/worker_health)"
 
@@ -28,6 +30,10 @@ def bitbar_systemd_service_present(warn=False, error=False):
             logger.error("this must be run on the primary devicepool host!")
         return False
     return True
+
+
+def list_intersection(lst1, lst2):
+    return list(set(lst1) & set(lst2))
 
 
 # handles continuationToken

@@ -9,19 +9,16 @@ import subprocess
 import sys
 import time
 
+import pendulum
+import yaml
+
+import utils
+
 # log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
 log_format = "%(levelname)-10s %(funcName)s: %(message)s"
 logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger()
 
-import utils
-
-try:
-    import pendulum
-    import yaml
-except ImportError:
-    print("Missing dependencies. Please run `pipenv install; pipenv shell` and retry!")
-    sys.exit(1)
 
 REPO_UPDATE_SECONDS = 300
 MAX_WORKER_TYPES = 50
@@ -361,7 +358,7 @@ class WorkerHealth:
             if show_details:
                 for worker in self.devicepool_queues_and_workers[queue]:
                     if worker in self.tc_current_worker_last_started:
-                        if self.tc_current_worker_last_started[worker] == None:
+                        if self.tc_current_worker_last_started[worker] is None:
                             print("    %s: present, no task start time!" % worker)
                             continue
                         now_dt = pendulum.now(tz="UTC")
@@ -443,7 +440,7 @@ class WorkerHealth:
 
                 if worker in self.tc_current_worker_last_started:
                     # new workers
-                    if self.tc_current_worker_last_started[worker] == None:
+                    if self.tc_current_worker_last_started[worker] is None:
                         # TODO: track these in a new datastructure
                         #   - not a 'problem worker' per se
                         #     - shouldn't alert partners or logging, but good to know
@@ -719,7 +716,16 @@ class WorkerHealth:
                     offline_workers_flattened + missing_workers_flattened
                 )
 
-                print(output_format % ("merged (%s)" % len(merged), merged))
+                print(output_format % ("union (%s)" % len(merged), merged))
+
+                intersection_list = utils.list_intersection(
+                    offline_workers_flattened, missing_workers_flattened
+                )
+
+                print(
+                    output_format
+                    % ("intersection (%s)" % len(merged), intersection_list)
+                )
 
     def influx_report(self, time_limit=None, verbosity=0):
         problem_workers = self.get_problem_workers2(
