@@ -12,9 +12,9 @@ allocates workers to queues based on queue counts among device types (p2, g5).
   - config should specify which queues can donate/share their capacity. p2-unit wouldn't share. better method than using ratio and using minimums.
     - TODO: model desired behavior, then figure out how to write a configuration.
 
-### current manual pool tweaking
+### manual pool tweaking
 
-Current manual behavior:
+Pools are currently adjusted by switching between two configuration files.
 
 No unit jobs, switch to perf-heavy config. Otherwise default.
 
