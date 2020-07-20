@@ -724,7 +724,7 @@ class WorkerHealth:
 
                 print(
                     output_format
-                    % ("intersection (%s)" % len(merged), intersection_list)
+                    % ("intersection (%s)" % len(intersection_list), intersection_list)
                 )
 
     def influx_report(self, time_limit=None, verbosity=0):
