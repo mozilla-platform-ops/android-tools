@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 set -e
-set -x
+#set -x
+
+. ./common.sh
 
 ./cleanup.sh
 
@@ -26,9 +28,9 @@ else
 	echo "* not using proxy"
 	echo ""
 
-	docker build -t test-docker .
+	docker build -t "$DOCKER_IMAGE_NAME" .
 fi
 
-docker create --name test-docker test-docker
+docker create --name "$DOCKER_IMAGE_NAME" "$DOCKER_IMAGE_NAME"
 
 ./open_shell.sh
