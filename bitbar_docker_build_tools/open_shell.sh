@@ -38,6 +38,6 @@ docker run -u root \
   -e gecko_t_ap_test_g5="SECRET_SECRET_SECRET_DO NOT LEAK 1" \
   -e TESTDROID_APIKEY="SECRET_SECRET_SECRET_DO NOT LEAK 2" \
   -it --entrypoint '/bin/bash' \
-  "$TESTDIR_MOUNTPOINT" \
-  "$SRCDIR_MOUNTPOINT" \
+  ${TESTDIR_MOUNTPOINT:+} \
+  ${SRCDIR_MOUNTPOINT:+} \
   "$DOCKER_IMAGE_NAME"
