@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import random
 import time
 
 # TODO: wrap import with try/except?
@@ -79,7 +80,17 @@ currently_alerting = false
             # if we were alerting previously, mention that we're all good now
             if self.get_toml_value("currently_alerting"):
                 logger.info("sending all clear message")
-                message = "all device issues resolved"
+                emoji_options = [
+                    ":tada:",
+                    ":grin:",
+                    "grinning:",
+                    ":thumbsup:",
+                    ":smile:",
+                    ":smiley",
+                ]
+                message = "all device issues resolved %s" % (
+                    random.choice(emoji_options)
+                )
                 if self.alerting_enabled:
                     self.send_slack_message(message)
                 else:
