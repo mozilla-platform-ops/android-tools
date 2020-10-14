@@ -86,7 +86,7 @@ currently_alerting = false
                     "grinning:",
                     ":thumbsup:",
                     ":smile:",
-                    ":smiley",
+                    ":smiley:",
                 ]
                 message = "all device issues resolved %s" % (
                     random.choice(emoji_options)
