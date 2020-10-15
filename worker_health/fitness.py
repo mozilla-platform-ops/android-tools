@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import pprint
+import subprocess
 import sys
 from multiprocessing.pool import ThreadPool
 from time import time as timer
@@ -451,11 +452,29 @@ class Fitness:
         results_obj["rng"] = task_runnings
         results_obj["ls"] = task_last_started_timestamp
 
+        if self.args.ping:
+            if self.args.ping_host:
+                cmd = [
+                    "ssh",
+                    self.args.ping_host,
+                    "ping -c 1 -i 0.2 %s.%s" % (device, self.args.ping_domain),
+                ]
+                res = subprocess.run(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+                )
+                if res.returncode != 0:
+                    if "alerts" not in results_obj:
+                        results_obj["alerts"] = []
+                    results_obj["alerts"].append("not pingable")
+                # TODO: write to notes that it is pingable?
+            else:
+                logger.warn("sorry, not supported yet")
+
         # note if no jobs in queue
         if queue in self.queue_counts:
             if self.queue_counts[queue] == 0:
                 # TODO: use setdefault
-                if not "notes" in results_obj:
+                if "notes" not in results_obj:
                     results_obj["notes"] = []
                 results_obj["notes"].append("No jobs in queue.")
         else:
@@ -463,7 +482,7 @@ class Fitness:
         # alert if success ratio is low
         if success_ratio_calculated:
             if success_ratio < self.alert_percent:
-                if not "alerts" in results_obj:
+                if "alerts" not in results_obj:
                     results_obj["alerts"] = []
                 results_obj["alerts"].append(
                     "Low health (less than %s)!" % self.alert_percent
@@ -471,12 +490,12 @@ class Fitness:
         # TODO: alert if worker hasn't worked in X days (3, 7?)
         # alert if no work done
         if total == 0 and task_exceptions == 0 and task_runnings == 0:
-            if not "alerts" in results_obj:
+            if "alerts" not in results_obj:
                 results_obj["alerts"] = []
             results_obj["alerts"].append("No work done!")
         # quarantine
         if device in self.quarantine_data[queue]:
-            if not "alerts" in results_obj:
+            if "alerts" not in results_obj:
                 results_obj["alerts"] = []
             results_obj["alerts"].append("Quarantined.")
 
@@ -585,6 +604,22 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
         help="hostnames are human-hashed",
+    )
+    parser.add_argument(
+        "--ping", default=False, action="store_true", help="ping hosts also",
+    )
+    # TODO: can we get this from TC?
+    parser.add_argument(
+        "--ping-domain",
+        default=None,
+        metavar="subdomain.corp.com",
+        help="subdomain to append to hosts",
+    )
+    parser.add_argument(
+        "--ping-host",
+        default=None,
+        metavar="host",
+        help="ssh to this host before pinging",
     )
     parser.add_argument(
         "worker_type_id",
