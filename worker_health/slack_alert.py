@@ -83,7 +83,7 @@ currently_alerting = false
                 emoji_options = [
                     ":tada:",
                     ":grin:",
-                    "grinning:",
+                    ":grinning:",
                     ":thumbsup:",
                     ":smile:",
                     ":smiley:",
