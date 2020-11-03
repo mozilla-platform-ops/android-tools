@@ -457,7 +457,7 @@ class Fitness:
                 cmd = [
                     "ssh",
                     self.args.ping_host,
-                    "ping -c 1 -i 0.2 %s.%s" % (device, self.args.ping_domain),
+                    "ping -c 1 -i 0.3 -w 1 %s.%s" % (device, self.args.ping_domain),
                 ]
                 res = subprocess.run(
                     cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
