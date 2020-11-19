@@ -727,6 +727,50 @@ class WorkerHealth:
                     % ("intersection (%s)" % len(intersection_list), intersection_list)
                 )
 
+    # devicepool specific
+    def get_report(self, show_all=False, time_limit=None, verbosity=0):
+        self.gather_data()
+
+        missing_workers = {}
+        missing_workers_flattened = []
+        offline_workers = {}
+        offline_workers_flattened = []
+
+        result_dict = {"tc": [], "devicepool": [], "union": [], "intersection": []}
+
+        if time_limit:
+            # exclude quarantined as we mention them specifically later
+            missing_workers = self.calculate_missing_workers_from_tc(
+                time_limit, exclude_quarantined=True
+            )
+            missing_workers_flattened = self.flatten_list(missing_workers.values())
+            result_dict["tc"]: missing_workers_flattened
+
+            # TODO: do quarantined
+            # if self.quarantined_workers:
+            #     print(
+            #         output_format
+            #         % (
+            #             "tc-quarantined (%s)" % len(self.quarantined_workers),
+            #             self.quarantined_workers,
+            #         )
+            #     )
+
+            if utils.bitbar_systemd_service_present():
+                offline_workers = self.get_offline_workers_from_journalctl()
+                offline_workers_flattened = self.flatten_list(offline_workers.values())
+                result_dict["devicepool"] = offline_workers_flattened
+
+            result_dict["union"] = self.make_list_unique(
+                offline_workers_flattened + missing_workers_flattened
+            )
+
+            result_dict["intersection"] = utils.list_intersection(
+                offline_workers_flattened, missing_workers_flattened
+            )
+
+            return result_dict
+
     def influx_report(self, time_limit=None, verbosity=0):
         problem_workers = self.get_problem_workers2(
             time_limit=time_limit, exclude_quarantined=False
