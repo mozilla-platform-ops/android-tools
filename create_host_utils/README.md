@@ -10,8 +10,8 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 
 - edit common.sh to point to your mozilla-central client
 - update the mozilla-central client that the configuration points at
-  - `h pull`
   - `h up central`
+  - `h pull`
 - remove old 'hu_*' directories
 - create a new build script
   - `./generate_build_script.sh`
@@ -47,7 +47,8 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 - run tests
   - see reference doc
   - add the treeherder link to the phab review
-  - if the tests look good, request a review from gbrown
+  - if the tests look good, request a review from bc
+    - mkato for win?
 
 ## TODO
 
