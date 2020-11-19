@@ -16,6 +16,7 @@ cd current
 # testing/config/tooltool-manifests/linux32/hostutils.manifest
 # testing/config/tooltool-manifests/linux64/hostutils.manifest
 # testing/config/tooltool-manifests/macosx64/hostutils.manifest
-$TT_PATH fetch -m $mc_dir/testing/config/tooltool-manifests/linux32/hostutils.manifest
-$TT_PATH fetch -m $mc_dir/testing/config/tooltool-manifests/linux64/hostutils.manifest
-$TT_PATH fetch -m $mc_dir/testing/config/tooltool-manifests/macosx64/hostutils.manifest
+# $TT_PATH fetch -m $mc_dir/testing/config/tooltool-manifests/linux32/hostutils.manifest
+"$TT_PATH" fetch -m "$mc_dir/testing/config/tooltool-manifests/linux64/hostutils.manifest"
+"$TT_PATH" fetch -m "$mc_dir/testing/config/tooltool-manifests/macosx64/hostutils.manifest"
+"$TT_PATH" fetch -m "$mc_dir/testing/config/tooltool-manifests/win32/hostutils.manifest"
