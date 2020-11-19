@@ -48,6 +48,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - see reference doc
   - add the treeherder link to the phab review
   - if the tests look good, request a review from bc
+    - mkato for win?
 
 ## TODO
 
