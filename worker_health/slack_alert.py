@@ -71,9 +71,20 @@ currently_alerting = false
         if len(report_data["union"]) > 0:
             # update state indicating we're alerting
             self.set_toml_value("currently_alerting", True)
+
+            # bold workers with high confidence (devicepool showing as bad)
+            worker_string = "["
+            for worker in report_data["union"]:
+                if worker in report_data["devicepool"]:
+                    worker_string += "*%s*, " % worker
+                else:
+                    worker_string += "%s, " % worker
+            worker_string = worker_string[:-2]
+            worker_string += "]"
+
             message = "problem workers (%s): %s" % (
                 len(report_data["union"]),
-                report_data["union"],
+                worker_string,
             )
             if self.alerting_enabled:
                 self.send_slack_message(message)
