@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-MC_CLIENT_PATH="/Users/$USER/hg/mozilla-source"
+export MC_CLIENT_PATH="/Users/$USER/hg/mozilla-source-2"
 
+export ARCHS=( "x86_64" "mac" "win32" )
 
 
 ########################################################
@@ -21,12 +22,13 @@ if [ ! -e "$MC_CLIENT_PATH/config/milestone.txt" ]; then
   exit 1
 fi
 
-TOOLTOOL='python/mozbuild/mozbuild/action/tooltool.py'
-TT_PATH="$MC_CLIENT_PATH/$TOOLTOOL"
+export TOOLTOOL='python/mozbuild/mozbuild/action/tooltool.py'
+export TT_PATH="$MC_CLIENT_PATH/$TOOLTOOL"
 
 # FFVER="66.0a1"
 # FFVER="68.0a1"
 
 # load version from config/milestone.txt in moz-central clone
-FFVER=`cat $MC_CLIENT_PATH/config/milestone.txt | tail -n 1`
+FFVER=$(tail -n 1 "${MC_CLIENT_PATH}/config/milestone.txt")
+export FFVER
 # echo $FFVER

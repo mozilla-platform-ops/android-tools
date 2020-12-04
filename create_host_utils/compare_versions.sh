@@ -16,11 +16,9 @@ if [ -x "$(command -v compare2)" ]; then
   araxis_present=1
 fi
 
-archs=( "x86_64" "mac" "win32" )
-for arch in "${archs[@]}"; do
+for arch in "${ARCHS[@]}"; do
   for dir in "./hu_${arch}_"*; do
     if [ -d "${dir}" ]; then
-      # arch="win32"
       echo "${arch}: "
       echo ""
       echo "  " diff "current/host-utils-*.en-US.${arch}" "hu_${arch}_*/host-utils-${FFVER}.en-US.${arch}"
