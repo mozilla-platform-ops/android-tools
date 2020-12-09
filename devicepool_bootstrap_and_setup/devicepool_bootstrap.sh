@@ -3,17 +3,17 @@
 set -e
 # set -x
 
-bootstrap_script_path="$HOME/git/ronin_puppet/provisioners/linux/bootstrap_bitbar_devicepool.sh"
-bitbar_env_file_path="$HOME/git/mozilla-bitbar-devicepool/bitbar_env.sh"
+BOOTSTRAP_SCRIPT_PATH="$HOME/git/ronin_puppet/provisioners/linux/bootstrap_bitbar_devicepool.sh"
+BITBAR_ENV_FILE_PATH="$HOME/git/mozilla-bitbar-devicepool/bitbar_env.sh"
 
 # ensure critical scripts/files exist
-if [ ! -e "$bootstrap_script_path" ]; then
-  echo "Couldn't find bootstrap_script_path ('$bootstrap_script_path')"
+if [ ! -e "$BOOTSTRAP_SCRIPT_PATH" ]; then
+  echo "Couldn't find BOOTSTRAP_SCRIPT_PATH ('$BOOTSTRAP_SCRIPT_PATH')"
   exit 1
 fi
 
-if [ ! -e "$bitbar_env_file_path" ]; then
-  echo "Couldn't find bitbar_env_file_path ('$bitbar_env_file_path')"
+if [ ! -e "$BITBAR_ENV_FILE_PATH" ]; then
+  echo "Couldn't find BITBAR_ENV_FILE_PATH ('$BITBAR_ENV_FILE_PATH')"
   exit 1
 fi
 
@@ -32,11 +32,10 @@ fi
 
 # TODO: detect which phase we're in, don't rerun first phase if we don't need to
 set +e
-ssh relops@"$the_host" id > /dev/null 2>&1
-if [ $? -eq 0 ]; then
+if ! ssh relops@"$the_host" id > /dev/null 2>&1; then
   echo "performing first bootstrap phase"
   # TODO: add "-o StrictHostKeyChecking=no"?
-  scp "$bootstrap_script_path" relops@"$the_host":/tmp/
+  scp "$BOOTSTRAP_SCRIPT_PATH" relops@"$the_host":/tmp/
   # run first as bootstrap user (relops)
   ssh relops@"$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh || true
 else
@@ -46,8 +45,8 @@ set -e
 
 # now run as current user and remove relops user (fails in prior run)
 echo "performing second bootstrap phase"
-# scp "$bootstrap_script_path" "$the_host":/tmp/
+# scp "$BOOTSTRAP_SCRIPT_PATH" "$the_host":/tmp/
 # ssh "$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh
-./devicepool_update.sh $the_host
+./devicepool_update.sh "$the_host"
 
 # success message is done in devicepool_update.sh

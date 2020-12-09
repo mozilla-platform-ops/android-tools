@@ -13,5 +13,5 @@ fi
 
 set -x
 # TODO: grab this from SOPS vs local clone of devicepool
-scp "$bitbar_env_file_path" "$the_host":bitbar.env
+scp "$BITBAR_ENV_FILE_PATH" "$the_host":bitbar.env
 ssh "$the_host" 'sudo mv bitbar.env /etc/bitbar/ && sudo chown root:bitbar /etc/bitbar/bitbar.env && sudo chmod 660 /etc/bitbar/bitbar.env'
