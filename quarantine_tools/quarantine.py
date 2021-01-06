@@ -29,7 +29,7 @@ class Quarantine:
         # ./quarantine.py terraform-packet gecko-t-linux
         parser.add_argument(
             "provisioner",
-            # help="e.g. 'gecko-t-bitbar-gw-perf-p2.pixel2-21' or 'gecko-t-bitbar-gw-batt-g5'",
+            # help="e.g. 'terraform-packet' or 'releng-hardware'",
         )
         parser.add_argument(
             "worker_type",
