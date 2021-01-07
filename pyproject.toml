@@ -12,6 +12,7 @@ requests = "^2.25.1"
 humanhash = "^0.0.1"
 pendulum = "^2.1.2"
 natsort = "^7.1.0"
+schedule = "^0.6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.1"
