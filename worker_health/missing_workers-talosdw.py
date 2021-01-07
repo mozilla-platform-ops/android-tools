@@ -3,7 +3,7 @@
 import argparse
 
 import fitness
-from worker_health import quarantine
+import quarantine
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
