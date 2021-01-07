@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
 set -e
-#set -x
+set -x
 
-./get_quarantined.py releng-hardware gecko-t-linux-talos
+./get_quarantined.py releng-hardware gecko-t-linux-talos "$@"
