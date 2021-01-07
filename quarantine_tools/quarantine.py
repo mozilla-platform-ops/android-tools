@@ -24,7 +24,7 @@ class Quarantine:
             }
         )
 
-    def main(self):
+    def main_get_quarantined(self):
         parser = argparse.ArgumentParser()
         # ./quarantine.py terraform-packet gecko-t-linux
         parser.add_argument(
@@ -80,4 +80,4 @@ class Quarantine:
 
 if __name__ == "__main__":
     q = Quarantine()
-    q.main()
+    q.main_get_quarantined()
