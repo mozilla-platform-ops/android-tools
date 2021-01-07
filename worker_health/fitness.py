@@ -8,7 +8,6 @@ import subprocess
 import sys
 from multiprocessing.pool import ThreadPool
 from time import time as timer
-from urllib.request import urlopen
 
 import humanhash
 import pendulum
@@ -16,14 +15,16 @@ import requests
 import taskcluster
 from natsort import natsorted
 from requests.adapters import HTTPAdapter
+from urllib.request import urlopen
 
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
 
-# TODO: figure out how to properly import
-from worker_health import USER_AGENT_STRING, logger
 import quarantine
 import utils
+
+# TODO: figure out how to properly import
+from worker_health import USER_AGENT_STRING, logger
 
 # for each queue
 #   for each worker
