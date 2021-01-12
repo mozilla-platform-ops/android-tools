@@ -175,6 +175,7 @@ class WorkerHealth:
             if (
                 item.startswith("motog5")
                 or item.startswith("pixel2")
+                or item.startswith("s7")
                 or item.startswith("test")
             ):
                 if self.devicepool_config_yaml["device_groups"][item]:
@@ -182,7 +183,12 @@ class WorkerHealth:
                     self.devicepool_bitbar_device_groups[item] = list(keys)
 
         for project in self.devicepool_config_yaml["projects"]:
-            if project.endswith("p2") or project.endswith("g5") or "test" in project:
+            if (
+                project.endswith("p2")
+                or project.endswith("g5")
+                or project.endswith("s7")
+                or "test" in project
+            ):
                 try:
                     # set the workers for a queue
                     self.devicepool_queues_and_workers[
