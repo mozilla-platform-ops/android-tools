@@ -46,7 +46,7 @@ class WorkerHealth:
             "/", "tmp", ("worker_health.%s" % username), "mozilla-bitbar-devicepool"
         )
         self.devicepool_git_clone_url = (
-            "https://github.com/bclary/mozilla-bitbar-devicepool.git"
+            "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
         )
         self.pp = pprint.PrettyPrinter(indent=4)
         self.verbosity = verbosity
