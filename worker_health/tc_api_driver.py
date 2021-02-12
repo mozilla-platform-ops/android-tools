@@ -27,19 +27,3 @@ queue = taskcluster.Queue(
 pdb.set_trace()
 
 sys.exit()
-
-#
-# hosts_to_quarantine = []
-# packet_hosts_to_quarantine = [4, 6, 10, 13, 14, 16, 43, 53, 54, 65, 68]
-#
-# for h in packet_hosts_to_quarantine:
-#     hosts_to_quarantine.append("machine-%s" % h)
-#
-# for a_host in hosts_to_quarantine:
-#     queue.quarantineWorker(
-#         "terraform-packet",
-#         "gecko-t-linux",
-#         "packet-sjc1",
-#         a_host,
-#         {"quarantineUntil": taskcluster.fromNow("10 year")},
-#     )
