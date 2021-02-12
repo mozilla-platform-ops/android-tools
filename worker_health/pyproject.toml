@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "android-tools"
+name = "worker-health"
 version = "0.1.0"
 description = ""
 authors = ["Andrew Erickson <aerickson@mozilla.com>"]
