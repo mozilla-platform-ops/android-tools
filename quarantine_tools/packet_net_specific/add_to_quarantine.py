@@ -27,13 +27,13 @@ hosts_to_quarantine = []
 
 # 4/20
 # round  1
-# packet_hosts_to_quarantine = [15, 1, 53, 29, 14]
+# host_numbers_to_quarantine = [15, 1, 53, 29, 14]
 # round 2
-# packet_hosts_to_quarantine = [7, 2, 37, 46, 28, 45, 22, 64]
+# host_numbers_to_quarantine = [7, 2, 37, 46, 28, 45, 22, 64]
 # round 3
-# packet_hosts_to_quarantine = [68]
+# host_numbers_to_quarantine = [68]
 # round 4
-# packet_hosts_to_quarantine = [49, 23, 13, 6]
+# host_numbers_to_quarantine = [49, 23, 13, 6]
 # round 5
 packet_hosts_to_quarantine = [68]
 

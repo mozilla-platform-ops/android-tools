@@ -26,22 +26,22 @@ queue = taskcluster.Queue(
 hosts_to_unquarantine = []
 
 # 4/20 incident round 1
-# packet_hosts_to_unquarantine = [1, 14, 15, 2, 22, 28, 29, 33]
+# host_numbers_to_unquarantine = [1, 14, 15, 2, 22, 28, 29, 33]
 # round 2
-# packet_hosts_to_unquarantine = [13, 23, 44, 6]
+# host_numbers_to_unquarantine = [13, 23, 44, 6]
 # round 3: can't view logs... unknown
-# packet_hosts_to_unquarantine = [64, 53]
+# host_numbers_to_unquarantine = [64, 53]
 # round 4
 # 49, 68 insufficient bogomips
 # 7 fetch issues
 # 45, 46 can't view logs (expired)
 # 37 unknown
-# packet_hosts_to_unquarantine = [49, 68, 7, 45, 37, 46]
+# host_numbers_to_unquarantine = [49, 68, 7, 45, 37, 46]
 
-packet_hosts_to_unquarantine = [91]
-# packet_hosts_to_unquarantine = range(1, 91)  # 1 over desired
+# host_numbers_to_unquarantine = [91]
+host_numbers_to_unquarantine = range(92, 106)  # 1 over desired
 
-for h in packet_hosts_to_unquarantine:
+for h in host_numbers_to_unquarantine:
     hosts_to_unquarantine.append("t-linux64-ms-%03d" % h)  # TODO: Need to zero pad
 
 
