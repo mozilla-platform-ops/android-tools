@@ -478,8 +478,12 @@ class Fitness:
                 if "notes" not in results_obj:
                     results_obj["notes"] = []
                 results_obj["notes"].append("No jobs in queue.")
+                jobs_present = False
+            else:
+                jobs_present = True
         else:
             logger.warn("Strange, no queue count data for %s" % queue)
+
         # alert if success ratio is low
         if success_ratio_calculated:
             if success_ratio < self.alert_percent:
@@ -488,12 +492,20 @@ class Fitness:
                 results_obj["alerts"].append(
                     "Low health (less than %s)!" % self.alert_percent
                 )
-        # TODO: alert if worker hasn't worked in X days (3, 7?)
+
+        # alert if worker hasn't worked in 1 hour
+        dt = pendulum.now()
+        # TODO: take minutes as an arg
+        comparison_dt = dt.subtract(minutes=60)
+        if jobs_present and task_last_started_timestamp < comparison_dt:
+            results_obj.setdefault("alerts", []).append("No work started 1 hour!")
+
         # alert if no work done
         if total == 0 and task_exceptions == 0 and task_runnings == 0:
             if "alerts" not in results_obj:
                 results_obj["alerts"] = []
             results_obj["alerts"].append("No work done!")
+
         # quarantine
         if device in self.quarantine_data[queue]:
             if "alerts" not in results_obj:
