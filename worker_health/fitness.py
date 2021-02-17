@@ -474,10 +474,9 @@ class Fitness:
         # note if no jobs in queue
         if queue in self.queue_counts:
             if self.queue_counts[queue] == 0:
-                # TODO: use setdefault
-                if "notes" not in results_obj:
-                    results_obj["notes"] = []
-                results_obj["notes"].append("No jobs in queue.")
+                # if "notes" not in results_obj:
+                #     results_obj["notes"] = []
+                results_obj.setdefault("notes", []).append("No jobs in queue.")
                 jobs_present = False
             else:
                 jobs_present = True
@@ -487,9 +486,9 @@ class Fitness:
         # alert if success ratio is low
         if success_ratio_calculated:
             if success_ratio < self.alert_percent:
-                if "alerts" not in results_obj:
-                    results_obj["alerts"] = []
-                results_obj["alerts"].append(
+                # if "alerts" not in results_obj:
+                #     results_obj["alerts"] = []
+                results_obj.setdefault("alerts", []).append(
                     "Low health (less than %s)!" % self.alert_percent
                 )
 
@@ -498,19 +497,23 @@ class Fitness:
         # TODO: take minutes as an arg
         comparison_dt = dt.subtract(minutes=60)
         if jobs_present and task_last_started_timestamp < comparison_dt:
-            results_obj.setdefault("alerts", []).append("No work started 1 hour!")
+            results_obj.setdefault("alerts", []).append("No work started in last hour!")
+
+        # alert if lots of exceptions
+        if task_exceptions >= 3:
+            results_obj.setdefault("alerts", []).append("High exceptions (3+)!")
 
         # alert if no work done
         if total == 0 and task_exceptions == 0 and task_runnings == 0:
-            if "alerts" not in results_obj:
-                results_obj["alerts"] = []
-            results_obj["alerts"].append("No work done!")
+            # if "alerts" not in results_obj:
+            #     results_obj["alerts"] = []
+            results_obj.setdefault("alerts", []).append("No work done!")
 
         # quarantine
         if device in self.quarantine_data[queue]:
-            if "alerts" not in results_obj:
-                results_obj["alerts"] = []
-            results_obj["alerts"].append("Quarantined.")
+            # if "alerts" not in results_obj:
+            #     results_obj["alerts"] = []
+            results_obj.setdefault("alerts", []).append("Quarantined.")
 
         return device, results_obj, None
 
