@@ -453,6 +453,19 @@ class Fitness:
         results_obj["rng"] = task_runnings
         results_obj["ls"] = task_last_started_timestamp
 
+        # note if no jobs in queue
+        if queue in self.queue_counts:
+            if self.queue_counts[queue] == 0:
+                # if "notes" not in results_obj:
+                #     results_obj["notes"] = []
+                results_obj.setdefault("notes", []).append("No jobs in queue.")
+                jobs_present = False
+            else:
+                jobs_present = True
+        else:
+            logger.warn("Strange, no queue count data for %s" % queue)
+
+        # ping alerts
         if self.args.ping:
             if self.args.ping_host:
                 cmd = [
@@ -466,22 +479,10 @@ class Fitness:
                 if res.returncode != 0:
                     if "alerts" not in results_obj:
                         results_obj["alerts"] = []
-                    results_obj["alerts"].append("not pingable")
+                    results_obj["alerts"].append("Not pingable!")
                 # TODO: write to notes that it is pingable?
             else:
                 logger.warn("sorry, not supported yet")
-
-        # note if no jobs in queue
-        if queue in self.queue_counts:
-            if self.queue_counts[queue] == 0:
-                # if "notes" not in results_obj:
-                #     results_obj["notes"] = []
-                results_obj.setdefault("notes", []).append("No jobs in queue.")
-                jobs_present = False
-            else:
-                jobs_present = True
-        else:
-            logger.warn("Strange, no queue count data for %s" % queue)
 
         # alert if success ratio is low
         if success_ratio_calculated:
