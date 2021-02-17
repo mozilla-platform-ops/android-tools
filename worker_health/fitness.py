@@ -116,6 +116,7 @@ class Fitness:
 
         start = timer()
         worker_count = 0
+        working_count = 0
         # TODO: for this calculation, should we use a count of hosts that are reporting (vs all)?
         sr_total = 0
         ## host mode
@@ -172,6 +173,8 @@ class Fitness:
                 for item in res_obj:
                     worker_count += 1
                     sr_total += item["sr"]
+                    if "working" in item.get("state"):
+                        working_count += 1
                     if self.args.only_show_alerting:
                         if "alerts" in item:
                             print(
@@ -190,10 +193,11 @@ class Fitness:
         if worker_count:
             # TODO: show alerting count
             print(
-                "%s workers queried in %s seconds, average SR %s%%"
+                "%s workers queried in %s seconds (%s working), average SR %s%%"
                 % (
                     worker_count,
                     round((timer() - start), 2),
+                    working_count,
                     round((sr_total / worker_count * 100), 2),
                 )
             )
@@ -327,6 +331,9 @@ class Fitness:
             raise Exception("input should be a dict")
         result_string = "{"
         for key, value in sr_dict.items():
+            if key == "state":
+                continue
+
             result_string += "%s: " % key
             # debugging
             # print()
@@ -499,6 +506,8 @@ class Fitness:
         comparison_dt = dt.subtract(minutes=60)
         if jobs_present and task_last_started_timestamp < comparison_dt:
             results_obj.setdefault("alerts", []).append("No work started in last hour!")
+        else:
+            results_obj.setdefault("state", []).append("working")
 
         # alert if lots of exceptions
         if task_exceptions >= 3:
