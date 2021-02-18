@@ -3,6 +3,7 @@
 import taskcluster
 import json
 import os
+import pprint
 import sys
 
 
@@ -36,8 +37,6 @@ while outcome.get("continuationToken"):
         )
     i += 1
     # tasks += len(outcome.get('tasks', []))
-
-import pprint
 
 quarantined_workers = []
 for item in outcome["workers"]:

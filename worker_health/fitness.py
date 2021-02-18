@@ -8,7 +8,6 @@ import subprocess
 import sys
 from multiprocessing.pool import ThreadPool
 from time import time as timer
-from urllib.request import urlopen
 
 import humanhash
 import pendulum
@@ -16,14 +15,16 @@ import requests
 import taskcluster
 from natsort import natsorted
 from requests.adapters import HTTPAdapter
+from urllib.request import urlopen
 
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
 
-# TODO: figure out how to properly import
-from worker_health import USER_AGENT_STRING, logger
 import quarantine
 import utils
+
+# TODO: figure out how to properly import
+from worker_health import USER_AGENT_STRING, logger
 
 # for each queue
 #   for each worker
@@ -115,6 +116,7 @@ class Fitness:
 
         start = timer()
         worker_count = 0
+        working_count = 0
         # TODO: for this calculation, should we use a count of hosts that are reporting (vs all)?
         sr_total = 0
         ## host mode
@@ -171,6 +173,8 @@ class Fitness:
                 for item in res_obj:
                     worker_count += 1
                     sr_total += item["sr"]
+                    if "working" in item.get("state"):
+                        working_count += 1
                     if self.args.only_show_alerting:
                         if "alerts" in item:
                             print(
@@ -189,10 +193,11 @@ class Fitness:
         if worker_count:
             # TODO: show alerting count
             print(
-                "%s workers queried in %s seconds, average SR %s%%"
+                "%s workers queried in %s seconds (%s working), average SR %s%%"
                 % (
                     worker_count,
                     round((timer() - start), 2),
+                    working_count,
                     round((sr_total / worker_count * 100), 2),
                 )
             )
@@ -326,6 +331,9 @@ class Fitness:
             raise Exception("input should be a dict")
         result_string = "{"
         for key, value in sr_dict.items():
+            if key == "state":
+                continue
+
             result_string += "%s: " % key
             # debugging
             # print()
@@ -452,6 +460,19 @@ class Fitness:
         results_obj["rng"] = task_runnings
         results_obj["ls"] = task_last_started_timestamp
 
+        # note if no jobs in queue
+        if queue in self.queue_counts:
+            if self.queue_counts[queue] == 0:
+                # if "notes" not in results_obj:
+                #     results_obj["notes"] = []
+                results_obj.setdefault("notes", []).append("No jobs in queue.")
+                jobs_present = False
+            else:
+                jobs_present = True
+        else:
+            logger.warn("Strange, no queue count data for %s" % queue)
+
+        # ping alerts
         if self.args.ping:
             if self.args.ping_host:
                 cmd = [
@@ -465,39 +486,44 @@ class Fitness:
                 if res.returncode != 0:
                     if "alerts" not in results_obj:
                         results_obj["alerts"] = []
-                    results_obj["alerts"].append("not pingable")
+                    results_obj["alerts"].append("Not pingable!")
                 # TODO: write to notes that it is pingable?
             else:
                 logger.warn("sorry, not supported yet")
 
-        # note if no jobs in queue
-        if queue in self.queue_counts:
-            if self.queue_counts[queue] == 0:
-                # TODO: use setdefault
-                if "notes" not in results_obj:
-                    results_obj["notes"] = []
-                results_obj["notes"].append("No jobs in queue.")
-        else:
-            logger.warn("Strange, no queue count data for %s" % queue)
         # alert if success ratio is low
         if success_ratio_calculated:
             if success_ratio < self.alert_percent:
-                if "alerts" not in results_obj:
-                    results_obj["alerts"] = []
-                results_obj["alerts"].append(
+                # if "alerts" not in results_obj:
+                #     results_obj["alerts"] = []
+                results_obj.setdefault("alerts", []).append(
                     "Low health (less than %s)!" % self.alert_percent
                 )
-        # TODO: alert if worker hasn't worked in X days (3, 7?)
+
+        # alert if worker hasn't worked in 1 hour
+        dt = pendulum.now()
+        # TODO: take minutes as an arg
+        comparison_dt = dt.subtract(minutes=60)
+        if jobs_present and task_last_started_timestamp < comparison_dt:
+            results_obj.setdefault("alerts", []).append("No work started in last hour!")
+        else:
+            results_obj.setdefault("state", []).append("working")
+
+        # alert if lots of exceptions
+        if task_exceptions >= 3:
+            results_obj.setdefault("alerts", []).append("High exceptions (3+)!")
+
         # alert if no work done
         if total == 0 and task_exceptions == 0 and task_runnings == 0:
-            if "alerts" not in results_obj:
-                results_obj["alerts"] = []
-            results_obj["alerts"].append("No work done!")
+            # if "alerts" not in results_obj:
+            #     results_obj["alerts"] = []
+            results_obj.setdefault("alerts", []).append("No work done!")
+
         # quarantine
         if device in self.quarantine_data[queue]:
-            if "alerts" not in results_obj:
-                results_obj["alerts"] = []
-            results_obj["alerts"].append("Quarantined.")
+            # if "alerts" not in results_obj:
+            #     results_obj["alerts"] = []
+            results_obj.setdefault("alerts", []).append("Quarantined.")
 
         return device, results_obj, None
 

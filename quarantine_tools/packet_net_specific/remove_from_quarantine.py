@@ -3,7 +3,6 @@
 import taskcluster
 import json
 import os
-import sys
 
 #
 # docs: https://pypi.org/project/taskcluster/
@@ -24,30 +23,33 @@ queue = taskcluster.Queue(
     {"rootUrl": "https://firefox-ci-tc.services.mozilla.com", "credentials": creds}
 )
 
-hosts_to_quarantine = []
+hosts_to_unquarantine = []
 
-# 4/20
-# round  1
-# packet_hosts_to_quarantine = [15, 1, 53, 29, 14]
+# 4/20 incident round 1
+# host_numbers_to_unquarantine = [1, 14, 15, 2, 22, 28, 29, 33]
 # round 2
-# packet_hosts_to_quarantine = [7, 2, 37, 46, 28, 45, 22, 64]
-# round 3
-# packet_hosts_to_quarantine = [68]
+# host_numbers_to_unquarantine = [13, 23, 44, 6]
+# round 3: can't view logs... unknown
+# host_numbers_to_unquarantine = [64, 53]
 # round 4
-# packet_hosts_to_quarantine = [49, 23, 13, 6]
-# round 5
-packet_hosts_to_quarantine = [68]
+# 49, 68 insufficient bogomips
+# 7 fetch issues
+# 45, 46 can't view logs (expired)
+# 37 unknown
+# host_numbers_to_unquarantine = [49, 68, 7, 45, 37, 46]
+
+packet_hosts_to_unquarantine = [68]
 
 
-for h in packet_hosts_to_quarantine:
-    hosts_to_quarantine.append("packet-%s" % h)
+for h in packet_hosts_to_unquarantine:
+    hosts_to_unquarantine.append("packet-%s" % h)
 
-for a_host in hosts_to_quarantine:
-    print("adding %s to quarantine... " % a_host)
+for a_host in hosts_to_unquarantine:
+    print("removing %s from quarantine... " % a_host)
     queue.quarantineWorker(
         "terraform-packet",
         "gecko-t-linux",
         "packet-sjc1",
         a_host,
-        {"quarantineUntil": taskcluster.fromNow("10 year")},
+        {"quarantineUntil": taskcluster.fromNow("-1 year")},
     )
