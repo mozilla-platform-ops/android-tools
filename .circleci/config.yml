@@ -1,0 +1,39 @@
+version: 2.1
+
+jobs:
+  pre_commit:
+    docker:
+      - image: cimg/python:3.9.1
+    steps:
+      - checkout
+      - run: sudo apt-get update
+      - run: sudo apt-get install shellcheck
+      - run: pip3 install pre-commit
+      - run: pre-commit run --all-files --verbose
+  test_worker_health:
+    docker:
+      - image: cimg/python:3.9.1
+    steps:
+      - checkout
+      - run: pip install pipenv
+      - run: cd worker_health
+      - run: pipenv install --dev
+      - run: pipenv run pytest -v
+      - run: pipenv run pyflakes *.py
+      - run: ./test_help.sh
+  test_last_started:
+    docker:
+      - image: cimg/python:3.9.1
+    steps:
+      - checkout
+      - run: pip install pipenv
+      - run: cd devicepool_last_started_alert
+      - run: pipenv install --dev
+      - run: pipenv run pyflakes *.py
+
+workflows:
+  ci_test:
+    jobs:
+#      - pre_commit
+      - test_worker_health
+      - test_last_started

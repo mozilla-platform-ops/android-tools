@@ -39,7 +39,10 @@ DEFAULT_PROVISIONER = "proj-autophone"
 
 # https://www.peterbe.com/plog/best-practice-with-retries-with-requests
 def requests_retry_session(
-    retries=3, backoff_factor=0.3, status_forcelist=(500, 502, 504), session=None,
+    retries=3,
+    backoff_factor=0.3,
+    status_forcelist=(500, 502, 504),
+    session=None,
 ):
     session = session or requests.Session()
     retry = Retry(
@@ -173,7 +176,7 @@ class Fitness:
                 for item in res_obj:
                     worker_count += 1
                     sr_total += item["sr"]
-                    if "working" in item.get("state"):
+                    if item.get("state") and "working" in item.get("state"):
                         working_count += 1
                     if self.args.only_show_alerting:
                         if "alerts" in item:
@@ -632,7 +635,10 @@ if __name__ == "__main__":
         help="hostnames are human-hashed",
     )
     parser.add_argument(
-        "--ping", default=False, action="store_true", help="ping hosts also",
+        "--ping",
+        default=False,
+        action="store_true",
+        help="ping hosts also",
     )
     # TODO: can we get this from TC?
     parser.add_argument(
