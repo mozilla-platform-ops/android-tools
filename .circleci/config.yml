@@ -16,20 +16,18 @@ jobs:
     steps:
       - checkout
       - run: pip install pipenv
-      - run: cd worker_health
-      - run: pipenv install --dev
-      - run: pipenv run pytest -v
-      - run: pipenv run pyflakes *.py
-      - run: ./test_help.sh
+      - run: cd worker_health && pipenv install --dev
+      - run: cd worker_health && pipenv run pytest -v
+      - run: cd worker_health && pipenv run pyflakes *.py
+      - run: cd worker_health && ./test_help.sh
   test_last_started:
     docker:
       - image: cimg/python:3.9.1
     steps:
       - checkout
       - run: pip install pipenv
-      - run: cd devicepool_last_started_alert
-      - run: pipenv install --dev
-      - run: pipenv run pyflakes *.py
+      - run: cd devicepool_last_started_alert && pipenv install --dev
+      - run: cd devicepool_last_started_alert && pipenv run pyflakes *.py
 
 workflows:
   ci_test:
