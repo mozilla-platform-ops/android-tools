@@ -7,8 +7,6 @@ import textwrap
 
 import taskcluster
 
-# TODO: add --list option that just outputs all found
-
 
 def fg(text, color):
     return "\33[38;5;" + str(color) + "m" + text + "\33[0m"
