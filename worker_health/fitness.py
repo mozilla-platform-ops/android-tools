@@ -511,7 +511,7 @@ class Fitness:
                     # "Low health (less than %s)!" % self.alert_percent
                 )
 
-        # calculate consecutive failures
+        # alert if most recent tests have consecutively failed
         total_consecutive_failures_from_end = 0
         task_history_success_array.reverse()
         for entry in task_history_success_array:
