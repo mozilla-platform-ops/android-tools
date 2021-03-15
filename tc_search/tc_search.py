@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import textwrap
 
 import taskcluster
 
@@ -18,7 +19,14 @@ def bg(text, color):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        epilog=textwrap.dedent(
+            """\
+        If the search term is omitted, all provisioners and
+        worker types will be listed.
+        """
+        )
+    )
     parser.add_argument(
         "search_term", type=str, nargs="?", help="string to search for", default=None
     )
