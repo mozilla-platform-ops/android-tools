@@ -375,6 +375,7 @@ class Fitness:
         task_runnings = 0
         task_exceptions = 0
         task_last_started_timestamp = None
+        task_history_success_array = []  # 1 for success, 0 for failure or exception
 
         task_ids = []
         for task in results["recentTasks"]:
@@ -419,8 +420,10 @@ class Fitness:
                     task_runnings += 1
                 elif task_state == "exception":
                     task_exceptions += 1
+                    task_history_success_array.append(0)
                 elif task_state == "failed":
                     task_failures += 1
+                    task_history_success_array.append(0)
                 elif task_state == "completed":
                     retries_left = result["status"]["retriesLeft"]
                     if retries_left != 5:
@@ -430,16 +433,20 @@ class Fitness:
                                 run_state = run["state"]
                                 if run_state == "exception":
                                     task_exceptions += 1
+                                    task_history_success_array.append(0)
                                 elif run_state == "running":
                                     task_runnings += 1
                                 elif run_state == "completed":
                                     task_successes += 1
+                                    task_history_success_array.append(1)
                                 elif run_state == "failed":
                                     task_failures += 1
+                                    task_history_success_array.append(0)
                                 else:
                                     raise Exception("Shouldn't be here!")
                     else:
                         task_successes += 1
+                        task_history_success_array.append(1)
                 if self.verbosity:
                     print("%s.%s: %s: %s" % (queue, device, task_id, task_state))
             else:
@@ -500,21 +507,37 @@ class Fitness:
                 # if "alerts" not in results_obj:
                 #     results_obj["alerts"] = []
                 results_obj.setdefault("alerts", []).append(
-                    "Low health (less than %s)!" % self.alert_percent
+                    "Low health!"
+                    # "Low health (less than %s)!" % self.alert_percent
                 )
+
+        # calculate consecutive failures
+        total_consecutive_failures_from_end = 0
+        task_history_success_array.reverse()
+        for entry in task_history_success_array:
+            if entry == 0:
+                total_consecutive_failures_from_end += 1
+            else:
+                break
+        # print("tcffe: %s" % total_consecutive_failures_from_end)
+        # results_obj["tcffe"] = total_consecutive_failures_from_end
+        if total_consecutive_failures_from_end >= 2:
+            results_obj.setdefault("alerts", []).append(
+                "Consecutive failures (%s)!" % total_consecutive_failures_from_end
+            )
 
         # alert if worker hasn't worked in 1 hour
         dt = pendulum.now()
         # TODO: take minutes as an arg
         comparison_dt = dt.subtract(minutes=60)
         if jobs_present and task_last_started_timestamp < comparison_dt:
-            results_obj.setdefault("alerts", []).append("No work started in last hour!")
+            results_obj.setdefault("alerts", []).append("No work in last hour!")
         else:
             results_obj.setdefault("state", []).append("working")
 
         # alert if lots of exceptions
         if task_exceptions >= 3:
-            results_obj.setdefault("alerts", []).append("High exceptions (3+)!")
+            results_obj.setdefault("alerts", []).append("High exceptions!")
 
         # alert if no work done
         if total == 0 and task_exceptions == 0 and task_runnings == 0:
