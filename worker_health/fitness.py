@@ -519,8 +519,6 @@ class Fitness:
                 total_consecutive_failures_from_end += 1
             else:
                 break
-        # print("tcffe: %s" % total_consecutive_failures_from_end)
-        # results_obj["tcffe"] = total_consecutive_failures_from_end
         if total_consecutive_failures_from_end >= 2:
             results_obj.setdefault("alerts", []).append(
                 "Consecutive failures (%s)!" % total_consecutive_failures_from_end
