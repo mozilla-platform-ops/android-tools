@@ -4,9 +4,6 @@ import argparse
 import json
 import os
 
-# import pprint
-# import sys
-
 import taskcluster
 
 # TODO: add --list option that just outputs all found
