@@ -3,10 +3,21 @@
 import argparse
 import json
 import os
-import pprint
-import sys
+
+# import pprint
+# import sys
 
 import taskcluster
+
+# TODO: add --list option that just outputs all found
+
+
+def fg(text, color):
+    return "\33[38;5;" + str(color) + "m" + text + "\33[0m"
+
+
+def bg(text, color):
+    return "\33[48;5;" + str(color) + "m" + text + "\33[0m"
 
 
 if __name__ == "__main__":
@@ -21,10 +32,6 @@ if __name__ == "__main__":
     # parser.add_argument("-d", "--daemon-mode", action="store_true")
     parser.add_argument("search_term", type=str, help="string to search for")
     args = parser.parse_args()
-
-    # lambdas for colored text
-    fg = lambda text, color: "\33[38;5;" + str(color) + "m" + text + "\33[0m"
-    bg = lambda text, color: "\33[48;5;" + str(color) + "m" + text + "\33[0m"
 
     search_term = args.search_term
 
