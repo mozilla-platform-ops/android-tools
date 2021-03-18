@@ -383,9 +383,8 @@ class Fitness:
             task_ids.append(task_id)
 
         try:
-            results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
-                self.get_task_status, task_ids
-            )
+            # we want this ordered
+            results = ThreadPool(TASK_THREAD_COUNT).imap(self.get_task_status, task_ids)
         except Exception as e:
             print(e)
         for task_id, result, error in results:
@@ -512,13 +511,9 @@ class Fitness:
                 )
 
         # alert if most recent tests have consecutively failed
-        total_consecutive_failures_from_end = 0
-        task_history_success_array.reverse()
-        for entry in task_history_success_array:
-            if entry == 0:
-                total_consecutive_failures_from_end += 1
-            else:
-                break
+        total_consecutive_failures_from_end = utils.consecutive_non_ones_from_end(
+            task_history_success_array
+        )
         if total_consecutive_failures_from_end >= 2:
             results_obj.setdefault("alerts", []).append(
                 "Consecutive failures (%s)!" % total_consecutive_failures_from_end
