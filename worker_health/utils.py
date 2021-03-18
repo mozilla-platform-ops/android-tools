@@ -85,3 +85,14 @@ def get_jsonc(an_url, verbosity=0):
     if verbosity > 2:
         pprint.pprint(output_dict)
     return output_dict
+
+
+def consecutive_non_ones_from_end(an_array):
+    an_array.reverse()
+    counter = 0
+    for item in an_array:
+        if item != 1:
+            counter += 1
+        else:
+            break
+    return counter
