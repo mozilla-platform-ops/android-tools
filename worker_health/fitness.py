@@ -361,8 +361,11 @@ class Fitness:
                 # result_string += str(value) # .diff_for_humans(pendulum.now())
                 # result_string += value.format('YYYY-MM-DD HH:mm:ss zz')
                 result_string += (
-                    pendulum.now(tz="UTC").diff_for_humans(value, True).rjust(10)
-                )  # .replace('after', 'ago')
+                    # pass True as a 2nd parameter to remove the modifiers ago, from now, etc.
+                    pendulum.now(tz="UTC")
+                    .diff_for_humans(value, True)
+                    .rjust(10)
+                )
             else:
                 raise Exception("unknown type (%s)" % type(value))
             result_string += ", "
@@ -637,7 +640,7 @@ if __name__ == "__main__":
         "-t",
         "--alert-time",
         default=ALERT_TIME,
-        type=float,
+        type=int,
         help="alert if a worker hasn't worked in this many minutes, defaults to %s."
         % ALERT_TIME,
     )
