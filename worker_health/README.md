@@ -2,6 +2,20 @@
 
 Tools to ensure Taskcluster workers are not idle and performing well (success rate).
 
+## setup
+
+For all tools, run in the pipenv.
+
+```
+# one-time setup
+# install pipenv
+pipenv install
+
+# for every use
+pipenv shell
+# run command
+```
+
 ## fitness.py
 
 Provide a report on a provisioner and worker-type.
