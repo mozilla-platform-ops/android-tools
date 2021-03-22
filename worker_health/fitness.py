@@ -524,15 +524,11 @@ class Fitness:
 
         # alert if worker hasn't worked in self.alert_time minutes
         dt = pendulum.now(tz="UTC")
-        # print("now %s, comp %s" % (dt, task_last_started_timestamp))
-        # print(dt.diff_for_humans(task_last_started_timestamp))
-        # TODO: take minutes as an arg
         comparison_dt = dt.subtract(minutes=self.alert_time)
         if jobs_present and task_last_started_timestamp < comparison_dt:
             results_obj.setdefault("alerts", []).append(
                 "No work in %sm!" % self.alert_time
             )
-            # dt.diff_for_humans(task_last_started_timestamp))
         else:
             results_obj.setdefault("state", []).append("working")
 
