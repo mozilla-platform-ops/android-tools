@@ -28,3 +28,11 @@ If a queue doesn't have work, we can't verify they're functioning (via the curre
 ```
 ./missing_workers.sh -h
 ```
+
+## slack_alert
+
+Sends scheduled slack message about problem hosts.
+
+## influx_logger
+
+Logs worker health metrics to influx.
