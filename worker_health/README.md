@@ -18,6 +18,8 @@ If a queue doesn't have work, we can't verify they're functioning (via the curre
 
 #### fitness.py
 
+![fitness.py](images/fitness_py_example.png)
+
 ```
 
 ./fitness.py -p terraform-packet
