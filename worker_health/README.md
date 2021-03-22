@@ -26,13 +26,21 @@ Helps identify Bitbar workers that are configured in a TC queue that has pending
 If a queue doesn't have work, we can't verify they're functioning (via the currently used method).
 
 ```
-./missing_workers.sh -h
+./missing_workers.py -h
 ```
 
 ## slack_alert
 
 Sends scheduled slack message about problem hosts.
 
+```
+./slack_alert.py -h
+```
+
 ## influx_logger
 
 Logs worker health metrics to influx.
+
+```
+./influx_logger.py -h
+```
