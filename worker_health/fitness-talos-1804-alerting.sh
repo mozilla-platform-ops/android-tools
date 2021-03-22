@@ -3,12 +3,7 @@
 set -e
 # set -x
 
-# ./fitness.py -p releng-hardware gecko-t-linux-talos-dw $@
-
-./fitness.py \
-  --ping \
-  --ping-domain test.releng.mdc1.mozilla.com \
-  --ping-host rejh1.srv.releng.mdc1.mozilla.com \
-  -p releng-hardware \
+./fitness-talos-1804-all.sh \
   -o \
-  gecko-t-linux-talos-1804 "$@"
+  -t 75 \
+ "$@"
