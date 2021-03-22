@@ -2,7 +2,7 @@
 
 Tools to ensure Taskcluster workers are not idle and performing well (success rate).
 
-## setup
+### setup
 
 For all tools, run in the pipenv.
 
