@@ -34,6 +34,7 @@ from worker_health import USER_AGENT_STRING, logger
 WORKERTYPE_THREAD_COUNT = 4
 TASK_THREAD_COUNT = 6
 ALERT_PERCENT = 0.85
+ALERT_TIME = 60
 DEFAULT_PROVISIONER = "proj-autophone"
 
 
@@ -64,12 +65,14 @@ class Fitness:
         log_level=0,
         provisioner=DEFAULT_PROVISIONER,
         alert_percent=ALERT_PERCENT,
+        alert_time=ALERT_TIME,
         testing_mode=False,
     ):
         self.args = None
         self.verbosity = log_level
         self.humanize_hashes = False
         self.alert_percent = alert_percent
+        self.alert_time = alert_time
         self.provisioner = provisioner
         self.queue_counts = {}
         self.worker_id_maxlen = 0
@@ -519,12 +522,17 @@ class Fitness:
                 "Consecutive failures (%s)!" % total_consecutive_failures_from_end
             )
 
-        # alert if worker hasn't worked in 1 hour
-        dt = pendulum.now()
+        # alert if worker hasn't worked in self.alert_time minutes
+        dt = pendulum.now(tz="UTC")
+        # print("now %s, comp %s" % (dt, task_last_started_timestamp))
+        # print(dt.diff_for_humans(task_last_started_timestamp))
         # TODO: take minutes as an arg
-        comparison_dt = dt.subtract(minutes=60)
+        comparison_dt = dt.subtract(minutes=self.alert_time)
         if jobs_present and task_last_started_timestamp < comparison_dt:
-            results_obj.setdefault("alerts", []).append("No work in last hour!")
+            results_obj.setdefault("alerts", []).append(
+                "No work in %sm!" % self.alert_time
+            )
+            # dt.diff_for_humans(task_last_started_timestamp))
         else:
             results_obj.setdefault("state", []).append("working")
 
@@ -630,6 +638,14 @@ if __name__ == "__main__":
         % ALERT_PERCENT,
     )
     parser.add_argument(
+        "-t",
+        "--alert-time",
+        default=ALERT_TIME,
+        type=float,
+        help="alert if a worker hasn't worked in this many minutes, defaults to %s."
+        % ALERT_TIME,
+    )
+    parser.add_argument(
         "-o",
         "--only-show-alerting",
         action="store_true",
@@ -684,6 +700,8 @@ if __name__ == "__main__":
         print("ERROR: --alert-percent must be between 0 and 1.")
         sys.exit(1)
 
+    # TODO: sanity check alert_time?
+
     arg_worker_type = None
     arg_worker_id = None
     if args.worker_type_id:
@@ -696,6 +714,7 @@ if __name__ == "__main__":
         log_level=args.log_level,
         provisioner=args.provisioner,
         alert_percent=args.alert_percent,
+        alert_time=args.alert_time,
     )
     # TODO: just pass args?
     f.args = args
