@@ -40,6 +40,10 @@ URLS = [
 ]
 
 
+class LastStartedException(Exception):
+    pass
+
+
 class LastStarted:
     def __init__(self):
         self.alerting_enabled = False
@@ -91,7 +95,12 @@ class LastStarted:
         for url in URLS:
             json_result = self.get_url(url)
             # print(json_result)
-            count += json_result["pendingTasks"]
+            try:
+                count += json_result["pendingTasks"]
+            except TypeError:
+                raise LastStartedException(
+                    "data fetching error detected. received: '%s'" % json_result
+                )
         return count
 
     # code for querying incidents
@@ -112,7 +121,7 @@ class LastStarted:
     #     pass
 
     def set_currently_alerting(self, currently_alerting=True):
-        if currently_alerting == False:
+        if not currently_alerting:
             self.set_dedup_key("")
         self.state_dict["alert_state"]["currently_alerting"] = currently_alerting
         self.write_toml(self.state_dict)
@@ -345,4 +354,7 @@ if __name__ == "__main__":
             ls.perform_check(args)
             time.sleep(DAEMON_MODE_CHECK_FREQUENCY_SECONDS)
     else:
-        ls.perform_check(args)
+        try:
+            ls.perform_check(args)
+        except Exception as e:
+            print("exception received: %s" % e)
