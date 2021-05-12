@@ -11,7 +11,6 @@ import socket
 import subprocess
 import time
 from urllib.request import urlopen
-from urllib.error import HTTPError
 
 import toml
 from pdpyras import EventsAPISession
@@ -38,15 +37,6 @@ URLS = [
     "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-perf-g5",
     "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/proj-autophone/gecko-t-bitbar-gw-unit-g5",
 ]
-
-
-class LastStartedException(Exception):
-    pass
-
-
-# TODO: why does this inherit?
-class LastStartedFetchException(LastStartedException):
-    pass
 
 
 class LastStarted:
@@ -87,25 +77,15 @@ class LastStarted:
         sess.log.setLevel(logging.DEBUG)
 
     def get_url(self, url):
-        try:
-            data = urlopen(url).read()
-            output = json.loads(data)
-        except HTTPError:
-            raise LastStartedFetchException(
-                "HTTPError when fetching '%s'. Continuing..." % url
-            )
+        data = urlopen(url).read()
+        output = json.loads(data)
         return output
 
     def jobs_in_queues(self):
         count = 0
         for url in URLS:
             json_result = self.get_url(url)
-            try:
-                count += json_result["pendingTasks"]
-            except TypeError:
-                raise LastStartedException(
-                    "data formatting error detected. received: '%s'" % json_result
-                )
+            count += json_result["pendingTasks"]
         return count
 
     # code for querying incidents
