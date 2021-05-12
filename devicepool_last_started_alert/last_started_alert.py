@@ -342,4 +342,4 @@ if __name__ == "__main__":
         try:
             ls.perform_check(args)
         except Exception as e:
-            print("exception received: %s" % e)
+            print("Exception received (%s), continuing..." % e)
