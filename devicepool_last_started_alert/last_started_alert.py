@@ -11,7 +11,6 @@ import socket
 import subprocess
 import time
 from urllib.request import urlopen
-from urllib.error import HTTPError
 
 import toml
 from pdpyras import EventsAPISession
@@ -78,19 +77,14 @@ class LastStarted:
         sess.log.setLevel(logging.DEBUG)
 
     def get_url(self, url):
-        try:
-            data = urlopen(url).read()
-            output = json.loads(data)
-        except HTTPError:
-            print("HTTPError when fetching '%s'. Continuing..." % url)
-            output = ""
+        data = urlopen(url).read()
+        output = json.loads(data)
         return output
 
     def jobs_in_queues(self):
         count = 0
         for url in URLS:
             json_result = self.get_url(url)
-            # print(json_result)
             count += json_result["pendingTasks"]
         return count
 
@@ -112,7 +106,7 @@ class LastStarted:
     #     pass
 
     def set_currently_alerting(self, currently_alerting=True):
-        if currently_alerting == False:
+        if not currently_alerting:
             self.set_dedup_key("")
         self.state_dict["alert_state"]["currently_alerting"] = currently_alerting
         self.write_toml(self.state_dict)
@@ -342,7 +336,13 @@ if __name__ == "__main__":
             % DAEMON_MODE_CHECK_FREQUENCY_SECONDS
         )
         while True:
-            ls.perform_check(args)
+            try:
+                ls.perform_check(args)
+            except Exception as e:
+                print("Exception received (%s:  %s), continuing..." % (type(e), e))
             time.sleep(DAEMON_MODE_CHECK_FREQUENCY_SECONDS)
     else:
-        ls.perform_check(args)
+        try:
+            ls.perform_check(args)
+        except Exception as e:
+            print("Exception received (%s:  %s), exiting..." % (type(e), e))
