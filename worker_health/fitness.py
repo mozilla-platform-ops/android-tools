@@ -236,6 +236,61 @@ class Fitness:
             self.verbosity,
         )
 
+    # TODO: rename linux_moonshot_worker_report?
+    def moonshot_worker_report(self, worker_type, args=None, exclude_arr=[]):
+
+        url = (
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=200"
+            % (self.provisioner, worker_type)
+        )
+        try:
+            workers_result = utils.get_jsonc(url, self.verbosity)
+        except Exception as e:
+            workers_result = []
+            print(e)
+
+        # TODO: figure out how to make these args and not mess with generation
+        start = 1
+        end = 280
+        #
+        worker_prefix = "t-linux64-ms-"
+
+        expected_workers = []
+        linux_win_counter = start
+        for i in range(start, end + 1):
+            if linux_win_counter == 46:
+                linux_win_counter = 1
+            if linux_win_counter <= 15:
+                worker_name = "%s%03d" % (worker_prefix, i)
+                expected_workers.append(worker_name)
+
+            linux_win_counter += 1
+
+        seen_workers = []
+        if "workers" in workers_result:
+            for item in workers_result["workers"]:
+                seen_workers.append(item["workerId"])
+
+        e_w = set(expected_workers)
+        s_w = set(seen_workers)
+        missing = e_w - s_w
+        e_count = len(expected_workers)
+        m_count = len(missing)
+        s_count = len(seen_workers)
+        print("excluded workers (%s): %s" % (len(exclude_arr), sorted(exclude_arr)))
+        if args and args.log_level:
+            print()
+            print("expected workers (%s): %s" % (e_count, sorted(expected_workers)))
+            print()
+            print("seen workers: (%s): %s" % (s_count, sorted(seen_workers)))
+            print()
+        print("missing workers (%s): %s" % (m_count, sorted(missing)))
+        print(
+            "expected workers: %s (subtracting excluded)"
+            % (len(expected_workers) - len(exclude_arr))
+        )
+
+    # used for packet.net
     def simple_worker_report(
         self, worker_type, worker_prefix="packet-", worker_count=60
     ):
