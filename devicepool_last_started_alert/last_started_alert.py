@@ -44,6 +44,11 @@ class LastStartedException(Exception):
     pass
 
 
+# TODO: why does this inherit?
+class LastStartedFetchException(LastStartedException):
+    pass
+
+
 class LastStarted:
     def __init__(self):
         self.alerting_enabled = False
@@ -86,20 +91,20 @@ class LastStarted:
             data = urlopen(url).read()
             output = json.loads(data)
         except HTTPError:
-            print("HTTPError when fetching '%s'. Continuing..." % url)
-            output = ""
+            raise LastStartedFetchException(
+                "HTTPError when fetching '%s'. Continuing..." % url
+            )
         return output
 
     def jobs_in_queues(self):
         count = 0
         for url in URLS:
             json_result = self.get_url(url)
-            # print(json_result)
             try:
                 count += json_result["pendingTasks"]
             except TypeError:
                 raise LastStartedException(
-                    "data fetching error detected. received: '%s'" % json_result
+                    "data formatting error detected. received: '%s'" % json_result
                 )
         return count
 
