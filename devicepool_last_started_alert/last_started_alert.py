@@ -336,7 +336,10 @@ if __name__ == "__main__":
             % DAEMON_MODE_CHECK_FREQUENCY_SECONDS
         )
         while True:
-            ls.perform_check(args)
+            try:
+                ls.perform_check(args)
+            except Exception as e:
+                print("Exception received (%s), continuing..." % e)
             time.sleep(DAEMON_MODE_CHECK_FREQUENCY_SECONDS)
     else:
         try:
