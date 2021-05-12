@@ -237,24 +237,22 @@ class Fitness:
         )
 
     # TODO: rename linux_moonshot_worker_report?
-    # TODO: start can'
     def moonshot_worker_report(self, worker_type, args=None, exclude_arr=[]):
 
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=200"
             % (self.provisioner, worker_type)
         )
-        # print(url)
         try:
             workers_result = utils.get_jsonc(url, self.verbosity)
         except Exception as e:
             workers_result = []
             print(e)
-        # print(workers_result)
 
         # TODO: figure out how to make these args and not mess with generation
         start = 1
         end = 280
+        #
         worker_prefix = "t-linux64-ms-"
 
         expected_workers = []
@@ -272,19 +270,13 @@ class Fitness:
         if "workers" in workers_result:
             for item in workers_result["workers"]:
                 seen_workers.append(item["workerId"])
-        # pprint.pprint(workers_result)
-
-        # for item in natsorted(seen_workers):
-        #     print(item)
 
         e_w = set(expected_workers)
         s_w = set(seen_workers)
-        # missing = natsorted(s_w.symmetric_difference(e_w))
         missing = e_w - s_w
         e_count = len(expected_workers)
         m_count = len(missing)
         s_count = len(seen_workers)
-        # TODO: only show expected if verbose
         print("excluded workers (%s): %s" % (len(exclude_arr), sorted(exclude_arr)))
         if args and args.log_level:
             print()
