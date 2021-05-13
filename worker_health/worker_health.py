@@ -2,7 +2,6 @@ import csv
 import getpass
 import logging
 import os
-import pprint
 import re
 import shutil
 import subprocess
@@ -438,36 +437,72 @@ class WorkerHealth:
         pass
 
     # uses set operations vs for loop (can handle workers being in wrong queue)
-    def calculate_missing_workers_from_tc_2(
-        self, remove_workers_with_not_enough_jobs=False
-    ):
-        missing_workers = []
+    def calculate_missing_workers_from_tc_2(self, verbose=False):
+        # TODO: add these args back... right now doesn't work with limit=75 and remove_workers_with_not_enough_jobs=False
+        # warn on passing those options in or fix...
+        remove_workers_with_not_enough_jobs = False
+        limit = None
+
+        missing_workers = set()
         expected_workers = self.get_devicepool_config_workers()
         for worker in expected_workers:
             if worker in self.tc_current_worker_last_started:
                 pass
             else:
-                missing_workers.append(worker)
+                if verbose:
+                    print("boo  99 %s" % worker)
+                missing_workers.add(worker)
 
-        # TODO: if the queue doesn't even appear under provisioner list, it's workers aren't missing
         for queue in self.devicepool_queues_and_workers:
+            if verbose:
+                print(queue)
+            # if the queue doesn't even appear under provisioner list, it's workers
+            # aren't missing (there hasn't been work in a long time).
+            # it's likely a test queue.
             if queue in self.tc_current_worker_types:
                 pass
             else:
+                if verbose:
+                    print("removing workers from queue %s, as its not listed" % queue)
                 missing_workers = set(missing_workers) - set(
                     self.devicepool_queues_and_workers[queue]
                 )
+                continue
 
-        # remove devices in queues with fewer jobs than workers
-        if remove_workers_with_not_enough_jobs:
-            for queue in self.devicepool_queues_and_workers:
+            # remove devices in queues with fewer jobs than workers
+            if remove_workers_with_not_enough_jobs:
                 if self.tc_queue_counts[queue] < len(
                     self.devicepool_queues_and_workers[queue]
                 ):
-                    # print("removing %s" % self.devicepool_queues_and_workers[queue])
+                    if verbose:
+                        print(
+                            "removing %s 4"
+                            % set(self.devicepool_queues_and_workers[queue])
+                        )
                     missing_workers = set(missing_workers) - set(
                         self.devicepool_queues_and_workers[queue]
                     )
+
+            for worker in self.devicepool_queues_and_workers[queue]:
+                if verbose:
+                    print(worker)
+                # # if no record of work, it's definitely missing
+                if worker not in self.tc_current_worker_last_started:
+                    if verbose:
+                        print("boo adding %s 2" % worker)
+                    missing_workers.add(worker)
+                    continue
+                # tardy workers: add workers that haven't worked recently enough
+                if limit:
+                    now_dt = pendulum.now(tz="UTC")
+                    last_started_dt = pendulum.parse(
+                        self.tc_current_worker_last_started[worker]
+                    )
+                    difference = now_dt.diff(last_started_dt).in_minutes()
+                    if difference >= limit:
+                        if verbose:
+                            print("boo adding %s 3" % worker)
+                        missing_workers.add(worker)
 
         # dedupe and return list
         return list(set(missing_workers))
@@ -872,6 +907,10 @@ if __name__ == "__main__":
 
     # print(wh.get_devicepool_config_workers())
     # print(wh.devicepool_queues_and_workers)
+
+    import pprint
+
+    pprint.pprint(wh.tc_current_worker_last_started)
 
     print(wh.calculate_missing_workers_from_tc_2())
 
