@@ -407,12 +407,8 @@ class WorkerHealth:
                     )
                     show_details = False
 
-    # uses set operations vs for loop (can handle workers being in wrong queue)
-    def calculate_missing_workers_from_tc_2(self, verbose=False):
-        # TODO: add these args back... right now doesn't work with limit=75 and remove_workers_with_not_enough_jobs=False
-        # warn on passing those options in or fix...
-        remove_workers_with_not_enough_jobs = False
-        limit = None
+    # new simpler function that doesn't worry about tardy
+    def get_tc_missing_workers(self, verbose=False):
 
         missing_workers = set()
         expected_workers = self.get_devicepool_config_workers()
@@ -440,20 +436,6 @@ class WorkerHealth:
                 )
                 continue
 
-            # remove devices in queues with fewer jobs than workers
-            if remove_workers_with_not_enough_jobs:
-                if self.tc_queue_counts[queue] < len(
-                    self.devicepool_queues_and_workers[queue]
-                ):
-                    if verbose:
-                        print(
-                            "removing %s 4"
-                            % set(self.devicepool_queues_and_workers[queue])
-                        )
-                    missing_workers = set(missing_workers) - set(
-                        self.devicepool_queues_and_workers[queue]
-                    )
-
             for worker in self.devicepool_queues_and_workers[queue]:
                 if verbose:
                     print(worker)
@@ -463,22 +445,12 @@ class WorkerHealth:
                         print("boo adding %s 2" % worker)
                     missing_workers.add(worker)
                     continue
-                # tardy workers: add workers that haven't worked recently enough
-                if limit:
-                    now_dt = pendulum.now(tz="UTC")
-                    last_started_dt = pendulum.parse(
-                        self.tc_current_worker_last_started[worker]
-                    )
-                    difference = now_dt.diff(last_started_dt).in_minutes()
-                    if difference >= limit:
-                        if verbose:
-                            print("boo adding %s 3" % worker)
-                        missing_workers.add(worker)
 
         # dedupe and return list
         return list(set(missing_workers))
 
     # TODO: unit test this
+    # rename/rework to detect_tardy()
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
@@ -734,7 +706,7 @@ class WorkerHealth:
             # calculate_missing_workers_from_tc_2 doesn't care about time limits
             # - catches blind spot where devices are not in Bitbar system but are in our config
             #   - the non _2 versions misses these devices unless there are jobs in the queue
-            mw2 = self.calculate_missing_workers_from_tc_2()
+            mw2 = self.get_tc_missing_workers()
             print(
                 output_format
                 % (
@@ -851,7 +823,7 @@ if __name__ == "__main__":
 
     pprint.pprint(wh.tc_current_worker_last_started)
 
-    print(wh.calculate_missing_workers_from_tc_2())
+    print(wh.get_tc_missing_workers())
 
     # print()
     # print(wh.devicepool_queues_and_workers)
