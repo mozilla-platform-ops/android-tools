@@ -764,6 +764,7 @@ class WorkerHealth:
 
             # calculate_missing_workers_from_tc_2 doesn't care about time limits
             # - catches blind spot where devices are not in Bitbar system but are in our config
+            #   - the non _2 versions misses these devices unless there are jobs in the queue
             mw2 = self.calculate_missing_workers_from_tc_2()
             print(
                 output_format
