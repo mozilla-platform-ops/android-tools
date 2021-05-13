@@ -54,8 +54,11 @@ class WorkerHealth:
         self.devicepool_config_yaml_path = None
         self.devicepool_config_yaml = None
         self.devicepool_bitbar_device_groups = {}
+        # lists devices in each project
+        # e.g. {'gecko-t-bitbar-gw-unit-p2': ['pixel2-11', 'pixel2-12'], ...}
         self.devicepool_project_to_tc_worker_type = {}
         # links device groups (in devicepool_bitbar_device_groups) to queues
+        # e.g. {'mozilla-gw-unittest-p2': 'gecko-t-bitbar-gw-unit-p2', ...}
         self.devicepool_queues_and_workers = {}
         # just the current queue names
         self.tc_queue_counts = {}
@@ -431,9 +434,13 @@ class WorkerHealth:
                     )
                     show_details = False
 
+    def tc_worker_type_exists(tc_worker_type):
+        pass
+
     # uses set operations vs for loop (can handle workers being in wrong queue)
-    def calculate_missing_workers_from_tc_2(self, limit=75, exclude_quarantined=False):
-        # TODO: remove queues with no jobs
+    def calculate_missing_workers_from_tc_2(
+        self, remove_workers_with_not_enough_jobs=False
+    ):
         missing_workers = []
         expected_workers = self.get_devicepool_config_workers()
         for worker in expected_workers:
@@ -441,7 +448,29 @@ class WorkerHealth:
                 pass
             else:
                 missing_workers.append(worker)
-        return missing_workers
+
+        # TODO: if the queue doesn't even appear under provisioner list, it's workers aren't missing
+        for queue in self.devicepool_queues_and_workers:
+            if queue in self.tc_current_worker_types:
+                pass
+            else:
+                missing_workers = set(missing_workers) - set(
+                    self.devicepool_queues_and_workers[queue]
+                )
+
+        # remove devices in queues with fewer jobs than workers
+        if remove_workers_with_not_enough_jobs:
+            for queue in self.devicepool_queues_and_workers:
+                if self.tc_queue_counts[queue] < len(
+                    self.devicepool_queues_and_workers[queue]
+                ):
+                    # print("removing %s" % self.devicepool_queues_and_workers[queue])
+                    missing_workers = set(missing_workers) - set(
+                        self.devicepool_queues_and_workers[queue]
+                    )
+
+        # dedupe and return list
+        return list(set(missing_workers))
 
     # TODO: unit test this
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
@@ -727,6 +756,15 @@ class WorkerHealth:
                 )
             )
 
+            mw2 = self.calculate_missing_workers_from_tc_2()
+            print(
+                output_format
+                % (
+                    "tc 2 (%s)" % len(mw2),
+                    mw2,
+                )
+            )
+
             if self.quarantined_workers:
                 print(
                     output_format
@@ -825,8 +863,17 @@ class WorkerHealth:
 
 if __name__ == "__main__":
     wh = WorkerHealth()
+
+    # TODO: move these all to init
+    wh.set_configured_worker_counts()
     wh.set_current_worker_types()
     wh.set_current_workers()
+    wh.set_queue_counts()
+
     # print(wh.get_devicepool_config_workers())
     # print(wh.devicepool_queues_and_workers)
+
     print(wh.calculate_missing_workers_from_tc_2())
+
+    # print()
+    # print(wh.devicepool_queues_and_workers)
