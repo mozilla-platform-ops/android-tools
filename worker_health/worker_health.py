@@ -751,7 +751,7 @@ class WorkerHealth:
                 )
 
     # devicepool specific
-    def get_report(self, show_all=False, time_limit=None, verbosity=0):
+    def get_slack_report(self, show_all=False, time_limit=None, verbosity=0):
         self.gather_data()
 
         missing_workers = {}

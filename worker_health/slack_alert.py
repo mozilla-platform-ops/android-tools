@@ -63,7 +63,7 @@ currently_alerting = false
         wh = WorkerHealth(self.log_level)
         # for slack alerts, don't mention tc quarantined hosts
         # - will still appear if offline in devicepool
-        report_data = wh.get_report(
+        report_data = wh.get_slack_report(
             show_all=False, time_limit=self.time_limit, verbosity=self.log_level
         )
         if len(report_data["union"]) > 0:
