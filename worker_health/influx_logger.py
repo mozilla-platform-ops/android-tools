@@ -6,8 +6,8 @@ import pprint
 import sys
 import time
 
-from worker_health import WorkerHealth, logger
-import utils
+from worker_health.worker_health import WorkerHealth, logger
+from worker_health import utils
 
 try:
     from influxdb import InfluxDBClient

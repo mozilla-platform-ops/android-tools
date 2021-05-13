@@ -1,4 +1,4 @@
-import utils
+from worker_health import utils
 
 
 def test_consecutive_non_ones_from_end():

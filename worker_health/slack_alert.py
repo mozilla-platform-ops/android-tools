@@ -9,8 +9,7 @@ import requests
 import schedule
 import toml
 
-import utils
-from worker_health import WorkerHealth, logger
+from worker_health import WorkerHealth, logger, utils
 
 
 class SlackAlert:

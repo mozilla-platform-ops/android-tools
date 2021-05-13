@@ -20,8 +20,7 @@ from worker_health.worker_health import USER_AGENT_STRING
 from worker_health.worker_health import logger
 
 import quarantine
-import utils
-
+from worker_health import utils
 
 WORKERTYPE_THREAD_COUNT = 4
 TASK_THREAD_COUNT = 6

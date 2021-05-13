@@ -11,7 +11,8 @@ import time
 import pendulum
 import yaml
 
-import utils
+from worker_health import utils
+
 
 # log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
 log_format = "%(levelname)-10s %(funcName)s: %(message)s"
