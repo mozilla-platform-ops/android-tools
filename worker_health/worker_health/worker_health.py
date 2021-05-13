@@ -117,7 +117,7 @@ class WorkerHealth:
                 subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError:
                 # os x has whacked the repo, reclone
-                os.chdir("..")
+                os.chdir("../..")
                 try:
                     shutil.rmtree(repo_path)
                 except OSError:
@@ -648,6 +648,32 @@ class WorkerHealth:
         # - missing and offline separate?
         # self.set_problem_workers()
         # self.set_configured_workers()
+
+    def get_devicepool_config_workers(self):
+        yaml_file_path = self.devicepool_config_yaml_path
+        # TODO:  pull this out and only do once
+        with open(yaml_file_path, "r") as stream:
+            try:
+                self.devicepool_config_yaml = yaml.load(stream, Loader=yaml.Loader)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        return_arr = []
+
+        for item in self.devicepool_config_yaml["device_groups"]:
+            if (
+                item.startswith("motog5")
+                or item.startswith("pixel2")
+                or item.startswith("s7")
+                or item.startswith("test")
+            ):
+                # print(item)
+                if self.devicepool_config_yaml["device_groups"][item]:
+                    devices = list(self.devicepool_config_yaml["device_groups"][item])
+                    # print("  %s" % devices)
+                    return_arr.extend(devices)
+
+        return set(return_arr)
 
     # returns a dict
     def get_problem_workers2(

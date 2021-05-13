@@ -2,7 +2,7 @@
 
 import argparse
 
-import worker_health
+from worker_health import worker_health
 
 
 def main():
