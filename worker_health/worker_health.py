@@ -673,7 +673,7 @@ class WorkerHealth:
         # use flatten_dict if needed in list
         return merged2
 
-    def show_report(self, show_all=False, time_limit=None, verbosity=0):
+    def show_missing_workers_report(self, show_all=False, time_limit=None, verbosity=0):
         self.gather_data()
 
         if verbosity:
