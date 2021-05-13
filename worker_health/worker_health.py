@@ -677,39 +677,7 @@ class WorkerHealth:
         # self.set_problem_workers()
         # self.set_configured_workers()
 
-    # merged taskcluster tardy and devicepool offline data to one list
-    # TODO: add taskcluster missing data
-    def get_problem_workers(
-        self, time_limit=None, verbosity=0, exclude_quarantined=False
-    ):
-        self.gather_data()
-
-        missing_workers = {}
-        missing_workers_flattened = []
-        offline_workers = {}
-        offline_workers_flattened = []
-
-        missing_workers = self.calculate_missing_workers_from_tc(
-            time_limit, exclude_quarantined=exclude_quarantined
-        )
-        missing_workers_flattened = self.flatten_list(missing_workers.values())
-        missing_workers_flattened.sort()
-        # print("tc: %s" % missing_workers_flattened)
-        offline_workers = self.get_offline_workers_from_journalctl()
-        offline_workers_flattened = self.flatten_list(offline_workers.values())
-        offline_workers_flattened.sort()
-        # print("dp: %s" % offline_workers_flattened)
-        # TODO: calculate merged
-
-        merged = self.make_list_unique(
-            offline_workers_flattened + missing_workers_flattened
-        )
-        merged.sort()
-
-        # print("merged: %s" % merged)
-        return merged
-
-    # returns a dict vs list
+    # returns a dict
     def get_problem_workers2(
         self, time_limit=None, verbosity=0, exclude_quarantined=False
     ):
