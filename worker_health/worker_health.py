@@ -47,7 +47,7 @@ class WorkerHealth:
         self.devicepool_git_clone_url = (
             "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
         )
-        self.pp = pprint.PrettyPrinter(indent=4)
+        # self.pp = pprint.PrettyPrinter(indent=4)
         self.verbosity = verbosity
         #
         self.devicepool_config_yaml_path = None
