@@ -271,12 +271,12 @@ class Fitness:
             for item in workers_result["workers"]:
                 seen_workers.append(item["workerId"])
 
-        e_w = set(expected_workers)
+        e_w = set(expected_workers) - set(exclude_arr)
         s_w = set(seen_workers)
         missing = e_w - s_w
-        e_count = len(expected_workers)
+        e_count = len(e_w)
         m_count = len(missing)
-        s_count = len(seen_workers)
+        s_count = len(s_w)
         print("excluded workers (%s): %s" % (len(exclude_arr), sorted(exclude_arr)))
         if args and args.log_level:
             print()
@@ -286,8 +286,8 @@ class Fitness:
             print()
         print("missing workers (%s): %s" % (m_count, sorted(missing)))
         print(
-            "expected workers: %s (subtracting excluded)"
-            % (len(expected_workers) - len(exclude_arr))
+            "expected workers: %s (subtracting %s excluded)"
+            % (len(expected_workers) - len(exclude_arr), len(exclude_arr))
         )
 
     # used for packet.net
