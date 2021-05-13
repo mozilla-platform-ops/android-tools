@@ -663,6 +663,7 @@ class WorkerHealth:
         return offline_dict
 
     # gathers and generates data
+    # TODO: run in init
     def gather_data(self):
         # from devicepool
         self.set_configured_worker_counts()
@@ -873,11 +874,7 @@ class WorkerHealth:
 if __name__ == "__main__":
     wh = WorkerHealth()
 
-    # TODO: move these all to init
-    wh.set_configured_worker_counts()
-    wh.set_current_worker_types()
-    wh.set_current_workers()
-    wh.set_queue_counts()
+    wh.gather_data()
 
     # print(wh.get_devicepool_config_workers())
     # print(wh.devicepool_queues_and_workers)
