@@ -164,32 +164,6 @@ class WorkerHealth:
             )
             self.devicepool_config_yaml_path = checkout_yaml_file_path
 
-    def get_devicepool_config_workers(self):
-        yaml_file_path = self.devicepool_config_yaml_path
-        # TODO:  pull this out and only do once
-        with open(yaml_file_path, "r") as stream:
-            try:
-                self.devicepool_config_yaml = yaml.load(stream, Loader=yaml.Loader)
-            except yaml.YAMLError as exc:
-                print(exc)
-
-        return_arr = []
-
-        for item in self.devicepool_config_yaml["device_groups"]:
-            if (
-                item.startswith("motog5")
-                or item.startswith("pixel2")
-                or item.startswith("s7")
-                or item.startswith("test")
-            ):
-                # print(item)
-                if self.devicepool_config_yaml["device_groups"][item]:
-                    devices = list(self.devicepool_config_yaml["device_groups"][item])
-                    # print("  %s" % devices)
-                    return_arr.extend(devices)
-
-        return set(return_arr)
-
     def set_configured_worker_counts(self):
         yaml_file_path = self.devicepool_config_yaml_path
         with open(yaml_file_path, "r") as stream:
@@ -432,9 +406,6 @@ class WorkerHealth:
                         "    results not displayed (unreliable as jobs <= workers, -vv to show)"
                     )
                     show_details = False
-
-    def tc_worker_type_exists(tc_worker_type):
-        pass
 
     # uses set operations vs for loop (can handle workers being in wrong queue)
     def calculate_missing_workers_from_tc_2(self, verbose=False):
