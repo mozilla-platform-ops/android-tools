@@ -162,6 +162,32 @@ class WorkerHealth:
             )
             self.devicepool_config_yaml_path = checkout_yaml_file_path
 
+    def get_devicepool_config_workers(self):
+        yaml_file_path = self.devicepool_config_yaml_path
+        # TODO:  pull this out and only do once
+        with open(yaml_file_path, "r") as stream:
+            try:
+                self.devicepool_config_yaml = yaml.load(stream, Loader=yaml.Loader)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        return_arr = []
+
+        for item in self.devicepool_config_yaml["device_groups"]:
+            if (
+                item.startswith("motog5")
+                or item.startswith("pixel2")
+                or item.startswith("s7")
+                or item.startswith("test")
+            ):
+                # print(item)
+                if self.devicepool_config_yaml["device_groups"][item]:
+                    devices = list(self.devicepool_config_yaml["device_groups"][item])
+                    # print("  %s" % devices)
+                    return_arr.extend(devices)
+
+        return set(return_arr)
+
     def set_configured_worker_counts(self):
         yaml_file_path = self.devicepool_config_yaml_path
         with open(yaml_file_path, "r") as stream:
@@ -406,13 +432,16 @@ class WorkerHealth:
                     show_details = False
 
     # uses set operations vs for loop (can handle workers being in wrong queue)
-    def calculate_missing_workers_from_tc_2(self, limit, exclude_quarantined=False):
-        import pprint
-
-        pprint.pprint(self.devicepool_queues_and_workers)
-        # print("done")
-        # sys.exit(0)
-        pass
+    def calculate_missing_workers_from_tc_2(self, limit=75, exclude_quarantined=False):
+        # TODO: remove queues with no jobs
+        missing_workers = []
+        expected_workers = self.get_devicepool_config_workers()
+        for worker in expected_workers:
+            if worker in self.tc_current_worker_last_started:
+                pass
+            else:
+                missing_workers.append(worker)
+        return missing_workers
 
     # TODO: unit test this
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
@@ -792,3 +821,12 @@ class WorkerHealth:
 
         # return so caller can display
         return problem_workers
+
+
+if __name__ == "__main__":
+    wh = WorkerHealth()
+    wh.set_current_worker_types()
+    wh.set_current_workers()
+    # print(wh.get_devicepool_config_workers())
+    # print(wh.devicepool_queues_and_workers)
+    print(wh.calculate_missing_workers_from_tc_2())
