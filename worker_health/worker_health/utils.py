@@ -96,3 +96,19 @@ def consecutive_non_ones_from_end(an_array):
         else:
             break
     return counter
+
+
+def graph_percentage(value, show_label=False, round_value=False):
+    return_string = ""
+    if round_value:
+        value = round(value, 1)
+    if show_label:
+        return_string += "%s: "
+    return_string += "["
+    for i in range(1, 11):
+        if value >= i * 0.1:
+            return_string += u"="
+        else:
+            return_string += " "
+    return_string += "]"
+    return return_string

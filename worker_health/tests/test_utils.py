@@ -7,3 +7,9 @@ def test_consecutive_non_ones_from_end():
 
     assert utils.consecutive_non_ones_from_end(test_data) == 1
     assert utils.consecutive_non_ones_from_end(test_data_2) == 3
+
+
+def test_graph_percentage():
+    assert utils.graph_percentage(0.5) == "[=====     ]"
+    assert utils.graph_percentage(1) == "[==========]"
+    assert utils.graph_percentage(0) == "[          ]"

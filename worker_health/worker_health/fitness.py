@@ -276,7 +276,7 @@ class Fitness:
             print()
         print("missing workers (%s): %s" % (m_count, sorted(missing)))
         print(
-            "expected workers: %s (subtracting %s excluded)"
+            "expected workers: %s (with %s excluded)"
             % (len(expected_workers) - len(exclude_arr), len(exclude_arr))
         )
 
@@ -397,7 +397,7 @@ class Fitness:
                 result_string += pprint.pformat(value)
             elif isinstance(value, float):
                 # the only float is success rate
-                result_string += self.graph_percentage(value)
+                result_string += utils.graph_percentage(value)
                 # can be up to 13... "a few seconds"
                 result_string += " {:.1%}".format(value).rjust(7)
             elif isinstance(value, type(None)):
