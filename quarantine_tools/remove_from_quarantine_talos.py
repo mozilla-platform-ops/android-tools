@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import taskcluster
 import json
 import os
+
+import taskcluster
 
 #
 # docs: https://pypi.org/project/taskcluster/

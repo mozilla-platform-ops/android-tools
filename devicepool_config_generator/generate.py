@@ -4,26 +4,24 @@
 #               counts among device types (p2, g5).
 #
 
-import os
-import yaml
 import hashlib
-import pprint
 import json
+import os
+import pprint
 import subprocess
 import sys
 import time
 
+import yaml
 
 if sys.version_info <= (3, 0):
     print("Sorry, requires Python 3.x, not Python 2.x.")
     sys.exit(1)
 
 
-from urllib.request import urlopen
-from urllib.error import HTTPError
-
 from collections import OrderedDict
-
+from urllib.error import HTTPError
+from urllib.request import urlopen
 
 verbose = False
 
@@ -85,7 +83,9 @@ class DevicePoolConfigGenerator:
     # TODO: add tests for this
     @staticmethod
     def split_list(a_list, slice_start=0, slice_end=0.5):
-        newList = a_list[int(len(a_list) * slice_start) : int(len(a_list) * slice_end)]
+        newList = a_list[
+            int(len(a_list) * slice_start) : int(len(a_list) * slice_end)  # noqa: E203
+        ]
         return newList
 
     def split_dict_based_on_device(self, a_dict):
@@ -361,7 +361,9 @@ class DevicePoolConfigGenerator:
                 devices_allocated = 0
                 for dg, host_count in device_groups.items():
                     split_dict[dg] = devices_to_work_with[
-                        devices_allocated : (int(host_count) + devices_allocated)
+                        devices_allocated : (  # noqa: E203
+                            int(host_count) + devices_allocated
+                        )
                     ]
                     devices_allocated = (
                         devices_allocated + int(host_count) + devices_allocated

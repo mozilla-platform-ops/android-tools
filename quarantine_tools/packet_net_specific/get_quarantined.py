@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-import taskcluster
 import json
 import os
 import pprint
 import sys
 
+import taskcluster
 
 with open(os.path.expanduser("~/.tc_token")) as json_file:
     data = json.load(json_file)

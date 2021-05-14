@@ -1,6 +1,11 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
+- repo: https://github.com/pycqa/isort
+  rev: 5.8.0
+  hooks:
+    - id: isort
+      name: isort (python)
 -   repo: https://github.com/ambv/black
     rev: 21.5b1
     hooks:
@@ -27,8 +32,3 @@ repos:
   rev: 2.1.5
   hooks:
     - id: shellcheck
-- repo: https://github.com/pycqa/isort
-  rev: 5.8.0
-  hooks:
-    - id: isort
-      name: isort (python)

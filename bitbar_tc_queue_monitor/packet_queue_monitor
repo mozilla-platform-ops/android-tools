@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import taskcluster
 import json
 import os
 import sys
-import subprocess
+
+import taskcluster
 
 try:
     from pyfiglet import Figlet
