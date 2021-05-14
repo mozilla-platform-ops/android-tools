@@ -27,3 +27,8 @@ repos:
   rev: 2.1.5
   hooks:
     - id: shellcheck
+- repo: https://github.com/pycqa/isort
+  rev: 5.8.0
+  hooks:
+    - id: isort
+      name: isort (python)
