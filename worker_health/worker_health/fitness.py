@@ -7,15 +7,9 @@ from time import time as timer
 
 import humanhash
 import pendulum
-import requests
 import taskcluster
 from natsort import natsorted
-from requests.adapters import HTTPAdapter
 
-# from requests.packages.urllib3.util.retry import Retry
-from urllib3.util import Retry
-
-from worker_health.worker_health import USER_AGENT_STRING
 from worker_health.worker_health import logger
 
 from worker_health import utils, quarantine
@@ -25,27 +19,6 @@ TASK_THREAD_COUNT = 6
 ALERT_PERCENT = 0.85
 ALERT_TIME = 60
 DEFAULT_PROVISIONER = "proj-autophone"
-
-
-# https://www.peterbe.com/plog/best-practice-with-retries-with-requests
-def requests_retry_session(
-    retries=3,
-    backoff_factor=0.3,
-    status_forcelist=(500, 502, 504),
-    session=None,
-):
-    session = session or requests.Session()
-    retry = Retry(
-        total=retries,
-        read=retries,
-        connect=retries,
-        backoff_factor=backoff_factor,
-        status_forcelist=status_forcelist,
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    return session
 
 
 class Fitness:
@@ -78,7 +51,7 @@ class Fitness:
         )
 
     def get_task_status(self, taskid):
-        _url, output, exception = self.get_jsonc2(
+        _url, output, exception = utils.get_jsonc2(
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s/status"
             % taskid
             # "https://queue.taskcluster.net/v1/task/%s/status" % taskid
@@ -198,7 +171,7 @@ class Fitness:
             )
 
     def get_pending_tasks(self, queue):
-        _url, output, exception = self.get_jsonc2(
+        _url, output, exception = utils.get_jsonc2(
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/%s/%s"
             # "https://queue.taskcluster.net/v1/pending/%s/%s"
             % (self.provisioner, queue)
@@ -596,35 +569,3 @@ class Fitness:
             results_obj.setdefault("alerts", []).append("Quarantined.")
 
         return device, results_obj, None
-
-    # handles continuationToken
-    def get_jsonc2(self, an_url):
-        headers = {"User-Agent": USER_AGENT_STRING}
-        retries_left = 2
-
-        while retries_left >= 0:
-            if self.verbosity > 2:
-                print(an_url)
-            response = requests_retry_session().get(an_url, headers=headers)
-            result = response.text
-            try:
-                output = json.loads(result)
-                # will only break on good decode
-                break
-            except json.decoder.JSONDecodeError as e:
-                logger.warning("json decode error. input: %s" % result)
-                if retries_left == 0:
-                    return an_url, None, e
-            print("request failure, manual retry")
-            retries_left -= 1
-
-        while "continuationToken" in output:
-            payload = {"continuationToken": output["continuationToken"]}
-            if self.verbosity > 2:
-                print("%s, %s" % (an_url, output["continuationToken"]))
-            response = requests_retry_session().get(
-                an_url, headers=headers, params=payload
-            )
-            result = response.text
-            output = json.loads(result)
-        return an_url, output, None

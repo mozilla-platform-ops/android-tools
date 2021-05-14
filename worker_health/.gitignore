@@ -20,4 +20,4 @@ share/python-wheels/
 MANIFEST
 
 # coverage
-.coverage
+.coverage*

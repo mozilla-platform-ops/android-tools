@@ -1,3 +1,6 @@
+import pytest
+import requests
+
 from urllib.error import URLError
 
 from worker_health import utils
@@ -20,3 +23,8 @@ def test_graph_percentage():
 def test_fetch_url():
     url, res, exc = utils.fetch_url("http://badurl.comaaa/bad")
     assert isinstance(exc, URLError)
+
+
+def test_get_jsonc2():
+    with pytest.raises(requests.exceptions.ConnectionError):
+        url, res, exc = utils.get_jsonc2("http://badurl.comaaa/bad")
