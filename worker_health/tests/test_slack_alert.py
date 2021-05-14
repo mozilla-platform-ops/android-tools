@@ -2,7 +2,7 @@ import pathlib
 import subprocess
 
 
-def test_slack_alert():
+def test_bin_slack_alert():
     parent_dir = pathlib.Path(__file__).parent
     root_dir = parent_dir / ".."
 

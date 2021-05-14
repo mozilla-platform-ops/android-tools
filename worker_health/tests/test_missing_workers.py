@@ -2,7 +2,7 @@ import pathlib
 import subprocess
 
 
-def test_missing_workers():
+def test_bin_missing_workers():
     parent_dir = pathlib.Path(__file__).parent
     root_dir = parent_dir / ".."
 
