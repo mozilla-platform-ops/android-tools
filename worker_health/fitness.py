@@ -5,7 +5,6 @@ import sys
 
 from worker_health import fitness
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # TODO: currently only sorts within worker-group (so sometimes results aren't sorted)... ideally sort all results.

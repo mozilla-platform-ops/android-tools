@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import taskcluster
 import json
 import os
+
+import taskcluster
 
 
 class Quarantine:

@@ -2,9 +2,9 @@
 
 import json
 import os
+import pdb
 import sys
 
-import pdb
 import taskcluster
 
 #

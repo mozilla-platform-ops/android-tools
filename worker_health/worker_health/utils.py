@@ -3,10 +3,10 @@ import logging
 import pprint
 import subprocess
 from urllib.request import urlopen
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 logger = logging.getLogger(__name__)
 

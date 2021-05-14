@@ -3,6 +3,7 @@
 import argparse
 
 import fitness
+
 from worker_health import quarantine
 
 if __name__ == "__main__":

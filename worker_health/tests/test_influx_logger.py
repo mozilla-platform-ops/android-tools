@@ -1,5 +1,5 @@
-import subprocess
 import pathlib
+import subprocess
 
 
 def test_bin_influx_logger():

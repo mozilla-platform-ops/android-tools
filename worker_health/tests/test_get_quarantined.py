@@ -1,5 +1,5 @@
-import subprocess
 import pathlib
+import subprocess
 
 
 def test_bin_get_quarantine():  # config_fname, cleanup, print_all, force_pass, rcount, timeout):

@@ -1,5 +1,5 @@
-import subprocess
 import pathlib
+import subprocess
 
 
 def test_slack_alert():

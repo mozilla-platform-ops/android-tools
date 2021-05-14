@@ -1,7 +1,7 @@
+from urllib.error import URLError
+
 import pytest
 import requests
-
-from urllib.error import URLError
 
 from worker_health import utils
 
