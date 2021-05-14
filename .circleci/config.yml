@@ -17,7 +17,7 @@ jobs:
       - checkout
       - run: pip install pipenv
       - run: cd worker_health && pipenv install --dev
-      - run: cd worker_health && pipenv run pytest -v
+      - run: cd worker_health && pipenv run pytest --cov=worker_health -v
       - run: cd worker_health && pipenv run pyflakes *.py
       - run: cd worker_health && ./test_help.sh
   test_last_started:
