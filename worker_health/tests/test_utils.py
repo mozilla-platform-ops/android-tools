@@ -1,3 +1,5 @@
+from urllib.error import URLError
+
 from worker_health import utils
 
 
@@ -13,3 +15,8 @@ def test_graph_percentage():
     assert utils.graph_percentage(0.5) == "[=====     ]"
     assert utils.graph_percentage(1) == "[==========]"
     assert utils.graph_percentage(0) == "[          ]"
+
+
+def test_fetch_url():
+    url, res, exc = utils.fetch_url("http://badurl.comaaa/bad")
+    assert isinstance(exc, URLError)

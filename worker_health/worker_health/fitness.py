@@ -11,7 +11,6 @@ import requests
 import taskcluster
 from natsort import natsorted
 from requests.adapters import HTTPAdapter
-from urllib.request import urlopen
 
 # from requests.packages.urllib3.util.retry import Retry
 from urllib3.util import Retry
@@ -597,28 +596,6 @@ class Fitness:
             results_obj.setdefault("alerts", []).append("Quarantined.")
 
         return device, results_obj, None
-
-    def fetch_url(self, url):
-        try:
-            response = urlopen(url)
-            return url, response.read(), None
-        except Exception as e:
-            return url, None, e
-
-    def graph_percentage(self, value, show_label=False, round_value=False):
-        return_string = ""
-        if round_value:
-            value = round(value, 1)
-        if show_label:
-            return_string += "%s: "
-        return_string += "["
-        for i in range(1, 11):
-            if value >= i * 0.1:
-                return_string += u"="
-            else:
-                return_string += " "
-        return_string += "]"
-        return return_string
 
     # handles continuationToken
     def get_jsonc2(self, an_url):

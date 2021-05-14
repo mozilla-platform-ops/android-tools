@@ -2,6 +2,7 @@ import json
 import logging
 import pprint
 import subprocess
+from urllib.request import urlopen
 
 import requests
 
@@ -112,3 +113,12 @@ def graph_percentage(value, show_label=False, round_value=False):
             return_string += " "
     return_string += "]"
     return return_string
+
+
+# returns (url, response, exception)
+def fetch_url(url):
+    try:
+        response = urlopen(url)
+        return url, response.read(), None
+    except Exception as e:
+        return url, None, e
