@@ -11,6 +11,8 @@ verify_ssl = true
 pyflakes = "*"
 pytest = "*"
 pre-commit = "*"
+pytest-watch = "*"
+relops-worker-tools = {editable = true, path = "."}
 
 [packages]
 pyyaml = "*"
