@@ -4,7 +4,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="relops-worker-tools",
+    # TODO: rename to relops-worker-tools, must rename package dir also
+    name="worker_health",
     version="0.0.1",
     author="Andrew Erickson",
     author_email="aerickson@mozilla.com",
