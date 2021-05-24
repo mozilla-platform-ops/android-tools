@@ -20,7 +20,7 @@ if __name__ == "__main__":
     WORKER_TYPE = "gecko-t-linux-talos-1804"
 
     exclude_arr = [
-        "t-linux64-ms-055",  # bad ilo on cart
+        # "t-linux64-ms-055",  # bad ilo on cart ## better all of a sudden
         "t-linux64-ms-228",  # nvme error
     ]
 
