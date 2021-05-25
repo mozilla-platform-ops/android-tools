@@ -5,13 +5,16 @@
 #
 #                 used during tc-w -> g-w migration.
 
-import os
-import yaml
 import hashlib
-import pprint
 import json
+import os
+import pprint
 import sys
 import time
+from collections import OrderedDict
+from urllib.request import urlopen
+
+import yaml
 
 verbose = False
 
@@ -23,15 +26,6 @@ verbose = False
 #     return self.represent_scalar(u'tag:yaml.org,2002:null',
 #                               u'')
 # yaml.add_representer(type(None), represent_none)
-
-try:
-    # For Python 3.0 and later
-    from urllib.request import urlopen
-except ImportError:
-    # Fall back to Python 2's urllib2
-    from urllib2 import urlopen
-
-from collections import OrderedDict
 
 
 class DPCGException(Exception):
@@ -87,7 +81,9 @@ class DevicePoolConfigGenerator:
     # TODO: add tests for this
     @staticmethod
     def split_list(a_list, slice_start=0, slice_end=0.5):
-        newList = a_list[int(len(a_list) * slice_start) : int(len(a_list) * slice_end)]
+        newList = a_list[
+            int(len(a_list) * slice_start) : int(len(a_list) * slice_end)  # noqa: E203
+        ]
         return newList
 
     def main(self):

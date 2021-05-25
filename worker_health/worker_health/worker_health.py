@@ -2,7 +2,6 @@ import csv
 import getpass
 import logging
 import os
-import pprint
 import re
 import shutil
 import subprocess
@@ -12,7 +11,7 @@ import time
 import pendulum
 import yaml
 
-import utils
+from worker_health import utils
 
 # log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
 log_format = "%(levelname)-10s %(funcName)s: %(message)s"
@@ -48,14 +47,17 @@ class WorkerHealth:
         self.devicepool_git_clone_url = (
             "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
         )
-        self.pp = pprint.PrettyPrinter(indent=4)
+        # self.pp = pprint.PrettyPrinter(indent=4)
         self.verbosity = verbosity
         #
         self.devicepool_config_yaml_path = None
         self.devicepool_config_yaml = None
         self.devicepool_bitbar_device_groups = {}
+        # lists devices in each project
+        # e.g. {'gecko-t-bitbar-gw-unit-p2': ['pixel2-11', 'pixel2-12'], ...}
         self.devicepool_project_to_tc_worker_type = {}
         # links device groups (in devicepool_bitbar_device_groups) to queues
+        # e.g. {'mozilla-gw-unittest-p2': 'gecko-t-bitbar-gw-unit-p2', ...}
         self.devicepool_queues_and_workers = {}
         # just the current queue names
         self.tc_queue_counts = {}
@@ -115,7 +117,7 @@ class WorkerHealth:
                 subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError:
                 # os x has whacked the repo, reclone
-                os.chdir("..")
+                os.chdir("../..")
                 try:
                     shutil.rmtree(repo_path)
                 except OSError:
@@ -405,16 +407,50 @@ class WorkerHealth:
                     )
                     show_details = False
 
-    # uses set operations vs for loop (can handle workers being in wrong queue)
-    def calculate_missing_workers_from_tc_2(self, limit, exclude_quarantined=False):
-        import pprint
+    # new simpler function that doesn't worry about tardy
+    def get_tc_missing_workers(self, verbose=False):
 
-        pprint.pprint(self.devicepool_queues_and_workers)
-        # print("done")
-        # sys.exit(0)
-        pass
+        missing_workers = set()
+        expected_workers = self.get_devicepool_config_workers()
+        for worker in expected_workers:
+            if worker in self.tc_current_worker_last_started:
+                pass
+            else:
+                if verbose:
+                    print("boo  99 %s" % worker)
+                missing_workers.add(worker)
+
+        for queue in self.devicepool_queues_and_workers:
+            if verbose:
+                print(queue)
+            # if the queue doesn't even appear under provisioner list, it's workers
+            # aren't missing (there hasn't been work in a long time).
+            # it's likely a test queue.
+            if queue in self.tc_current_worker_types:
+                pass
+            else:
+                if verbose:
+                    print("removing workers from queue %s, as its not listed" % queue)
+                missing_workers = set(missing_workers) - set(
+                    self.devicepool_queues_and_workers[queue]
+                )
+                continue
+
+            for worker in self.devicepool_queues_and_workers[queue]:
+                if verbose:
+                    print(worker)
+                # # if no record of work, it's definitely missing
+                if worker not in self.tc_current_worker_last_started:
+                    if verbose:
+                        print("boo adding %s 2" % worker)
+                    missing_workers.add(worker)
+                    continue
+
+        # dedupe and return list
+        return list(set(missing_workers))
 
     # TODO: unit test this
+    # rename/rework to detect_tardy()
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
@@ -599,6 +635,7 @@ class WorkerHealth:
         return offline_dict
 
     # gathers and generates data
+    # TODO: run in init
     def gather_data(self):
         # from devicepool
         self.set_configured_worker_counts()
@@ -612,39 +649,33 @@ class WorkerHealth:
         # self.set_problem_workers()
         # self.set_configured_workers()
 
-    # merged taskcluster tardy and devicepool offline data to one list
-    # TODO: add taskcluster missing data
-    def get_problem_workers(
-        self, time_limit=None, verbosity=0, exclude_quarantined=False
-    ):
-        self.gather_data()
+    def get_devicepool_config_workers(self):
+        yaml_file_path = self.devicepool_config_yaml_path
+        # TODO:  pull this out and only do once
+        with open(yaml_file_path, "r") as stream:
+            try:
+                self.devicepool_config_yaml = yaml.load(stream, Loader=yaml.Loader)
+            except yaml.YAMLError as exc:
+                print(exc)
 
-        missing_workers = {}
-        missing_workers_flattened = []
-        offline_workers = {}
-        offline_workers_flattened = []
+        return_arr = []
 
-        missing_workers = self.calculate_missing_workers_from_tc(
-            time_limit, exclude_quarantined=exclude_quarantined
-        )
-        missing_workers_flattened = self.flatten_list(missing_workers.values())
-        missing_workers_flattened.sort()
-        # print("tc: %s" % missing_workers_flattened)
-        offline_workers = self.get_offline_workers_from_journalctl()
-        offline_workers_flattened = self.flatten_list(offline_workers.values())
-        offline_workers_flattened.sort()
-        # print("dp: %s" % offline_workers_flattened)
-        # TODO: calculate merged
+        for item in self.devicepool_config_yaml["device_groups"]:
+            if (
+                item.startswith("motog5")
+                or item.startswith("pixel2")
+                or item.startswith("s7")
+                or item.startswith("test")
+            ):
+                # print(item)
+                if self.devicepool_config_yaml["device_groups"][item]:
+                    devices = list(self.devicepool_config_yaml["device_groups"][item])
+                    # print("  %s" % devices)
+                    return_arr.extend(devices)
 
-        merged = self.make_list_unique(
-            offline_workers_flattened + missing_workers_flattened
-        )
-        merged.sort()
+        return set(return_arr)
 
-        # print("merged: %s" % merged)
-        return merged
-
-    # returns a dict vs list
+    # returns a dict
     def get_problem_workers2(
         self, time_limit=None, verbosity=0, exclude_quarantined=False
     ):
@@ -668,7 +699,7 @@ class WorkerHealth:
         # use flatten_dict if needed in list
         return merged2
 
-    def show_report(self, show_all=False, time_limit=None, verbosity=0):
+    def show_missing_workers_report(self, show_all=False, time_limit=None, verbosity=0):
         self.gather_data()
 
         if verbosity:
@@ -695,6 +726,18 @@ class WorkerHealth:
                 % (
                     "tc (%s)" % len(missing_workers_flattened),
                     missing_workers_flattened,
+                )
+            )
+
+            # calculate_missing_workers_from_tc_2 doesn't care about time limits
+            # - catches blind spot where devices are not in Bitbar system but are in our config
+            #   - the non _2 versions misses these devices unless there are jobs in the queue
+            mw2 = self.get_tc_missing_workers()
+            print(
+                output_format
+                % (
+                    "tc 2 (%s)" % len(mw2),
+                    mw2,
                 )
             )
 
@@ -734,7 +777,7 @@ class WorkerHealth:
                 )
 
     # devicepool specific
-    def get_report(self, show_all=False, time_limit=None, verbosity=0):
+    def get_slack_report(self, show_all=False, time_limit=None, verbosity=0):
         self.gather_data()
 
         missing_workers = {}
@@ -792,3 +835,21 @@ class WorkerHealth:
 
         # return so caller can display
         return problem_workers
+
+
+if __name__ == "__main__":
+    wh = WorkerHealth()
+
+    wh.gather_data()
+
+    # print(wh.get_devicepool_config_workers())
+    # print(wh.devicepool_queues_and_workers)
+
+    import pprint
+
+    pprint.pprint(wh.tc_current_worker_last_started)
+
+    print(wh.get_tc_missing_workers())
+
+    # print()
+    # print(wh.devicepool_queues_and_workers)

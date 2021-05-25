@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 
-import sys
-import logging
-import json
 import datetime
+import logging
 import math
-import time
 import pprint
-
+import sys
+import time
 
 try:
     import requests
-    from tqdm import tqdm, trange
-except:
+    import requests_cache
+    from tqdm import tqdm
+except Exception:
     print("Please `pip3 install tqdm requests requests-cache` or use the Pipfile.")
     sys.exit(1)
 
@@ -86,9 +85,9 @@ class PendingJobs:
         # field 26 is result (success, ???)
         # field 30 is state (completed, ???)
         key_id = 7
-        key_pushid = 23
+        # key_pushid = 23
         key_platform = 22
-        key_start_timestamp = 29
+        # key_start_timestamp = 29
         key_state = 30
         key_submit_timestamp = 31
         key_job_type_name = 15
@@ -123,7 +122,7 @@ class PendingJobs:
                     else:
                         matched = True
 
-                    if matched == True:
+                    if matched:
                         pending_jobs += 1
                         # TODO: we know that jobs will be dropped at 24 hours,
                         # anything still around is due to pulse bugs...
@@ -435,11 +434,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.caching:
-        try:
-            import requests_cache
-        except:
-            print("Please `pip3 install requests-cache`.")
-            sys.exit(1)
         requests_cache.install_cache(expire_after=CACHE_EXPIRY_SECONDS)
         print("Using request-cache (expiration of %s seconds)." % CACHE_EXPIRY_SECONDS)
 

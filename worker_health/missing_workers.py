@@ -2,7 +2,7 @@
 
 import argparse
 
-import worker_health
+from worker_health import worker_health
 
 
 def main():
@@ -48,7 +48,7 @@ def main():
     # wh.pp.pprint(output)
     # sys.exit(0)
 
-    wh.show_report(
+    wh.show_missing_workers_report(
         show_all=args.all, time_limit=args.time_limit, verbosity=args.log_level
     )
 

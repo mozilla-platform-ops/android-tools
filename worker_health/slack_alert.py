@@ -5,14 +5,11 @@ import os
 import random
 import time
 
-# TODO: wrap import with try/except?
-import pendulum
 import requests
 import schedule
 import toml
 
-import utils
-from worker_health import WorkerHealth, logger
+from worker_health.worker_health import WorkerHealth, logger, utils
 
 
 class SlackAlert:
@@ -65,7 +62,7 @@ currently_alerting = false
         wh = WorkerHealth(self.log_level)
         # for slack alerts, don't mention tc quarantined hosts
         # - will still appear if offline in devicepool
-        report_data = wh.get_report(
+        report_data = wh.get_slack_report(
             show_all=False, time_limit=self.time_limit, verbosity=self.log_level
         )
         if len(report_data["union"]) > 0:
@@ -111,36 +108,6 @@ currently_alerting = false
                     logger.info("would have sent message: '%s'" % message)
             logger.info("no problem workers")
             self.set_toml_value("currently_alerting", False)
-
-    # only fires if it's 8AM-6PM M-F in bitbar TZ
-    def slack_alert_m_thru_f(self):
-        # TODO: require a verification cycle if there are problem workers... try to eliminate spurious reports
-        #   due to TC requests failing.
-        # TODO: offer a confidence percentage? match between TC and devicepool? TC is usually right now though...
-        #   - intermittent check (see above) might be better
-
-        now = pendulum.now(tz=self.bitbar_tz)
-        logger.info("now.hour %s, now.day_of_week %s" % (now.hour, now.day_of_week))
-        if (7 <= now.hour <= 18) and (1 <= now.day_of_week <= 5):
-            logger.info("inside run window")
-            wh = WorkerHealth(self.log_level)
-            # for slack alerts, don't mention tc quarantined hosts
-            # - will still appear if offline in devicepool
-            pw = wh.get_problem_workers(
-                time_limit=self.time_limit, exclude_quarantined=True
-            )
-            if pw:
-                message = "problem workers: %s" % pw
-                # TODO: show count?
-                # message = "problem workers: %s %s" % (len(pw), pw)
-                if self.alerting_enabled:
-                    self.send_slack_message(message)
-                else:
-                    logger.info("would have sent message: '%s'" % message)
-            else:
-                logger.info("no problem workers")
-        else:
-            logger.info("outside run window")
 
     # TODO: if alerting is not enabled, just mention we'd send a message
     def send_slack_message(self, message):

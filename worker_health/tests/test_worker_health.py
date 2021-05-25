@@ -1,6 +1,6 @@
 import pytest
 
-import worker_health
+from worker_health import worker_health
 
 
 @pytest.fixture
