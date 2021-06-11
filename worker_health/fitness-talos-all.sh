@@ -6,6 +6,5 @@ set -e
 ./fitness.py \
  --ping \
  --ping-domain test.releng.mdc2.mozilla.com \
- --ping-host rejh1.srv.releng.mdc1.mozilla.com \
   -p releng-hardware \
   gecko-t-linux-talos "$@"
