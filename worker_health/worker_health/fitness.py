@@ -198,7 +198,7 @@ class Fitness:
         )
 
     # TODO: rename linux_moonshot_worker_report?
-    def moonshot_worker_report(self, worker_type, args=None, exclude_arr=[]):
+    def moonshot_worker_report(self, worker_type, args=None, exclude_dict={}):
 
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=200"
@@ -216,14 +216,14 @@ class Fitness:
         #
         worker_prefix = "t-linux64-ms-"
 
-        expected_workers = []
+        generated_workers = []
         linux_win_counter = start
         for i in range(start, end + 1):
             if linux_win_counter == 46:
                 linux_win_counter = 1
             if linux_win_counter <= 15:
                 worker_name = "%s%03d" % (worker_prefix, i)
-                expected_workers.append(worker_name)
+                generated_workers.append(worker_name)
 
             linux_win_counter += 1
 
@@ -232,26 +232,44 @@ class Fitness:
             for item in workers_result["workers"]:
                 seen_workers.append(item["workerId"])
 
-        e_w = set(expected_workers) - set(exclude_arr)
+        quarantined_workers = self.quarantine.get_quarantined_workers(
+            self.provisioner, worker_type
+        )
+
         s_w = set(seen_workers)
+        e_w = set(generated_workers) - set(exclude_dict)
         missing = e_w - s_w
         e_count = len(e_w)
         m_count = len(missing)
         s_count = len(s_w)
-        print("excluded workers (%s): %s" % (len(exclude_arr), sorted(exclude_arr)))
+
+        print("pool size: %s" % (len(generated_workers)))
+        print(
+            "- excluded workers (%s): %s"
+            % (len(exclude_dict), pprint.pformat(exclude_dict))
+        )
+
+        print("actual pool size: %s" % e_count)
+
+        print(
+            "quarantined workers (%s): %s"
+            % (len(quarantined_workers), quarantined_workers)
+        )
+        print(
+            "missing workers (%s/%s): %s"
+            % (
+                m_count,
+                e_count,
+                utils.pformat_term(sorted(missing)),
+            )
+        )
+
         if args and args.log_level:
             print()
-            print("expected workers (%s): %s" % (e_count, sorted(expected_workers)))
+            print("expected workers (%s): %s" % (e_count, sorted(generated_workers)))
             print()
             print("seen workers: (%s): %s" % (s_count, sorted(seen_workers)))
             print()
-        print(
-            "missing workers (%s): %s" % (m_count, utils.pformat_term(sorted(missing)))
-        )
-        print(
-            "expected workers: %s (with %s excluded)"
-            % (len(expected_workers) - len(exclude_arr), len(exclude_arr))
-        )
 
     # used for packet.net
     def simple_worker_report(
