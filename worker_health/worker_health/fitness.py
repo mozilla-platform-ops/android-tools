@@ -251,11 +251,6 @@ class Fitness:
 
         print("actual pool size: %s" % e_count)
 
-        # print(
-        #     "expected workers: %s (with %s excluded)"
-        #     % (len(expected_workers) - len(exclude_arr), len(exclude_arr))
-        # )
-
         print(
             "quarantined workers (%s): %s"
             % (len(quarantined_workers), quarantined_workers)
