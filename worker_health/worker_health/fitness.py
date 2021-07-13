@@ -237,8 +237,7 @@ class Fitness:
         )
 
         s_w = set(seen_workers)
-        q_w = set(quarantined_workers)
-        e_w = set(generated_workers) - set(exclude_dict) - q_w
+        e_w = set(generated_workers) - set(exclude_dict)
         missing = e_w - s_w
         e_count = len(e_w)
         m_count = len(missing)
@@ -249,16 +248,18 @@ class Fitness:
             "- excluded workers (%s): %s"
             % (len(exclude_dict), pprint.pformat(exclude_dict))
         )
-        print(
-            "- quarantined workers (%s): %s"
-            % (len(quarantined_workers), quarantined_workers)
-        )
+
         print("actual pool size: %s" % e_count)
 
         # print(
         #     "expected workers: %s (with %s excluded)"
         #     % (len(expected_workers) - len(exclude_arr), len(exclude_arr))
         # )
+
+        print(
+            "quarantined workers (%s): %s"
+            % (len(quarantined_workers), quarantined_workers)
+        )
         print(
             "missing workers (%s/%s): %s"
             % (
