@@ -216,14 +216,14 @@ class Fitness:
         #
         worker_prefix = "t-linux64-ms-"
 
-        expected_workers = []
+        generated_workers = []
         linux_win_counter = start
         for i in range(start, end + 1):
             if linux_win_counter == 46:
                 linux_win_counter = 1
             if linux_win_counter <= 15:
                 worker_name = "%s%03d" % (worker_prefix, i)
-                expected_workers.append(worker_name)
+                generated_workers.append(worker_name)
 
             linux_win_counter += 1
 
@@ -238,21 +238,22 @@ class Fitness:
 
         s_w = set(seen_workers)
         q_w = set(quarantined_workers)
-        e_w = set(expected_workers) - set(exclude_dict.keys()) - q_w
+        e_w = set(generated_workers) - set(exclude_dict) - q_w
         missing = e_w - s_w
         e_count = len(e_w)
         m_count = len(missing)
         s_count = len(s_w)
 
-        print("pool size: %s" % len(expected_workers))
+        print("pool size: %s" % (len(generated_workers)))
         print(
             "- excluded workers (%s): %s"
-            % (len(exclude_dict), sorted(exclude_dict.keys()))
+            % (len(exclude_dict), pprint.pformat(exclude_dict))
         )
         print(
             "- quarantined workers (%s): %s"
             % (len(quarantined_workers), quarantined_workers)
         )
+        print("actual pool size: %s" % e_count)
 
         # print(
         #     "expected workers: %s (with %s excluded)"
@@ -262,14 +263,14 @@ class Fitness:
             "missing workers (%s/%s): %s"
             % (
                 m_count,
-                ((len(expected_workers) - len(exclude_dict))),
+                e_count,
                 utils.pformat_term(sorted(missing)),
             )
         )
 
         if args and args.log_level:
             print()
-            print("expected workers (%s): %s" % (e_count, sorted(expected_workers)))
+            print("expected workers (%s): %s" % (e_count, sorted(generated_workers)))
             print()
             print("seen workers: (%s): %s" % (s_count, sorted(seen_workers)))
             print()
