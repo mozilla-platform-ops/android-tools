@@ -5,7 +5,7 @@ import subprocess
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 
-import humanhash
+import humanhash  # provided by humanhash3
 import pendulum
 import taskcluster
 from natsort import natsorted
@@ -245,7 +245,9 @@ class Fitness:
             print()
             print("seen workers: (%s): %s" % (s_count, sorted(seen_workers)))
             print()
-        print("missing workers (%s): %s" % (m_count, sorted(missing)))
+        print(
+            "missing workers (%s): %s" % (m_count, utils.pformat_term(sorted(missing)))
+        )
         print(
             "expected workers: %s (with %s excluded)"
             % (len(expected_workers) - len(exclude_arr), len(exclude_arr))
