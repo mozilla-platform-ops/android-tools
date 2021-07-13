@@ -2,7 +2,7 @@
 
 import argparse
 
-from worker_health import fitness, quarantine
+from worker_health import fitness
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -19,19 +19,17 @@ if __name__ == "__main__":
     PROVISIONER = "releng-hardware"
     WORKER_TYPE = "gecko-t-linux-talos-1804"
 
-    exclude_arr = [
-        # "t-linux64-ms-055",  # bad ilo on cart ## better all of a sudden
-        "t-linux64-ms-228",  # nvme error
-    ]
+    # exclude_arr = [
+    #     # "t-linux64-ms-055",  # bad ilo on cart ## better all of a sudden
+    #     "t-linux64-ms-228",  # nvme error
+    # ]
+    exclude_dict = {"t-linux64-ms-228": "nvme disk error"}
 
     # print("not implemented yet")
     # sys.exit(0)
 
     f = fitness.Fitness(log_level=0, provisioner=PROVISIONER, alert_percent=85)
-    q = quarantine.Quarantine()
-
-    q.print_quarantined_workers(PROVISIONER, WORKER_TYPE)
-    f.moonshot_worker_report(WORKER_TYPE, args=args, exclude_arr=exclude_arr)
+    f.moonshot_worker_report(WORKER_TYPE, args=args, exclude_dict=exclude_dict)
 
 
 # https://firefox-ci-tc.services.mozilla.com/provisioners/releng-hardware/worker-types/gecko-t-linux-talos-dw
