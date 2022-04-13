@@ -189,6 +189,7 @@ class WorkerHealth:
             if (
                 project.endswith("p2")
                 or project.endswith("g5")
+                or project.endswith("a51")
                 or project.endswith("s7")
                 or "test" in project
             ):
