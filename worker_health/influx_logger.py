@@ -19,9 +19,11 @@ except ImportError:
 
 
 class InfluxLogger:
-    def __init__(self, log_level, time_limit, testing_mode):
+    def __init__(
+        self, log_level, time_limit, testing_mode, influx_logging_enabled=False
+    ):
         self.time_limit = time_limit
-        self.logging_enabled = False
+        self.logging_enabled = influx_logging_enabled
         self.testing_mode = testing_mode
         self.log_level = log_level
 
@@ -55,16 +57,16 @@ class InfluxLogger:
         if "verify_ssl" in self.toml["influx"]:
             self.influx_verify_ssl = self.toml["influx"]["verify_ssl"]
 
-        if self.influx_host and self.influx_port and self.influx_db:
-            self.influx_client = InfluxDBClient(
-                host=self.influx_host,
-                port=self.influx_port,
-                username=self.influx_user,
-                password=self.influx_pass,
-                ssl=self.influx_ssl,
-                verify_ssl=self.influx_verify_ssl,
-            )
-            self.logging_enabled = True
+        if self.logging_enabled is True:
+            if self.influx_host and self.influx_port and self.influx_db:
+                self.influx_client = InfluxDBClient(
+                    host=self.influx_host,
+                    port=self.influx_port,
+                    username=self.influx_user,
+                    password=self.influx_pass,
+                    ssl=self.influx_ssl,
+                    verify_ssl=self.influx_verify_ssl,
+                )
 
     def write_toml(self, dict_to_write):
         with open(self.configuration_file, "w") as writer:
@@ -131,7 +133,7 @@ verify_ssl = false
             logger.info("influx logging enabled! host is %s" % self.influx_host)
         else:
             logger.warning(
-                "influx logging _not_ enabled. please edit '%s' and rerun."
+                "influx logging _not_ enabled (configuration file is '%s')"
                 % self.configuration_file
             )
 
@@ -190,14 +192,27 @@ if __name__ == "__main__":
         default=95,
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 95.",
     )
+    # TODO: rename this to something better (--testing-schedule)?
     parser.add_argument(
         "--testing-mode",
         action="store_true",
         default=False,
         help="enable testing mode (special schedule).",
     )
+    parser.add_argument(
+        "-i",
+        "--influx-logging-disabled",
+        action="store_true",
+        default=False,
+        help="disable logging to an influx server",
+    )
     args = parser.parse_args()
 
     # TODO: just pass args?
-    sa = InfluxLogger(args.log_level, args.time_limit, args.testing_mode)
+    sa = InfluxLogger(
+        args.log_level,
+        args.time_limit,
+        args.testing_mode,
+        influx_logging_enabled=(not args.influx_logging_disabled),
+    )
     sa.main()
