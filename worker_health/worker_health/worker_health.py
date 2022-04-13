@@ -178,6 +178,7 @@ class WorkerHealth:
                 item.startswith("motog5")
                 or item.startswith("pixel2")
                 or item.startswith("s7")
+                or item.startswith("a51")
                 or item.startswith("test")
             ):
                 if self.devicepool_config_yaml["device_groups"][item]:
