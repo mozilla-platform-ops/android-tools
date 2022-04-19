@@ -47,10 +47,7 @@ class TCQuarantine:
             else:
                 hosts_to_act_on.append("%s%s" % (self.worker_name_root, h))
 
-    def quarantine(self, quarantine_until, device_numbers):
-        pass
-
-    def lift_quarantine(self, device_numbers):
+    def quarantine(self, device_numbers, duration="10 years"):
         for a_host in device_numbers:
             print("removing %s from quarantine... " % a_host)
             try:
@@ -59,12 +56,15 @@ class TCQuarantine:
                     "gecko-t-linux-talos",
                     "mdc1",
                     a_host,
-                    {"quarantineUntil": taskcluster.fromNow("-1 year")},
+                    {"quarantineUntil": taskcluster.fromNow(duration)},
                 )
             except taskcluster.exceptions.TaskclusterRestFailure as e:
                 # usually due to worker not being in pool...
                 # TODO: inspect message
                 print(e)
+
+    def lift_quarantine(self, device_numbers):
+        self.quarantine(device_numbers, duration="-1 year")
 
 
 BitbarP2UnitQuarantine = TCQuarantine(
