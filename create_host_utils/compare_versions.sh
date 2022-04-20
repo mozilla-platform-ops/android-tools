@@ -21,9 +21,9 @@ for arch in "${ARCHS[@]}"; do
     if [ -d "${dir}" ]; then
       echo "${arch}: "
       echo ""
-      echo "  " diff "current/host-utils-*.en-US.${arch}" "hu_${arch}_*/host-utils-${FFVER}.en-US.${arch}"
+      echo "  " diff "current/host-utils-*.en-US.*${arch}" "hu_${arch}_*/host-utils-${FFVER}.en-US.*${arch}"
       if [ "$araxis_present" -eq "1" ]; then
-        echo "  " compare2 -swap "current/host-utils-*.en-US.${arch}" "hu_${arch}_*/host-utils-${FFVER}.en-US.${arch}"
+        echo "  " compare2 -swap "current/host-utils-*.en-US.*${arch}" "hu_${arch}_*/host-utils-${FFVER}.en-US.*${arch}"
       fi
       echo ""
     fi
