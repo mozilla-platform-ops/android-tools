@@ -75,6 +75,8 @@ class TCQuarantine:
         self.quarantine(device_numbers, duration="-1 year")
 
 
+# TCQuarantine instances
+
 BitbarP2UnitQuarantine = TCQuarantine(
     "proj-autophone", "gecko-t-bitbar-gw-unit-p2", "bitbar", "pixel2-"
 )
