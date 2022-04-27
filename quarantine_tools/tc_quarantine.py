@@ -44,20 +44,25 @@ class TCQuarantine:
             if self.padding:
                 # TODO: how to pad to arbitrary length? dynamic coding?
                 if self.padding_length == 3:
-                    hosts_to_act_on.append("%s%03d" % (self.worker_name_root, h))
+                    hosts_to_act_on.append("%s%03d" % (self.worker_name_root, int(h)))
                 else:
                     raise "not implemented yet!"
             else:
                 hosts_to_act_on.append("%s%s" % (self.worker_name_root, h))
+        return hosts_to_act_on
 
     def quarantine(self, device_numbers, duration="10 years"):
-        for a_host in device_numbers:
-            print("removing %s from quarantine... " % a_host)
+        hosts_to_act_on = self.generate_hosts(device_numbers)
+        for a_host in hosts_to_act_on:
+            if "-" in duration:
+                print("lifting quarantine on %s... " % a_host)
+            else:
+                print("adding %s to quarantine... " % a_host)
             try:
                 self.queue.quarantineWorker(
-                    "releng-hardware",
-                    "gecko-t-linux-talos",
-                    "mdc1",
+                    self.provisioner_id,
+                    self.worker_type,
+                    self.worker_group,
                     a_host,
                     {"quarantineUntil": taskcluster.fromNow(duration)},
                 )
@@ -80,7 +85,7 @@ BitbarA51PerfQuarantine = TCQuarantine(
 
 Talos1804Quarantine = TCQuarantine(
     "releng-hardware",
-    "gecko-t-linux-talos",
+    "gecko-t-linux-talos-1804",
     "mdc1",
     "t-linux64-ms-",
     padding=True,
@@ -111,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("csv_of_hosts", help="comma separated list of host ids")
 
     args = parser.parse_args()
-    print(args)
+    # print(args)
 
     host_numbers = args.csv_of_hosts.split(",")
 
@@ -121,7 +126,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     cls_instance = instance_directory[args.pool]
-    print(cls_instance)
+    # print(cls_instance)
 
     if args.quarantine:
         cls_instance.quarantine(host_numbers)
