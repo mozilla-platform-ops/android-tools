@@ -96,14 +96,14 @@ if __name__ == "__main__":
     import argparse
     import sys
 
+    # TODO: how to avoid having to create these for every pool we want to manipulate?
+    # - provide an URL to queue and extract info and create a class?
+    #   - e.g. https://firefox-ci-tc.services.mozilla.com/provisioners/releng-hardware/worker-types/gecko-t-linux-talos-1804
     instance_directory = {
         "talos1804": Talos1804Quarantine,
         "bbp2unit": BitbarP2UnitQuarantine,
         "bba51perf": BitbarA51PerfQuarantine,
     }
-
-    # ./prog -q -c bbp2unit 1,5,10
-    # ./prog -l -c bba51perf 1,2,5
 
     parser = argparse.ArgumentParser()
 
@@ -116,9 +116,9 @@ if __name__ == "__main__":
     parser.add_argument("csv_of_hosts", help="comma separated list of host ids")
 
     args = parser.parse_args()
-    # print(args)
 
     host_numbers = args.csv_of_hosts.split(",")
+    # TODO: dedupe this list
 
     if args.pool not in instance_directory:
         print("invalid pool specified. valid pools are: ")
@@ -126,7 +126,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     cls_instance = instance_directory[args.pool]
-    # print(cls_instance)
 
     if args.quarantine:
         cls_instance.quarantine(host_numbers)
