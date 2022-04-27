@@ -51,6 +51,28 @@ class TCQuarantine:
                 hosts_to_act_on.append("%s%s" % (self.worker_name_root, h))
         return hosts_to_act_on
 
+    def get_quarantined(self):
+        outcome = self.queue.listWorkers(
+            self.provisioner_id, self.worker_type, query={"quarantined": "true"}
+        )
+        # TODO: seems sort of broken... we're not adding to outcome, just setting
+        while outcome.get("continuationToken"):
+            if outcome.get("continuationToken"):
+                outcome = self.queue.listWorkers(
+                    self.provisioner_id,
+                    self.worker_type,
+                    query={
+                        "quarantined": "true",
+                        "continuationToken": outcome.get("continuationToken"),
+                    },
+                )
+
+        quarantined_workers = []
+        for item in outcome["workers"]:
+            hostname = item["workerId"]
+            quarantined_workers.append(hostname)
+        return quarantined_workers
+
     def quarantine(self, device_numbers, duration="10 years"):
         hosts_to_act_on = self.generate_hosts(device_numbers)
         for a_host in hosts_to_act_on:
@@ -112,15 +134,15 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-l", "--lift", action="store_true", help="lift the quarantine")
     group.add_argument("-q", "--quarantine", action="store_true")
+    group.add_argument("-g", "--get-quarantined", action="store_true")
 
     parser.add_argument("-p", "--pool", required=True)
 
-    parser.add_argument("csv_of_hosts", help="comma separated list of host ids")
+    parser.add_argument(
+        "csv_of_hosts", help="comma separated list of host ids", nargs="?"
+    )
 
     args = parser.parse_args()
-
-    host_numbers = args.csv_of_hosts.split(",")
-    # TODO: dedupe this list
 
     if args.pool not in instance_directory:
         print("invalid pool specified. valid pools are: ")
@@ -129,9 +151,19 @@ if __name__ == "__main__":
 
     cls_instance = instance_directory[args.pool]
 
+    if args.quarantine or args.lift:
+        if args.csv_of_hosts:
+            host_numbers = args.csv_of_hosts.split(",")
+            # TODO: dedupe this list
+        else:
+            print("please specify a CSV of host ids")
+            sys.exit(1)
+
     if args.quarantine:
         cls_instance.quarantine(host_numbers)
     elif args.lift:
         cls_instance.lift_quarantine(host_numbers)
+    elif args.get_quarantined:
+        print(cls_instance.get_quarantined())
     else:
         raise Exception("should not be here")
