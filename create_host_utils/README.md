@@ -22,7 +22,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - enter the taskcluster ids for the selected build into the build script
   - for mac: no trailing slash
 - run the build script
-  - comment out builds we're not ready for (I usually do linux first, then mac)
+  - comment out builds we're not ready for (I usually do linux first, then mac, then windows)
   - `./build_DATE.sh`
     - linux: if it fails with an error about not being able to find the artifact, see the comment on line 69 in the script
 - compare new build to existing and sanity check
@@ -41,7 +41,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - `./copy_manifests.sh`
   - cd to mozilla-central repo and `hg diff` to check that the size is close
   - commit change and create review
-    - make separate diffs for mac and linux
+    - make separate diffs for mac, linux, and windows
 - create phabricator diff
   - `moz-phab` or `arc diff`
 - run tests
