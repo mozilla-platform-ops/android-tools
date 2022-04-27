@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import json
 import os
 
@@ -40,6 +42,7 @@ class TCQuarantine:
         hosts_to_act_on = []
         for h in device_numbers:
             if self.padding:
+                # TODO: how to pad to arbitrary length? dynamic coding?
                 if self.padding_length == 3:
                     hosts_to_act_on.append("%s%03d" % (self.worker_name_root, h))
                 else:
@@ -71,6 +74,10 @@ BitbarP2UnitQuarantine = TCQuarantine(
     "proj-autophone", "gecko-t-bitbar-gw-unit-p2", "bitbar", "pixel2-"
 )
 
+BitbarA51PerfQuarantine = TCQuarantine(
+    "proj-autophone", "gecko-t-bitbar-gw-perf-a51", "bitbar", "a51-"
+)
+
 Talos1804Quarantine = TCQuarantine(
     "releng-hardware",
     "gecko-t-linux-talos",
@@ -79,3 +86,46 @@ Talos1804Quarantine = TCQuarantine(
     padding=True,
     padding_length=3,
 )
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+
+    instance_directory = {
+        "talos1804": Talos1804Quarantine,
+        "bbp2unit": BitbarP2UnitQuarantine,
+        "bba51perf": BitbarA51PerfQuarantine,
+    }
+
+    # ./prog -q -c bbp2unit 1,5,10
+    # ./prog -l -c bba51perf 1,2,5
+
+    parser = argparse.ArgumentParser()
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-l", "--lift", action="store_true", help="lift the quarantine")
+    group.add_argument("-q", "--quarantine", action="store_true")
+
+    parser.add_argument("-p", "--pool", required=True)
+
+    parser.add_argument("csv_of_hosts", help="comma separated list of host ids")
+
+    args = parser.parse_args()
+    print(args)
+
+    host_numbers = args.csv_of_hosts.split(",")
+
+    if args.pool not in instance_directory:
+        print("invalid pool specified. valid pools are: ")
+        print("  %s" % list(instance_directory.keys()))
+        sys.exit(1)
+
+    cls_instance = instance_directory[args.pool]
+    print(cls_instance)
+
+    if args.quarantine:
+        cls_instance.quarantine(host_numbers)
+    elif args.lift:
+        cls_instance.lift_quarantine(host_numbers)
+    else:
+        raise Exception("should not be here")
