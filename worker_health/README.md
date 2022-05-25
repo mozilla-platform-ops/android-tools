@@ -16,9 +16,13 @@ pipenv shell
 # run command
 ```
 
+### overview
+
 ## fitness.py
 
-Provide a report on a provisioner and worker-type.
+Shows each worker's success rate and varios concerning conditions like, consecutive failures, lack of work.
+
+Provides a report on a provisioner and worker-type.
 
 Not specific to Bitbar (works on all taskcluster provisioners).
 
@@ -35,9 +39,9 @@ Not specific to Bitbar (works on all taskcluster provisioners).
 
 ## missing_workers
 
-Helps identify Bitbar workers that are configured in a TC queue that has pending jobs, but aren't reporting for work. Utilizes a mozilla-bitbar-devicepool configuration file to detect workers that haven't worked in more than 24 hours.
+For static hardware pools (like moonshots, macs, and bitbar), alert if a worker hasn't worked in more than a day (they disappear from TC output in 24 hours).
 
-If a queue doesn't have work, we can't verify they're functioning (via the currently used method).
+If a queue doesn't have work, we can't verify they're functioning (via the currently used method - TC doesn't show static worker status unless working (I think)).
 
 ```
 ./missing_workers.py -h
