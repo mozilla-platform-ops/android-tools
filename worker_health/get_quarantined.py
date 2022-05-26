@@ -37,6 +37,7 @@ if __name__ == "__main__":
         for r in results["workers"]:
             print(r["workerId"])
     else:
+        # TODO: check if worker_type is valid somehow
         quarantined_workers = q.get_quarantined_workers(provisioner, worker_type)
         if args.verbose:
             print("%s/%s" % (provisioner, worker_type))
