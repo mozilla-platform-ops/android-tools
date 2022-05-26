@@ -13,6 +13,10 @@ import yaml
 
 from worker_health import utils
 
+#
+# DEPRECATED: see fitnenss.moonshot_worker_report
+#
+
 # log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
 log_format = "%(levelname)-10s %(funcName)s: %(message)s"
 logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
