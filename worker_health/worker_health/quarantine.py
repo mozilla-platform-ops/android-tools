@@ -22,9 +22,6 @@ class Quarantine:
             {"rootUrl": self.root_url, "credentials": creds}
         )
 
-    def set_quarantined_worker(self, provisioner, worker_type, host):
-        pass
-
     def quarantine(self, provisioner_id, worker_type, host_arr, duration="10 years"):
         # try to detect worker group
         wgs = self.get_worker_groups(
