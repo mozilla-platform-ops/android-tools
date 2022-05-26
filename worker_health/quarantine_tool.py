@@ -17,11 +17,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.action == "quarantine":
+        if args.action_options is None:
+            parser.error("you must specify a comma-separated string of hosts")
+        host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
-        pass
+        q.quarantine(
+            provisioner=args.provisioner,
+            worker_type=args.worker_type,
+            device_arr=host_arr,
+        )
     elif args.action == "lift":
         if args.action_options is None:
-            parser.error("you must specify a csv of hosts")
+            parser.error("you must specify a comma-separated string of hosts")
         host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
         q.lift_quarantine(
@@ -45,6 +52,7 @@ if __name__ == "__main__":
         output = ""
         for item in results["workers"]:
             output += "%s," % item["workerId"]
+        # trim last comma off
         print(output[0:-1])
 
         # TODO: add switch that uses this mode
