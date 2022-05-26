@@ -44,7 +44,7 @@ if __name__ == "__main__":
         if not results:
             print("no results")
         else:
-            ",".join(results)
+            print(",".join(results))
     elif args.action == "show-all":
         q = quarantine.Quarantine()
         results = q.get_workers(args.provisioner, args.worker_type)
