@@ -69,14 +69,6 @@ class Quarantine:
         output = f.get_workers(worker_type)
         return output
 
-        the_workers = []
-        for item in output["workers"]:
-            hostname = item["workerId"]
-            # print(hostname)
-            # pprint.pprint(item)
-            the_workers.append(hostname)
-        return the_workers
-
     def get_quarantined_workers(self, provisioner, worker_type):
         # import ipdb
         # ipdb.set_trace()
