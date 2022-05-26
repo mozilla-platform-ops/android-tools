@@ -25,10 +25,52 @@ class Quarantine:
     def set_quarantined_worker(self, provisioner, worker_type, host):
         pass
 
+    def quarantine(self, provisioner_id, worker_type, host_arr, duration="10 years"):
+        # try to detect worker group
+        wgs = self.get_worker_groups(
+            provisioner=provisioner_id, worker_type=worker_type
+        )
+        if len(wgs) > 1:
+            raise Exception(
+                "can't guess workerGroup, multiple present. support not implemented yet."
+            )
+        worker_group = wgs[0]
+
+        for a_host in host_arr:
+            if "-" in duration:
+                print("lifting quarantine on %s... " % a_host)
+            else:
+                print("adding %s to quarantine... " % a_host)
+            try:
+                self.tc_queue.quarantineWorker(
+                    provisioner_id,
+                    worker_type,
+                    worker_group,
+                    a_host,
+                    {"quarantineUntil": taskcluster.fromNow(duration)},
+                )
+            except taskcluster.exceptions.TaskclusterRestFailure as e:
+                # usually due to worker not being in pool...
+                # TODO: inspect message
+                print(e)
+
+    def lift_quarantine(self, provisioner, worker_type, device_arr):
+        self.quarantine(provisioner, worker_type, device_arr, duration="-1 year")
+
+    def get_worker_groups(self, provisioner, worker_type):
+        f = fitness.Fitness(log_level=0, provisioner=provisioner, alert_percent=85)
+        output = f.get_workers(worker_type)["workers"]
+        worker_groups = {}
+        for element in output:
+            a_worker_group = element["workerGroup"]
+            worker_groups[a_worker_group] = True
+        return list(worker_groups.keys())
+
     def get_workers(self, provisioner, worker_type):
         f = fitness.Fitness(log_level=0, provisioner=provisioner, alert_percent=85)
         # TODO: relocate this function to a base lib
         output = f.get_workers(worker_type)
+        return output
 
         the_workers = []
         for item in output["workers"]:
