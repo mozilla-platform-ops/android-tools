@@ -34,8 +34,8 @@ if __name__ == "__main__":
 
     if args.show_all:
         results = q.get_workers(provisioner, worker_type)
-        for r in results["workers"]:
-            print(r["workerId"])
+        for r in results:
+            print(r)
     else:
         # TODO: check if worker_type is valid somehow
         quarantined_workers = q.get_quarantined_workers(provisioner, worker_type)

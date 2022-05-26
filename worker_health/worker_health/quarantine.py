@@ -29,7 +29,14 @@ class Quarantine:
         f = fitness.Fitness(log_level=0, provisioner=provisioner, alert_percent=85)
         # TODO: relocate this function to a base lib
         output = f.get_workers(worker_type)
-        return output
+
+        the_workers = []
+        for item in output["workers"]:
+            hostname = item["workerId"]
+            # print(hostname)
+            # pprint.pprint(item)
+            the_workers.append(hostname)
+        return the_workers
 
     def get_quarantined_workers(self, provisioner, worker_type):
         # import ipdb
