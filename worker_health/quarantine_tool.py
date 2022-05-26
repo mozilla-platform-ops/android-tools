@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
+import argparse
+
 from worker_health import quarantine
 
 if __name__ == "__main__":
-
-    import argparse
-
     parser = argparse.ArgumentParser()
-
     parser.add_argument("provisioner")
     parser.add_argument("worker_type")
     parser.add_argument(
@@ -16,17 +14,6 @@ if __name__ == "__main__":
         help="action to do",
     )
     parser.add_argument("action_options", nargs="?")
-
-    # group = parser.add_argument_group('actions')
-    # mxg = group.add_mutually_exclusive_group(required=True)
-
-    # mxg.add_argument("-l", "--lift", action="store_true", help="lift the quarantine")
-    # mxg.add_argument("-q", "--quarantine", action="store_true")
-    # mxg.add_argument("-g", "--get-quarantined", action="store_true")
-    # mxg.add_argument("-a", "--get-all", action="store_true")
-
-    # parser.add_argument("-p", "--pool", required=True)
-
     args = parser.parse_args()
 
     if args.action == "quarantine":
