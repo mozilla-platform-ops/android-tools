@@ -22,9 +22,9 @@ if __name__ == "__main__":
         host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
         q.quarantine(
-            provisioner=args.provisioner,
-            worker_type=args.worker_type,
-            device_arr=host_arr,
+            args.provisioner,
+            args.worker_type,
+            host_arr,
         )
     elif args.action == "lift":
         if args.action_options is None:
@@ -32,9 +32,9 @@ if __name__ == "__main__":
         host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
         q.lift_quarantine(
-            provisioner=args.provisioner,
-            worker_type=args.worker_type,
-            device_arr=host_arr,
+            args.provisioner,
+            args.worker_type,
+            host_arr,
         )
     elif args.action == "show":
         q = quarantine.Quarantine()
