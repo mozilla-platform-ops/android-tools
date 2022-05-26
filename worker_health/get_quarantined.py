@@ -23,6 +23,8 @@ if __name__ == "__main__":
         default=0,
         help="specify multiple times for even more verbosity",
     )
+    # display all workers in worker_type, for displaying hostnames to quarantine
+    parser.add_argument("--show-all", "-s", action="store_true")
     args = parser.parse_args()
     # pprint.pprint(args)
     provisioner = args.provisioner
@@ -30,14 +32,20 @@ if __name__ == "__main__":
 
     q = quarantine.Quarantine()
 
-    quarantined_workers = q.get_quarantined_workers(provisioner, worker_type)
-    if args.verbose:
-        print("%s/%s" % (provisioner, worker_type))
-    if args.verbose >= 2:
-        print(
-            "  %s/provisioners/%s/worker-types/%s"
-            % (q.root_url, provisioner, worker_type)
-        )
-    pprint.pprint(quarantined_workers)
+    if args.show_all:
+        results = q.get_workers(provisioner, worker_type)
+        for r in results["workers"]:
+            print(r["workerId"])
+    else:
+        quarantined_workers = q.get_quarantined_workers(provisioner, worker_type)
+        if args.verbose:
+            print("%s/%s" % (provisioner, worker_type))
+        if args.verbose >= 2:
+            print(
+                "  %s/provisioners/%s/worker-types/%s"
+                % (q.root_url, provisioner, worker_type)
+            )
+        pprint.pprint(quarantined_workers)
 
-    q.main_get_quarantined()
+        # vestigial?
+        # q.main_get_quarantined()

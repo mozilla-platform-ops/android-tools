@@ -5,6 +5,8 @@ import os
 
 import taskcluster
 
+from worker_health import fitness
+
 
 class Quarantine:
 
@@ -19,6 +21,15 @@ class Quarantine:
         self.tc_queue = taskcluster.Queue(
             {"rootUrl": self.root_url, "credentials": creds}
         )
+
+    def set_quarantined_worker(self, provisioner, worker_type, host):
+        pass
+
+    def get_workers(self, provisioner, worker_type):
+        f = fitness.Fitness(log_level=0, provisioner=provisioner, alert_percent=85)
+        # TODO: relocate this function to a base lib
+        output = f.get_workers(worker_type)
+        return output
 
     def get_quarantined_workers(self, provisioner, worker_type):
         # import ipdb
