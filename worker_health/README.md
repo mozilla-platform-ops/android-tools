@@ -43,8 +43,23 @@ For static hardware pools (like moonshots, macs, and bitbar), alert if a worker 
 
 If a queue doesn't have work, we can't verify they're functioning (via the currently used method - TC doesn't show static worker status unless working (I think) in https://firefox-ci-tc.services.mozilla.com/docs/reference/platform/queue/api#listWorkers).
 
-```
+```bash
 ./missing_workers.py -h
+```
+
+## quarantine_tool
+
+Lists quarantined hosts, quarantines, lifts quarantine, and lists all workers in a workerType.
+
+```bash
+# show quarantined
+./quarantine_tool.py proj-autophone gecko-t-bitbar-gw-unit-p2 show
+
+# show all workers
+./quarantine_tool.py proj-autophone gecko-t-bitbar-gw-unit-p2 show-all
+
+./quarantine_tool.py proj-autophone gecko-t-bitbar-gw-unit-p2 quarantine pixel2-01
+./quarantine_tool.py proj-autophone gecko-t-bitbar-gw-unit-p2 lift pixel2-01
 ```
 
 ## slack_alert
