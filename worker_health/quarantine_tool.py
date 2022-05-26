@@ -34,14 +34,24 @@ if __name__ == "__main__":
         results = q.get_quarantined_workers(
             provisioner=args.provisioner, worker_type=args.worker_type
         )
-        print("workerId")
-        for r in results:
-            print(r)
+        if not results:
+            print("no results")
+        else:
+            ",".join(results)
     elif args.action == "show-all":
         q = quarantine.Quarantine()
         results = q.get_workers(args.provisioner, args.worker_type)
-        print("workerGroup,workerId")
+        # single-line csv
+        output = ""
         for item in results["workers"]:
-            print("%s,%s" % (item["workerGroup"], item["workerId"]))
+            output += "%s," % item["workerId"]
+        print(output[0:-1])
+
+        # TODO: add switch that uses this mode
+        # csv
+        # print("workerId")
+        # for item in results["workers"]:
+        #     # print("%s,%s" % (item["workerGroup"], item["workerId"]))
+        #     print(item["workerId"])
     else:
         parser.error("please specify an action")
