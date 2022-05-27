@@ -413,6 +413,10 @@ class WorkerHealth:
                     )
                     show_details = False
 
+    # calculate_missing_workers_from_tc doesn't care about time limits
+    # - catches blind spot where devices are not in Bitbar system but are in our config
+    #   - the output from self.calculate_missing_workers_from_tc misses these devices unless there are jobs in the queue
+    #
     # new simpler function that doesn't worry about tardy
     def get_tc_missing_workers(self, verbose=False):
 
@@ -736,9 +740,6 @@ class WorkerHealth:
                 )
             )
 
-            # calculate_missing_workers_from_tc_2 doesn't care about time limits
-            # - catches blind spot where devices are not in Bitbar system but are in our config
-            #   - the non _2 versions misses these devices unless there are jobs in the queue
             mw2 = self.get_tc_missing_workers()
             print(
                 output_format
