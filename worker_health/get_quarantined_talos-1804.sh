@@ -3,4 +3,4 @@
 set -e
 set -x
 
-./get_quarantined.py releng-hardware gecko-t-linux-talos-1804 "$@"
+./quarantine_tool.py releng-hardware gecko-t-linux-talos-1804 show "$@"

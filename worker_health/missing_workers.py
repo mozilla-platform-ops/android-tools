@@ -4,6 +4,8 @@ import argparse
 
 from worker_health import worker_health
 
+# TODO: rewrite with fitness.moonshot_worker_report
+
 
 def main():
 

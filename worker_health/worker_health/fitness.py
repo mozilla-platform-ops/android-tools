@@ -324,6 +324,7 @@ class Fitness:
         outcome = queue.listWorkers(self.provisioner, worker_type)
         return outcome
 
+    # returns str:worker_type, dict/list?:worker_results, error
     def workertype_fitness_report(self, worker_type):
         # load quarantine data
         self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(
