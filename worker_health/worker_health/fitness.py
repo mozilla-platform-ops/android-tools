@@ -350,7 +350,7 @@ class Fitness:
                 self.device_fitness_report, worker_ids
             )
         except Exception as e:
-            print(e)
+            raise (e)
         worker_results = []
         for a_tuple in results:
             worker_id = a_tuple[0]
@@ -578,7 +578,14 @@ class Fitness:
         # alert if worker hasn't worked in self.alert_time minutes
         dt = pendulum.now(tz="UTC")
         comparison_dt = dt.subtract(minutes=self.alert_time)
-        if jobs_present and task_last_started_timestamp < comparison_dt:
+        if jobs_present and not task_last_started_timestamp:
+            # seems to always to occur also when below condition is also met?!?
+
+            # results_obj.setdefault("alerts", []).append(
+            #     "No work done!"
+            # )
+            pass
+        elif jobs_present and task_last_started_timestamp < comparison_dt:
             results_obj.setdefault("alerts", []).append(
                 "No work in %sm!" % self.alert_time
             )
