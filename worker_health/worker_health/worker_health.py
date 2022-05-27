@@ -453,7 +453,7 @@ class WorkerHealth:
                     continue
 
         # dedupe and return list
-        return list(set(missing_workers))
+        return sorted(list(set(missing_workers)))
 
     # TODO: unit test this
     # rename/rework to detect_tardy()
