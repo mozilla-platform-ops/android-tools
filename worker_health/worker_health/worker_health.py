@@ -800,7 +800,7 @@ class WorkerHealth:
                 time_limit, exclude_quarantined=True
             )
             missing_workers_flattened = self.flatten_list(missing_workers.values())
-            result_dict["tc"]: missing_workers_flattened
+            result_dict["tc"] = missing_workers_flattened
 
             # TODO: do quarantined
             # if self.quarantined_workers:
