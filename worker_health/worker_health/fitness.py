@@ -580,11 +580,7 @@ class Fitness:
         comparison_dt = dt.subtract(minutes=self.alert_time)
         if jobs_present and not task_last_started_timestamp:
             # seems to always to occur also when below condition is also met?!?
-
-            # results_obj.setdefault("alerts", []).append(
-            #     "No work done!"
-            # )
-            pass
+            results_obj.setdefault("alerts", []).append("No work!")
         elif jobs_present and task_last_started_timestamp < comparison_dt:
             results_obj.setdefault("alerts", []).append(
                 "No work in %sm!" % self.alert_time
