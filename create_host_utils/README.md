@@ -35,7 +35,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
       - should mostly be binaries that change
 - `./upload.sh ARCH MESSAGE`
   - ARCH should be one of x86_64, win32, or mac
-  - MESSAGE should be similar to "Bug 123456789: update linux hostutils"
+  - MESSAGE should be similar to "Bug XYZ: update linux hostutils"
 - copy manifests to mozilla client, inspect, and commit
   - make sure the mozilla client is on the tip of central
     - could possibly be on the linux hostutils change you did earlier

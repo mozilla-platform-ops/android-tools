@@ -59,6 +59,7 @@ cp -R /Volumes/Firefox\ Nightly/Firefox\ Nightly.app/Contents/Resources/* bin
 # TODO: how to avoid prompt (needed if running automated build)
 find bin -type f -perm +111 -print | grep -v \\. | xargs sudo codesign --force --deep --sign -
 mv bin host-utils-${FFVER}.en-US.mac
+# TODO: create hostutils_build_info file like other builds
 tar cf host-utils-${FFVER}.en-US.mac.tar host-utils-${FFVER}.en-US.mac/*
 gzip host-utils-${FFVER}.en-US.mac.tar
 
