@@ -83,7 +83,7 @@ set_info_string
 
 echo ""
 echo "-------------------------------"
-echo "$info_string"
+printf '%b' "$info_string"
 echo "-------------------------------"
 echo ""
 
@@ -121,7 +121,7 @@ rm firefox/firefox*
 rm -r firefox/browser
 mv 'temp_common'/bin/* firefox
 # write out info file
-printf '%s' "$info_string" > firefox/.hostutils_build_info
+printf '%b' "$info_string" > firefox/.hostutils_build_info
 # double check arch of binary
 echo ""
 echo "-------------------------------"
