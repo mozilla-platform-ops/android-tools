@@ -37,6 +37,8 @@ function set_info_string {
 # use gnu tar vs bsd tar... not sure if important (they do produce differently sized archives).
 os=$(uname -s)
 
+# TODO: check number of args
+
 ## arg requirements
 if [ -z "$1" ]; then
   echo "please provide a task id"
@@ -47,11 +49,11 @@ task_id=$1
 # used to be an arg
 arch="win32"
 
-if [ -z "$2" ]; then
+if [ -z "$3" ]; then
   echo "please provide an the URL of the build used"
   exit 1
 fi
-build_used=$2
+build_used=$3
 
 # bring in common
 . common.sh
