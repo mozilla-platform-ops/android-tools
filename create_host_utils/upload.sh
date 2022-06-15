@@ -18,14 +18,18 @@ if [ -z "$2" ]; then
 fi
 message=$2
 
-if [ -d ./hu_${arch}_* ]; then
-  cd ./hu_${arch}_*
-  $TT_PATH upload --authentication-file=~/.tooltool-tc-token --message $message
-  cd ..
-else
-  echo "ERROR: dir not found! './hu_${arch}_*'"
-  exit 1
-fi
+for dir in ./hu_"${arch}"_*; do
+
+  if [ -d "$dir" ]; then
+    cd "$dir"
+    python3 "$TT_PATH" upload --authentication-file=~/.tooltool-tc-token --message "$message"
+    cd ..
+  else
+    echo "ERROR: dir not found! './hu_${arch}_*'"
+    exit 1
+  fi
+
+done
 
 echo ""
 echo "SUCCESS"
