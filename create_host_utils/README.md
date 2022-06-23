@@ -16,7 +16,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 - create a new build script
   - `./generate_build_script.sh`
   - the script will output the new build script's name
-- identify a good taskcluster build and edit script
+- identify a good taskcluster build and edit the new build script
   - find task IDs and URL for builds (see reference doc above for tips on picking)
     - ideally pick a job without retries on the build step. there's a known issue, see TODO section below.
   - enter the taskcluster ids for the selected build into the build script
@@ -25,6 +25,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - comment out builds we're not ready for (I usually do linux first, then mac, then windows)
   - `./build_DATE.sh`
     - linux: if it fails with an error about not being able to find the artifact, see the comment on line 69 in the script
+    - if it fails after examining the binary architecture, tooltool may be messed up. try running manually. on OS X, it may fail due to needing python2 still (https://bugzilla.mozilla.org/show_bug.cgi?id=1716390, fix noted in bug).
 - compare new build to existing and sanity check
   - `./get_current.sh`
     - fetches all 3, no need to run for each
@@ -34,7 +35,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
       - should mostly be binaries that change
 - `./upload.sh ARCH MESSAGE`
   - ARCH should be one of x86_64, win32, or mac
-  - MESSAGE should be similar to "Bug 123456789: update linux hostutils"
+  - MESSAGE should be similar to "Bug XYZ: update linux hostutils"
 - copy manifests to mozilla client, inspect, and commit
   - make sure the mozilla client is on the tip of central
     - could possibly be on the linux hostutils change you did earlier
