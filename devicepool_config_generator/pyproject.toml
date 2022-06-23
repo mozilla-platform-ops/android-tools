@@ -5,8 +5,8 @@ description = ""
 authors = ["Andrew Erickson <aerickson@mozilla.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.5"  # Compatible python versions must be declared here
-pyyaml = "^5.3.1"
+python = ">=3.6,<4.0"
+PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.3"
