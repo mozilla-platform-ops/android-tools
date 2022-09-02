@@ -3,4 +3,4 @@
 set -e
 
 mkdir -p /tmp/cache/polipo
-polipo -c polipo.conf
+polipo2 -c polipo.conf

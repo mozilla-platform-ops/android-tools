@@ -2,4 +2,4 @@
 
 set -e
 
-export DOCKER_IMAGE_NAME="test-docker"
+export DOCKER_IMAGE_NAME="devicepool"

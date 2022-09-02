@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
-#set -x
+set -x
 
 . ./common.sh
 
@@ -22,7 +22,7 @@ if [ "$status" == 0 ] ; then
 
 	docker build --build-arg http_proxy=http://$proxy_host:8123 \
 		--build-arg https_proxy=http://$proxy_host:8123 \
-		-t test-docker .
+		-t "$DOCKER_IMAGE_NAME" .
 else
 	# polipo is not running
 	echo "* not using proxy"

@@ -28,3 +28,5 @@ if (( a < 55000000 )) || [ -n "$FORCE_CLEAN" ] ; then
 else
 	echo "not performing deep clean."
 fi
+
+# TODO: just run docker-clean?!?
