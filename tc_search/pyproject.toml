@@ -5,7 +5,8 @@ description = ""
 authors = ["Andrew Erickson <aerickson@mozilla.com>"]
 
 [tool.poetry.dependencies]
-taskcluster = "^44.16.3"
+taskcluster = "^44.21.0"
+python = "^3.7"
 
 [tool.poetry.dev-dependencies]
 
