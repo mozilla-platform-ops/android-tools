@@ -181,6 +181,7 @@ class WorkerHealth:
             if (
                 item.startswith("motog5")
                 or item.startswith("pixel2")
+                or item.startswith("pixel5")
                 or item.startswith("s7")
                 or item.startswith("a51")
                 or item.startswith("test")
@@ -192,6 +193,7 @@ class WorkerHealth:
         for project in self.devicepool_config_yaml["projects"]:
             if (
                 project.endswith("p2")
+                or project.endswith("p5")
                 or project.endswith("g5")
                 or project.endswith("a51")
                 or project.endswith("s7")
@@ -674,6 +676,7 @@ class WorkerHealth:
             if (
                 item.startswith("motog5")
                 or item.startswith("pixel2")
+                or item.startswith("pixel5")
                 or item.startswith("a51")
                 or item.startswith("s7")
                 or item.startswith("test")
