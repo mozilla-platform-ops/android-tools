@@ -60,6 +60,10 @@ ssh "$the_host" sudo sed -i.bak "s/INFLUX_PASS/${influx_pass}/" /etc/telegraf/te
 # restart telegraf
 ssh "$the_host" sudo systemctl restart telegraf
 
+# do sed on pagerduty token
+pd_token=$(sops -d "${full_path}/bitbar_secrets.toml" | tq - .pagerduty.token)
+ssh "$the_host" sudo sed -i.bak "s/replace-this-invalid-token/${pd_token}"
+
 # TODO: place slack_alert and influx_logger configs
 
 # TODO: grab this from SOPS vs local clone of devicepool
