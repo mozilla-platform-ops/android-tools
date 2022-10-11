@@ -38,7 +38,6 @@ ssh "$the_host" 'sudo -iu bitbar bash -c "cd ~bitbar/mozilla-bitbar-devicepool &
 # RUN PUPPET
 #
 
-# now run as current user and remove relops user (fails in prior run)
 echo "running puppet..."
 scp "$BOOTSTRAP_SCRIPT_PATH" "$the_host":/tmp/
 ssh "$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh
