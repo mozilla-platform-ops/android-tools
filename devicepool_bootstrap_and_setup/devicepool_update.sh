@@ -63,7 +63,8 @@ ssh "$the_host" sudo systemctl restart telegraf
 # do sed on pagerduty token
 pd_token=$(sops -d "${full_path}/bitbar_secrets.toml" | tq - .pagerduty.token)
 ssh "$the_host" sudo sed -i.bak "s/replace-this-invalid-token/${pd_token}/" /etc/systemd/system/bitbar-last_started_alert.service
-# don't restart... not sure if this is the active node
+ssh "$the_host" sudo systemctl daemon-reload
+# don't restart bitbar-last_started_alert... not sure if this is the active node
 # ssh "$the_host" sudo systemctl restart bitbar-last_started_alert
 
 # TODO: place slack_alert and influx_logger configs
