@@ -51,9 +51,9 @@ ssh "$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh
 
 sops_subdir="secrets/relops"
 full_path="${PATH_TO_SOPS_REPO}/${sops_subdir}"
-influx_host=$(sops -d "${full_path}/bitbar_influx_logger.toml" | tq .influx.host)
-influx_user=$(sops -d "${full_path}/bitbar_influx_logger.toml" | tq .influx.user)
-influx_pass=$(sops -d "${full_path}/bitbar_influx_logger.toml" | tq .influx.pass)
+influx_host=$(sops -d "${full_path}/bitbar_influx_logger.toml" | tq - .influx.host)
+influx_user=$(sops -d "${full_path}/bitbar_influx_logger.toml" | tq - .influx.user)
+influx_pass=$(sops -d "${full_path}/bitbar_influx_logger.toml" | tq - .influx.pass)
 # do sed on telegraf config
 ssh "$the_host" sudo sed -i.bak "s/INFLUX_HOST/${influx_host}/" /etc/telegraf/telegraf.d/devicepool.conf
 ssh "$the_host" sudo sed -i.bak "s/INFLUX_USER/${influx_user}/" /etc/telegraf/telegraf.d/devicepool.conf
