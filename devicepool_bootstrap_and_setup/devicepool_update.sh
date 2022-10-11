@@ -67,7 +67,14 @@ ssh "$the_host" sudo systemctl daemon-reload
 # don't restart bitbar-last_started_alert... not sure if this is the active node
 # ssh "$the_host" sudo systemctl restart bitbar-last_started_alert
 
-# TODO: place slack_alert and influx_logger configs
+# place slack_alert and influx_logger configs
+# ~/.bitbar_slack_alert.toml
+content=$(sops -d "${full_path}/bitbar_slack_alert.toml")
+echo "$content" | ssh "$the_host" -T "sudo -u bitbar bash -c 'cat > /home/bitbar/.bitbar_slack_alert.toml'"
+# ~/.bitbar_influx_logger.toml
+content=$(sops -d "${full_path}/bitbar_influx_logger.toml")
+echo "$content" | ssh "$the_host" -T "sudo -u bitbar bash -c 'cat > /home/bitbar/.bitbar_influx_logger.toml'"
+ssh "$the_host" 'sudo -u bitbar bash -c "chmod 640 /home/bitbar/.bitbar*"'
 
 # TODO: grab this from SOPS vs local clone of devicepool
 ./distribute_bitbar_env.sh "$the_host"
