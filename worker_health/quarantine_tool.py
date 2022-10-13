@@ -57,6 +57,7 @@ if __name__ == "__main__":
         # single-line csv
         output = ""
 
+        # sort just based on the numerical element of the workerId
         # how to avoid needing multiple of these for each type?
         sorted_list_of_dicts = sorted(
             results["workers"],

@@ -3,9 +3,8 @@
 import json
 import os
 
+import fitness
 import taskcluster
-
-from worker_health import fitness
 
 # see https://github.com/mozilla-platform-ops/relops-infra/blob/master/quarantine_tc.py
 # for prior art

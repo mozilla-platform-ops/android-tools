@@ -7,11 +7,12 @@ from time import time as timer
 
 import humanhash  # provided by humanhash3
 import pendulum
+import quarantine
 import taskcluster
+import utils
 from natsort import natsorted
 
-from worker_health import quarantine, utils
-from worker_health.worker_health import logger
+from worker_health import logger
 
 WORKERTYPE_THREAD_COUNT = 4
 TASK_THREAD_COUNT = 6
