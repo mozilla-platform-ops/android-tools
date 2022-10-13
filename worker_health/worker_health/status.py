@@ -37,17 +37,36 @@ class Status:
         )
 
     def jobs_running(self, provisioner, worker_type, hosts):
-        f = fitness.Fitness(provisioner)
-        pprint.pprint(f.get_workers())
-        pass
+        f = fitness.Fitness(provisioner=provisioner)
+        # issue: doesn't show state (running or idle)
+        # pprint.pprint(f.get_workers(worker_type))
+
+        for host in hosts:
+            print("yaya")
+            pprint.pprint(f.get_worker_jobs("mdc1", worker_type, host))
 
     def list_workers(self, provisioner, worker_type):
-        results = self.tc_wm.listWorkers(provisioner, worker_type)
+        results = self.tc_wm.listWorkers(worker_type, provisioner)
+        pprint.pprint(results)
         for result in results["workers"]:
             pprint.pprint(result)
 
 
 if __name__ == "__main__":
     si = Status()
-    si.jobs_running("releng-hardware", "gecko-t-osx-1015-r8", [])
+    si.jobs_running(
+        "releng-hardware",
+        "gecko-t-osx-1015-r8",
+        [
+            "macmini-r8-1",
+            "macmini-r8-2",
+            "macmini-r8-3",
+            "macmini-r8-4",
+            "macmini-r8-5",
+            "macmini-r8-7",
+            "macmini-r8-8",
+            "macmini-r8-9",
+            "macmini-r8-10",
+        ],
+    )
     # import ipdb; ipdb.set_trace()
