@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import re
 
 from worker_health import quarantine
+
+
+def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
+    return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -50,7 +56,14 @@ if __name__ == "__main__":
         results = q.get_workers(args.provisioner, args.worker_type)
         # single-line csv
         output = ""
-        for item in results["workers"]:
+
+        # how to avoid needing multiple of these for each type?
+        sorted_list_of_dicts = sorted(
+            results["workers"],
+            key=lambda d: "{0:0>8}".format(d["workerId"].replace("macmini-r8-", "")),
+        )
+
+        for item in sorted_list_of_dicts:
             output += "%s," % item["workerId"]
         # trim last comma off
         print(output[0:-1])
