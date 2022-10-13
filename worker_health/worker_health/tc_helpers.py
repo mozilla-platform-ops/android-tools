@@ -1,3 +1,8 @@
+import json
+import os
+
+import taskcluster
+
 from worker_health import utils
 
 
@@ -28,3 +33,26 @@ class TCHelper:
             # "https://queue.taskcluster.net/v1/task/%s/status" % taskid
         )
         return taskid, output, exception
+
+    def get_workers(self, worker_type):
+        # TODO: improve this (don't explode if missing)
+        with open(os.path.expanduser("~/.tc_token")) as json_file:
+            data = json.load(json_file)
+        creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
+        queue = taskcluster.Queue(
+            {
+                "rootUrl": "https://firefox-ci-tc.services.mozilla.com",
+                "credentials": creds,
+            }
+        )
+
+        outcome = queue.listWorkers(self.provisioner, worker_type)
+        return outcome
+
+    def get_worker_groups(self, worker_type):
+        output = self.get_workers(worker_type)["workers"]
+        worker_groups = {}
+        for element in output:
+            a_worker_group = element["workerGroup"]
+            worker_groups[a_worker_group] = True
+        return list(worker_groups.keys())

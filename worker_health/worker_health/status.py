@@ -37,7 +37,7 @@ class Status:
             {"rootUrl": self.root_url, "credentials": creds}
         )
 
-    def jobs_running(self, provisioner, worker_group, worker_type, hosts):
+    def show_jobs_running_report(self, provisioner, worker_type, hosts):
         tch = tc_helpers.TCHelper(provisioner=provisioner)
         # issue: doesn't show state (running or idle)
         # pprint.pprint(f.get_workers(worker_type))
@@ -45,8 +45,17 @@ class Status:
         if len(hosts) == 0:
             raise Exception("no hosts specified")
 
+        worker_groups = tch.get_worker_groups(worker_type)
+        if len(worker_groups) > 1:
+            raise Exception(
+                "currently doesn't support worker types with more than one worker group!"
+            )
+        worker_group = worker_groups[0]
+
         hosts_with_non_completed_or_failed_jobs = []
+        hosts_checked = []
         for host in hosts:
+            hosts_checked.append(host)
             results = tch.get_worker_jobs(worker_type, worker_group, host)
             # pprint.pprint(results)
             for result in results["recentTasks"]:
@@ -61,8 +70,9 @@ class Status:
             # for job in jobs:
             # see if running, if yes, return true or accumulate
 
+        print(f"hosts checked ({len(hosts_checked)}): {hosts_checked}")
         print(
-            f"hosts_with_non_completed_or_failed_jobs: {hosts_with_non_completed_or_failed_jobs}"
+            f"hosts_with_non_completed_or_failed_jobs ({len(hosts_with_non_completed_or_failed_jobs)}): {hosts_with_non_completed_or_failed_jobs}"
         )
         # pprint.pprint(hosts_with_non_completed_or_failed_jobs)
 
@@ -75,20 +85,19 @@ class Status:
 
 if __name__ == "__main__":
     si = Status()
-    si.jobs_running(
+    si.show_jobs_running_report(
         "releng-hardware",
-        "mdc1",
         "gecko-t-osx-1015-r8",
         [
             "macmini-r8-1",
-            # "macmini-r8-2",
-            # "macmini-r8-3",
-            # "macmini-r8-4",
-            # "macmini-r8-5",
-            # "macmini-r8-7",
-            # "macmini-r8-8",
-            # "macmini-r8-9",
-            # "macmini-r8-10",
+            "macmini-r8-2",
+            "macmini-r8-3",
+            "macmini-r8-4",
+            "macmini-r8-5",
+            "macmini-r8-7",
+            "macmini-r8-8",
+            "macmini-r8-9",
+            "macmini-r8-10",
         ],
     )
     # import ipdb; ipdb.set_trace()
