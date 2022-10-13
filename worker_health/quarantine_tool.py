@@ -50,6 +50,8 @@ if __name__ == "__main__":
         if not results:
             print("no results")
         else:
+            # human order
+            results.sort(key=lambda d: "{0:0>8}".format(d.replace("macmini-r8-", "")))
             print(",".join(results))
     elif args.action == "show-all":
         q = quarantine.Quarantine()
@@ -59,6 +61,7 @@ if __name__ == "__main__":
 
         # sort just based on the numerical element of the workerId
         # how to avoid needing multiple of these for each type?
+        #   - split on '-' and others and use last part?
         sorted_list_of_dicts = sorted(
             results["workers"],
             key=lambda d: "{0:0>8}".format(d["workerId"].replace("macmini-r8-", "")),

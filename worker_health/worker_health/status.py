@@ -42,8 +42,11 @@ class Status:
         # issue: doesn't show state (running or idle)
         # pprint.pprint(f.get_workers(worker_type))
 
+        if len(hosts) == 0:
+            raise Exception("no hosts specified")
+
         for host in hosts:
-            print("yaya")
+            # TODO: don't hardcode mdc1
             pprint.pprint(tch.get_worker_jobs(worker_type, "mdc1", host))
 
     def list_workers(self, provisioner, worker_type):
