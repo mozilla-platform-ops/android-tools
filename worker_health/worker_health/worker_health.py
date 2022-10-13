@@ -11,7 +11,7 @@ import time
 import pendulum
 import yaml
 
-from worker_health import utils
+from . import utils
 
 #
 # DEPRECATED: see fitnenss.moonshot_worker_report

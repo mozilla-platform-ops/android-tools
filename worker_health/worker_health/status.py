@@ -4,8 +4,8 @@ import json
 import os
 import pprint
 
-import fitness
 import taskcluster
+import tc_helpers
 
 # listWorkers(provisionerId, workerType, {continuationToken, limit, quarantined, workerState}) : result
 # list workers: si.tc_wm.listWorkers('releng-hardware', 'gecko-t-osx-1015-r8')
@@ -37,13 +37,13 @@ class Status:
         )
 
     def jobs_running(self, provisioner, worker_type, hosts):
-        f = fitness.Fitness(provisioner=provisioner)
+        tch = tc_helpers.TCHelper(provisioner=provisioner)
         # issue: doesn't show state (running or idle)
         # pprint.pprint(f.get_workers(worker_type))
 
         for host in hosts:
             print("yaya")
-            pprint.pprint(f.get_worker_jobs("mdc1", worker_type, host))
+            pprint.pprint(tch.get_worker_jobs(worker_type, "mdc1", host))
 
     def list_workers(self, provisioner, worker_type):
         results = self.tc_wm.listWorkers(worker_type, provisioner)
