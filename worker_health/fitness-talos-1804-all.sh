@@ -3,7 +3,7 @@
 set -e
 # set -x
 
-./fitness.py \
+./fitness_check.py \
   --ping \
   --ping-domain test.releng.mdc1.mozilla.com \
   -p releng-hardware \

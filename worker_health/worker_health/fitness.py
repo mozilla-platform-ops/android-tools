@@ -10,9 +10,8 @@ import pendulum
 import taskcluster
 from natsort import natsorted
 
-from worker_health.worker_health import logger
-
-from . import quarantine, utils
+from worker_health import quarantine, utils
+from worker_health.health import logger
 
 WORKERTYPE_THREAD_COUNT = 4
 TASK_THREAD_COUNT = 6

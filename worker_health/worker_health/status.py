@@ -5,7 +5,8 @@ import os
 import pprint
 
 import taskcluster
-import tc_helpers
+
+from worker_health import tc_helpers
 
 # listWorkers(provisionerId, workerType, {continuationToken, limit, quarantined, workerState}) : result
 # list workers: si.tc_wm.listWorkers('releng-hardware', 'gecko-t-osx-1015-r8')

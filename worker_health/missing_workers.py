@@ -2,7 +2,7 @@
 
 import argparse
 
-from worker_health import worker_health
+from worker_health import health
 
 # TODO: rewrite with fitness.moonshot_worker_report
 
@@ -25,7 +25,7 @@ def main():
         action="store_true",
         default=False,
         help="force an update to the devicepool repository (normally updated every %s seconds)"
-        % worker_health.REPO_UPDATE_SECONDS,
+        % health.REPO_UPDATE_SECONDS,
     )
     parser.add_argument(
         "-v",
@@ -43,7 +43,7 @@ def main():
         help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 95.",
     )
     args = parser.parse_args()
-    wh = worker_health.WorkerHealth(args.log_level)
+    wh = health.Health(args.log_level)
 
     # TESTING
     # output = wh.get_jsonc("https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=50")

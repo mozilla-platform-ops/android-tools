@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# TODO: rename this to fitness_check or something to avoid confusion with worker_health/fitness_check.py
+
 import argparse
 import sys
 

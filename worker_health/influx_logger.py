@@ -7,7 +7,7 @@ import sys
 import time
 
 from worker_health import utils
-from worker_health.worker_health import WorkerHealth, logger
+from worker_health.health import Health, logger
 
 try:
     import schedule
@@ -119,7 +119,7 @@ verify_ssl = false
     # logs both problem and configured data
     def do_worker_influx_logging(self):
         logger.info("gathering data and generating influx log lines...")
-        wh = WorkerHealth(self.log_level)
+        wh = Health(self.log_level)
         pw = wh.influx_report(time_limit=self.time_limit, verbosity=self.log_level)
 
         if self.log_level:
