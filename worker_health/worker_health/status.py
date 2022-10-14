@@ -8,20 +8,7 @@ import taskcluster
 
 from worker_health import tc_helpers
 
-# listWorkers(provisionerId, workerType, {continuationToken, limit, quarantined, workerState}) : result
-# list workers: si.tc_wm.listWorkers('releng-hardware', 'gecko-t-osx-1015-r8')
-
-# pool id is "<provisionerId>/<workerType>" i think
-# workergroup is mdc1
-# TODO: find api to get workerGroups
-# worker(workerPoolId, workerGroup, workerId) : result
-
-#   'workerGroup': 'mdc1',
-#   'workerId': 'macmini-r8-83',
-#   'workerPoolId': 'releng-hardware/gecko-t-osx-1015-r8'},
-# si.tc_wm.worker('releng-hardware/gecko-t-osx-1015-r8', 'mdc1', 'macmini-r8-83')
-#
-# doesn't work because WM doesn't know about these worker types (standalone provisioner)
+# class goal: see if a worker is working
 
 
 class Status:
@@ -85,19 +72,21 @@ class Status:
 
 if __name__ == "__main__":
     si = Status()
+    # example usage
     si.show_jobs_running_report(
         "releng-hardware",
         "gecko-t-osx-1015-r8",
         [
             "macmini-r8-1",
-            "macmini-r8-2",
-            "macmini-r8-3",
-            "macmini-r8-4",
-            "macmini-r8-5",
-            "macmini-r8-7",
-            "macmini-r8-8",
-            "macmini-r8-9",
-            "macmini-r8-10",
+            # "macmini-r8-2",
+            # "macmini-r8-3",
+            # "macmini-r8-4",
+            # "macmini-r8-5",
+            # "macmini-r8-7",
+            # "macmini-r8-8",
+            # "macmini-r8-9",
+            # "macmini-r8-10",
         ],
     )
+    # for futher debugging
     # import ipdb; ipdb.set_trace()
