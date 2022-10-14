@@ -30,7 +30,7 @@ Provides a report on a provisioner and worker-type.
 
 Not specific to Bitbar (works on all taskcluster provisioners).
 
-![fitness.py](image./fitness_check.py_example.png)
+![fitness.py](images/fitness_py_example.png)
 
 ```
 ./fitness_check.py -h
