@@ -43,6 +43,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - cd to mozilla-central repo and `hg diff` to check that the size is close
   - commit change and create review
     - make separate diffs for mac, linux, and windows
+    - e.g. `hg commit -m 'Bug XYZ: update linux hostutils'
 - create phabricator diff
   - `moz-phab` or `arc diff`
 - run tests
