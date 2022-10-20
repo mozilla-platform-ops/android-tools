@@ -9,7 +9,7 @@ import requests
 import schedule
 import toml
 
-from worker_health.worker_health import WorkerHealth, logger, utils
+from worker_health.health import Health, logger, utils
 
 
 class SlackAlert:
@@ -59,7 +59,7 @@ currently_alerting = false
             return return_dict
 
     def slack_alert(self):
-        wh = WorkerHealth(self.log_level)
+        wh = Health(self.log_level)
         # for slack alerts, don't mention tc quarantined hosts
         # - will still appear if offline in devicepool
         report_data = wh.get_slack_report(

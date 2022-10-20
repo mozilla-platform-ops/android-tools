@@ -11,7 +11,7 @@ import taskcluster
 from natsort import natsorted
 
 from worker_health import quarantine, utils
-from worker_health.worker_health import logger
+from worker_health.health import logger
 
 WORKERTYPE_THREAD_COUNT = 4
 TASK_THREAD_COUNT = 6
@@ -24,7 +24,7 @@ class Fitness:
     def __init__(
         self,
         log_level=0,
-        provisioner=DEFAULT_PROVISIONER,
+        provisioner=DEFAULT_PROVISIONER,  # TODO: don't default this here, but set if not given?
         alert_percent=ALERT_PERCENT,
         alert_time=ALERT_TIME,
         testing_mode=False,
@@ -42,12 +42,11 @@ class Fitness:
 
     def get_worker_jobs(self, queue, worker_type, worker):
         # TODO: need to get worker-group...
-        return utils.get_jsonc(
+        url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
-            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
-            % (self.provisioner, queue, worker_type, worker),
-            self.verbosity,
+            % (self.provisioner, queue, worker_type, worker)
         )
+        return utils.get_jsonc(url, self.verbosity)
 
     def get_task_status(self, taskid):
         _url, output, exception = utils.get_jsonc2(

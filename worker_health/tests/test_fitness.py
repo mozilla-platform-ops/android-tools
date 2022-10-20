@@ -7,7 +7,7 @@ def test_bin_fitness():
     root_dir = parent_dir / ".."
 
     # Generate command
-    cmd = ["./fitness.py", "-h"]
+    cmd = ["./fitness_check.py", "-h"]
 
     # excute script
     pipe = subprocess.run(

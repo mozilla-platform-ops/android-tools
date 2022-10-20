@@ -1,11 +1,11 @@
 import pytest
 
-from worker_health import worker_health
+from worker_health import health
 
 
 @pytest.fixture
 def wh_instance():
-    return worker_health.WorkerHealth()
+    return health.Health()
 
 
 def test_make_list_unique(wh_instance):

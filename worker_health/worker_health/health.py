@@ -42,7 +42,7 @@ class NonZeroExit(Exception):
 #       - if running on devicepool host, we have the actual config being run... best thing to use.
 
 
-class WorkerHealth:
+class Health:
     def __init__(self, verbosity=0):
         username = getpass.getuser()
         self.devicepool_client_dir = os.path.join(
@@ -849,7 +849,7 @@ class WorkerHealth:
 
 
 if __name__ == "__main__":
-    wh = WorkerHealth()
+    wh = Health()
 
     wh.gather_data()
 

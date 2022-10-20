@@ -3,4 +3,4 @@
 set -e
 # set -x
 
-./fitness.py -p gecko-t -hh -s -o t-linux-metal $@
+./fitness_check.py -p gecko-t -hh -s -o t-linux-metal "$@"

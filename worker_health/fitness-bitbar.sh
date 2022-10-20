@@ -3,4 +3,4 @@
 set -e
 # set -x
 
-./fitness.py $@ -s -o
+./fitness_check.py "$@" -s -o -t 75
