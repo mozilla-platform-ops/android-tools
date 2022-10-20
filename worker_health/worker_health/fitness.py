@@ -46,7 +46,6 @@ class Fitness:
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
             % (self.provisioner, queue, worker_type, worker)
         )
-        print(url)
         return utils.get_jsonc(url, self.verbosity)
 
     def get_task_status(self, taskid):
