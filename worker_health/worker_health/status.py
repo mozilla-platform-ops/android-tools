@@ -52,16 +52,16 @@ class Status:
                 # pprint.pprint(status_blob)
                 t_status = status_blob["status"]["state"]
                 if t_status != "completed" and t_status != "failed":
-                    pprint.pprint(status_blob["status"]["state"])
+                    # pprint.pprint(status_blob["status"]["state"])
                     hosts_with_non_completed_or_failed_jobs.append(host)
-            # for job in jobs:
-            # see if running, if yes, return true or accumulate
 
         print(f"hosts checked ({len(hosts_checked)}): {hosts_checked}")
         print(
             f"hosts_with_non_completed_or_failed_jobs ({len(hosts_with_non_completed_or_failed_jobs)}): {hosts_with_non_completed_or_failed_jobs}"
         )
-        # pprint.pprint(hosts_with_non_completed_or_failed_jobs)
+
+        # return hosts not idle
+        return hosts_with_non_completed_or_failed_jobs
 
     def list_workers(self, provisioner, worker_type):
         results = self.tc_wm.listWorkers(worker_type, provisioner)
