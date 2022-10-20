@@ -7,6 +7,7 @@ set -e
 # TODO: ensure there is one match to the wildcards...
 
 # TODO: take arch as arg so we don't have to remove _hu build dirs after each arch build?
+#   - and rename to copy_manifest.sh
 
 # bring in common
 . common.sh

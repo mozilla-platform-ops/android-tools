@@ -60,7 +60,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 
 ## TODO
 
-- compare: output lines for programs other than araxis
 - create_new_host_utils_linux.sh: handle bug
   - line 69: handle when the build isn't /0
 - write report file with the manifest digests?
+- see inline TODOs in the scripts
