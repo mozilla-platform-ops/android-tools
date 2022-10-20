@@ -49,8 +49,9 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 - run tests
   - see reference doc
   - add the treeherder link to the phab review
-  - if the tests look good, request a review from bc
+  - if the tests look good, request a review from gbrown and standard8
     - mkato for win?
+- repeat for other operating systems from 'run the build script' step
 
 ## TODO
 
