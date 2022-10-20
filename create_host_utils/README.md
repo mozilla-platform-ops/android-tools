@@ -12,7 +12,6 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 - update the mozilla-central client that the configuration points at
   - `h up central`
   - `h pull`
-- remove old 'hu_*' directories
 - create a new build script
   - `./generate_build_script.sh`
   - the script will output the new build script's name
@@ -22,13 +21,14 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - enter the taskcluster ids for the selected build into the build script
   - for mac: no trailing slash
 - run the build script
+  - remove old 'hu_*' build directories
   - comment out builds we're not ready for (I usually do linux first, then mac, then windows)
   - `./build_DATE.sh`
     - linux: if it fails with an error about not being able to find the artifact, see the comment on line 69 in the script
     - if it fails after examining the binary architecture, tooltool may be messed up. try running manually. on OS X, it may fail due to needing python2 still (https://bugzilla.mozilla.org/show_bug.cgi?id=1716390, fix noted in bug).
 - compare new build to existing and sanity check
   - `./get_current.sh`
-    - fetches all 3, no need to run for each
+    - fetches all 3, no need to run for each os
   - `./compare_versions.sh`
     - ensure things look good
       - same directories
@@ -39,6 +39,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 - copy manifests to mozilla client, inspect, and commit
   - make sure the mozilla client is on the tip of central
     - could be on an earlier hostutils change for another OS, etc
+    - `hg up central` and verify with `hg wip` or `hg glog`
   - `./copy_manifests.sh`
   - cd to mozilla-central repo and `hg diff` to check that the size is close
   - commit change and create review
