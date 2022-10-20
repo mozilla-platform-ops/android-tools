@@ -50,12 +50,14 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
     - make separate diffs for mac, linux, and windows
     - e.g. `hg commit -m 'Bug XYZ: update linux hostutils'
 - create phabricator diff
-  - `moz-phab` or `arc diff`
+  - `moz-phab --no-wip` (or `arc diff` in a pinch)
 - run tests
   - see reference doc
   - add the treeherder link to the phab review
-  - if the tests look good, request a review from gbrown and standard8
-    - mkato for win?
+  - inspect tests
+  - request reviews
+    - linux and mac: gbrown (and requestor if PR-based)
+    - win: gbrown (and requestor if PR-based) (mkato initially requested, but not active)
 - repeat for other operating systems from 'run the build script' step
 
 ## TODO
