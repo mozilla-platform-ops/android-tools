@@ -41,7 +41,10 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
     - could be on an earlier hostutils change for another OS, etc
     - `hg up central` and verify with `hg wip` or `hg glog`
   - `./copy_manifests.sh`
-  - cd to mozilla-central repo and `hg diff` to check that the size is close
+  - inspect diff
+    - cd to mozilla-central repo and `hg diff`
+    - check that size is close
+    - check that filename is correct arch and release
   - commit change and create review
     - make separate diffs for mac, linux, and windows
     - e.g. `hg commit -m 'Bug XYZ: update linux hostutils'
