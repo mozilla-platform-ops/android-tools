@@ -22,6 +22,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - for mac: no trailing slash
 - run the build script
   - remove old 'hu_*' build directories
+    - `rm -rf ./hu_*`
   - comment out builds we're not ready for (I usually do linux first, then mac, then windows)
   - `./build_DATE.sh`
     - linux: if it fails with an error about not being able to find the artifact, see the comment on line 69 in the script

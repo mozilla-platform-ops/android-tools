@@ -43,7 +43,6 @@ fi
 mkdir "$dirname"
 cd "$dirname"
 
-# TODO: can't always assume 66.0a1
 wget "${url}/firefox-${FFVER}.en-US.mac.common.tests.tar.gz"
 wget "${url}/firefox-${FFVER}.en-US.mac.dmg"
 

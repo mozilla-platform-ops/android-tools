@@ -6,6 +6,8 @@ set -e
 # copies manifest files in hu_* dirs to tree
 # TODO: ensure there is one match to the wildcards...
 
+# TODO: take arch as arg so we don't have to remove _hu build dirs after each arch build?
+
 # bring in common
 . common.sh
 
