@@ -38,7 +38,7 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
   - MESSAGE should be similar to "Bug XYZ: update linux hostutils"
 - copy manifests to mozilla client, inspect, and commit
   - make sure the mozilla client is on the tip of central
-    - could possibly be on the linux hostutils change you did earlier
+    - could be on an earlier hostutils change for another OS, etc
   - `./copy_manifests.sh`
   - cd to mozilla-central repo and `hg diff` to check that the size is close
   - commit change and create review

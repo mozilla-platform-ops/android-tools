@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export MC_CLIENT_PATH="/Users/$USER/hg/mozilla-source-2"
+export MC_CLIENT_PATH="/Users/$USER/hg/mozilla-central-2"
 
 export ARCHS=( "x86_64" "mac" "win32" )
 
@@ -29,6 +29,7 @@ export TT_PATH="$MC_CLIENT_PATH/$TOOLTOOL"
 # FFVER="68.0a1"
 
 # load version from config/milestone.txt in moz-central clone
+# - also in https://hg.mozilla.org/mozilla-central/file/tip/browser/config/version.txt if that fails
 FFVER=$(tail -n 1 "${MC_CLIENT_PATH}/config/milestone.txt")
 export FFVER
 # echo $FFVER
