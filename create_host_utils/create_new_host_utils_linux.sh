@@ -30,6 +30,8 @@ function check_arch {
 }
 
 
+# TODO: reorder and rename to clarify what values are from the hostutils build host vs the firefox build
+# TODO: pull this out into common
 function set_info_string {
     info_string+="FFVER: $FFVER\n"
     info_string+="Current OS: $os\n"

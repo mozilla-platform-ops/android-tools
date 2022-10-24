@@ -2,7 +2,7 @@
 
 set -e
 
-date_string=`date +%Y%m%d%H%M`
+date_string=$(date +%Y%m%d%H%M)
 filename="build_${date_string}.sh"
 
 cat >> "$filename" <<EOL
@@ -26,6 +26,8 @@ set -e
 # - mac: see https://wiki.mozilla.org/Packaging_Android_host_utilities#macOS
 # X86_TASKID=""
 # WIN_TASKID=""
+# should be the dated directory. no trailing slash.
+#   e.g. 'https://ftp.mozilla.org/pub/firefox/nightly/YEAR/MONTH/YEAR-MONTH-DATE-21-37-29-mozilla-central'
 # MAC_BUILD_URL=""
 
 # STEP 3: uncomment and run desired builds
@@ -35,5 +37,5 @@ set -e
 # ./create_new_host_utils_mac.sh "\$MAC_BUILD_URL"
 EOL
 
-chmod 755 $filename
-echo $filename
+chmod 755 "$filename"
+echo "$filename"
