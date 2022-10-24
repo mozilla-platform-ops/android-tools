@@ -12,8 +12,6 @@ from worker_health import status
 
 # import ipdb
 
-# TODO: eventually delete in favor of workers_idle.py
-
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
     return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]

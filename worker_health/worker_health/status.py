@@ -24,19 +24,11 @@ class Status:
             {"rootUrl": self.root_url, "credentials": creds}
         )
 
-    def show_jobs_running_report(self, provisioner, worker_type, hosts):
+    def get_jobs_running_data(self, provisioner, worker_type, hosts):
         tch = tc_helpers.TCHelper(provisioner=provisioner)
         # issue: doesn't show state (running or idle)
         # pprint.pprint(f.get_workers(worker_type))
-
-        if len(hosts) == 0:
-            raise Exception("no hosts specified")
-
         worker_groups = tch.get_worker_groups(worker_type)
-        if len(worker_groups) > 1:
-            raise Exception(
-                "currently doesn't support worker types with more than one worker group!"
-            )
         worker_group = worker_groups[0]
 
         hosts_with_non_completed_or_failed_jobs = []
@@ -59,6 +51,14 @@ class Status:
                     # TODO: show task id and state if in verbose?
                     # pprint.pprint(status_blob["status"]["state"])
                     hosts_with_non_completed_or_failed_jobs.append(host)
+        return hosts_with_non_completed_or_failed_jobs
+
+    def show_jobs_running_report(self, provisioner, worker_type, hosts):
+        hosts_with_non_completed_or_failed_jobs = self.get_jobs_running_data(
+            provisioner, worker_type, hosts
+        )
+        # less useful now that it's just a len call vs the internal value from above?
+        hosts_checked = len(hosts)
 
         print(f"hosts checked ({len(hosts_checked)}): {hosts_checked}")
         print(
@@ -68,6 +68,7 @@ class Status:
         # return hosts not idle
         return hosts_with_non_completed_or_failed_jobs
 
+    # TODO: ok to remove?
     def list_workers(self, provisioner, worker_type):
         results = self.tc_wm.listWorkers(worker_type, provisioner)
         pprint.pprint(results)
