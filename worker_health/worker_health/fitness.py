@@ -85,8 +85,11 @@ class Fitness:
         working_count = 0
         # TODO: for this calculation, should we use a count of hosts that are reporting (vs all)?
         sr_total = 0
+
         ## host mode
+        # TODO: rewrite/eliminate this block... can't code in else below be smarter about queries (so we don't need this)?
         if worker_type and worker_id:
+            # print('yoyo')
             worker_count = 1
             self.get_pending_tasks_multi([worker_type])
             url = (
@@ -104,6 +107,9 @@ class Fitness:
                 print("%s.%s: %s" % (worker_type, worker_id, "no data"))
                 return
             worker_group = worker_group_result["workers"][0]["workerGroup"]
+            self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(
+                self.provisioner, worker_type
+            )
             _worker, res_obj, _e = self.device_fitness_report(
                 worker_type, worker_group, worker_id
             )
