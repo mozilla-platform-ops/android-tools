@@ -51,7 +51,12 @@ class Status:
                 _tid, status_blob, _exc = tch.get_task_status(task_id)
                 # pprint.pprint(status_blob)
                 t_status = status_blob["status"]["state"]
-                if t_status != "completed" and t_status != "failed":
+                if (
+                    t_status != "completed"
+                    and t_status != "failed"
+                    and t_status != "exception"
+                ):
+                    # TODO: show task id and state if in verbose?
                     # pprint.pprint(status_blob["status"]["state"])
                     hosts_with_non_completed_or_failed_jobs.append(host)
 
