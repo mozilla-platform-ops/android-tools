@@ -3,6 +3,7 @@
 import json
 import os
 import pprint
+import time
 
 import taskcluster
 
@@ -15,7 +16,10 @@ class Status:
     tc_wm = None
     root_url = "https://firefox-ci-tc.services.mozilla.com"
 
-    def __init__(self):
+    def __init__(self, provisioner, worker_type):
+        self.provisioner = provisioner
+        self.worker_type = worker_type
+
         with open(os.path.expanduser("~/.tc_token")) as json_file:
             data = json.load(json_file)
         creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
@@ -23,24 +27,29 @@ class Status:
         self.tc_wm = taskcluster.WorkerManager(
             {"rootUrl": self.root_url, "credentials": creds}
         )
+        self.tc_h = tc_helpers.TCHelper(provisioner=self.provisioner)
 
-    def get_jobs_running_data(self, provisioner, worker_type, hosts):
-        tch = tc_helpers.TCHelper(provisioner=provisioner)
-        # issue: doesn't show state (running or idle)
-        # pprint.pprint(f.get_workers(worker_type))
-        worker_groups = tch.get_worker_groups(worker_type)
+    def wait_until_no_jobs_running(self, hosts, sleep_seconds=5):
+        while True:
+            jrd = self.get_jobs_running_data(hosts)
+            if len(jrd) == 0:
+                break
+            time.sleep(sleep_seconds)
+
+    def get_jobs_running_data(self, hosts):
+        worker_groups = self.tc_h.get_worker_groups(self.worker_type)
         worker_group = worker_groups[0]
 
         hosts_with_non_completed_or_failed_jobs = []
         hosts_checked = []
         for host in hosts:
             hosts_checked.append(host)
-            results = tch.get_worker_jobs(worker_type, worker_group, host)
+            results = self.tc_h.get_worker_jobs(self.worker_type, worker_group, host)
             # pprint.pprint(results)
             for result in results["recentTasks"]:
                 task_id = result["taskId"]
                 # pprint.pprint(task_id)
-                _tid, status_blob, _exc = tch.get_task_status(task_id)
+                _tid, status_blob, _exc = self.tc_h.get_task_status(task_id)
                 # pprint.pprint(status_blob)
                 t_status = status_blob["status"]["state"]
                 if (
@@ -53,12 +62,10 @@ class Status:
                     hosts_with_non_completed_or_failed_jobs.append(host)
         return hosts_with_non_completed_or_failed_jobs
 
-    def show_jobs_running_report(self, provisioner, worker_type, hosts):
-        hosts_with_non_completed_or_failed_jobs = self.get_jobs_running_data(
-            provisioner, worker_type, hosts
-        )
+    def show_jobs_running_report(self, hosts):
+        hosts_with_non_completed_or_failed_jobs = self.get_jobs_running_data(hosts)
         # less useful now that it's just a len call vs the internal value from above?
-        hosts_checked = len(hosts)
+        hosts_checked = hosts
 
         print(f"hosts checked ({len(hosts_checked)}): {hosts_checked}")
         print(
@@ -68,9 +75,9 @@ class Status:
         # return hosts not idle
         return hosts_with_non_completed_or_failed_jobs
 
-    # TODO: ok to remove?
-    def list_workers(self, provisioner, worker_type):
-        results = self.tc_wm.listWorkers(worker_type, provisioner)
+    # TODO: not used... ok to remove?
+    def list_workers(self):
+        results = self.tc_wm.listWorkers(self.worker_type, self.provisioner)
         pprint.pprint(results)
         for result in results["workers"]:
             pprint.pprint(result)

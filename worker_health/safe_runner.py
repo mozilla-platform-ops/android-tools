@@ -6,14 +6,9 @@
 
 import argparse
 import re
+import sys
 
-from worker_health import status
-
-# import subprocess
-# import sys
-
-
-# import ipdb
+from worker_health import quarantine, status
 
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
@@ -36,27 +31,54 @@ def csv_strs(vstr, sep=","):
     return values
 
 
+class SafeRunner:
+    def __init__(self, provisioner, worker_type):
+        self.provisioner = provisioner
+        self.worker_type = worker_type
+
+        self.si = status.Status()
+        self.q = quarantine.Quarantine()
+
+    def safe_run(self, hostname, command, verbose=True):
+        if verbose:
+            print(f"{hostname}: adding to quarantine...")
+        self.q.quarantine(self.provisioner, self.worker_type, [hostname])
+        # TODO: verify?
+        if verbose:
+            print(f"{hostname}: quarantined.")
+
+        # TODO: wait until drained (not running jobs)
+        # self.si.
+
+        # TODO: run command
+
+        # TODO: lift quarantine
+
+        pass
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("provisioner")
     parser.add_argument("worker_type")
     parser.add_argument("host_csv", type=csv_strs)
+    parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
     args.hosts = args.host_csv
 
-    si = status.Status()
+    print(args)
+    sys.exit(0)
 
-    # return_value = si.show_jobs_running_report(
-    #     args.provisioner, args.worker_type, args.hosts
-    # )
+    sr = SafeRunner(args.provisioner, args.worker_type)
+
+    # get user to ack what we're about to do
+    print("about to do the following:")
+    print("type 'yes' to continue: ")
+    user_input = input()
+    if user_input != "yes":
+        print("user chose to exit")
+        sys.exit(0)
 
     for host in args.hosts:
-        # cmd = ""
-        # res = subprocess.check(
-        #     cmd.split(" "), stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-        # )
-        # if res.returncode != 0:
-        #     raise Exception()
-        #
-        # subprocess.run()
-        print(host)
+        print(f"{host}")
+        sr.safe_run(host, args.command)

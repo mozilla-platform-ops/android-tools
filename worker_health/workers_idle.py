@@ -41,13 +41,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args.hosts = args.host_csv
 
-    si = status.Status()
+    si = status.Status(args.provisioner, args.worker_type)
 
     # print(args)
 
-    return_value = si.show_jobs_running_report(
-        args.provisioner, args.worker_type, args.hosts
-    )
+    return_value = si.show_jobs_running_report(args.hosts)
 
     if len(return_value) != 0:
         sys.exit(1)
