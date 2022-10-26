@@ -21,6 +21,9 @@ from worker_health import quarantine, status, utils
 #   - where: place in sr_directory... to resume, pass in that directory
 
 
+# TODO: move these non-class functions to utils?
+
+
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
     return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]
 
@@ -74,6 +77,9 @@ class SafeRunner:
         datetime_format_for_directory = "%Y%m%d-%H%M%S"
         datetime_part = self.start_datetime.strftime(datetime_format_for_directory)
         return f"sr_{datetime_part}"
+
+    def write_toml(self):
+        print("TODO: write toml")
 
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
@@ -188,7 +194,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pre_quarantine_additional_host_count",
         help="quarantine the specified number of following hosts. 0 to disable pre-quarantine",
+        metavar="COUNT",
         default=3,
+    )
+    parser.add_argument(
+        "--resume_dir",
+        metavar="RUN_DIR",
+        help="'sr_' run directory. causes positional arguments to be ignored.",
     )
     parser.add_argument(
         "--talk",
@@ -216,8 +228,6 @@ if __name__ == "__main__":
     # print(args)
     # sys.exit(0)
 
-    sr = SafeRunner(args.provisioner, args.worker_type)
-
     if args.talk:
         say("SR talk enabled", background_mode=True)
 
@@ -233,6 +243,17 @@ if __name__ == "__main__":
     if user_input != "yes":
         print("user chose to exit")
         sys.exit(0)
+
+    sr = SafeRunner(args.provisioner, args.worker_type)
+    if not args.resume_dir:
+        # TODO: write out toml report(/config) file
+        sr.write_toml()
+        print("no resume")
+    else:
+        # TODO: handle resume
+        print("resume passed in")
+        sys.exit(1)
+        # load toml
 
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: add 'quarantine ahead' feature
