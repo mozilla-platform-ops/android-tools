@@ -135,6 +135,8 @@ class SafeRunner:
         # TODO: add SR to file output? sort of obvious?
         # TODO: add provisioner, worker_type, host (in filename, but whatever), date?
         header = ""
+        header += "# safe_runner output'\n"
+        header += "#'\n"
         header += f"# provisioners: '{self.provisioner}'\n"
         header += f"# worker_type: '{self.worker_type}'\n"
         header += f"# hostname: '{hostname}'\n"
@@ -246,7 +248,7 @@ if __name__ == "__main__":
                 args.provisioner, args.worker_type, pre_quarantine_hosts, verbose=False
             )
             if args.verbose:
-                status_print(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+                status_print(f"pre-quarantine: added {len(pre_quarantine_hosts)} hosts")
                 if args.talk:
                     say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
 
