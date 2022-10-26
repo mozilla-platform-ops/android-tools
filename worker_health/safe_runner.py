@@ -85,6 +85,8 @@ class SafeRunner:
     #   - for large groups of hosts, quarantine several at a time?
     def safe_run_single_host(self, hostname, command, verbose=True, talk=False):
         # TODO: ensure command has SR_HOST variable in it
+        if "SR_HOST" not in command:
+            raise Exception("command doesn't have SR_HOST in it!")
 
         # quarantine
         # TODO: check if already quarantined and skip if so
@@ -259,33 +261,42 @@ if __name__ == "__main__":
     # TODO: make a more-intelligent multi-host version...
     #   - this will wait on current host if not drained (when other hosts in pre-quarantine group are ready)
     host_total = len(args.hosts)
+    hosts_left = args.hosts
     counter = 0
-    for host in args.hosts:
+    while hosts_left:
         counter += 1
 
         # pre-quarantine code
         #   - gets a few workers ready (quarantined) before we're working on them
-        if args.pre_quarantine_additional_host_count != 0:
-            pre_quarantine_hosts = utils.arr_get_followers(
-                args.hosts, host, args.pre_quarantine_additional_host_count
+        # if args.pre_quarantine_additional_host_count != 0:
+        # pre_quarantine_hosts = utils.arr_get_followers(
+        #     args.hosts, host, args.pre_quarantine_additional_host_count
+        # )
+        pre_quarantine_hosts = hosts_left[
+            0 : (args.pre_quarantine_additional_host_count + 1)
+        ]
+        if args.pre_quarantine_additional_host_count:
+            status_print(
+                f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}"
             )
-            if args.verbose:
-                status_print(
-                    f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}"
-                )
             sr.q.quarantine(
                 args.provisioner, args.worker_type, pre_quarantine_hosts, verbose=False
             )
-            if args.verbose:
-                status_print(f"pre-quarantine: added {len(pre_quarantine_hosts)} hosts")
-                if args.talk:
-                    say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+            status_print(f"pre-quarantine: added {len(pre_quarantine_hosts)} hosts")
+            if args.talk:
+                say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+            status_print("waiting for idle host...")
+            host = sr.si.get_idle_host(pre_quarantine_hosts)
+        else:
+            host = hosts_left[0]
 
         # safe_run_single_host
+        status_print(f"*** {counter}/{host_total}: {host}")
         if args.talk:
             say(f"SR: starting {host}")
-        status_print(f"*** {counter}/{host_total}: {host}")
         sr.safe_run_single_host(host, args.command, talk=args.talk)
+        hosts_left.remove(host)
         if args.talk:
-            say(f"SR: completed {host}. {host_total - counter} hosts remaining.")
+            say(f"SR: completed {host}. {len(hosts_left)} hosts remaining.")
+        status_print(f"hosts remaining ({len(hosts_left)}): {hosts_left}")
         print("")

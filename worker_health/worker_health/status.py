@@ -29,7 +29,7 @@ class Status:
         )
         self.tc_h = tc_helpers.TCHelper(provisioner=self.provisioner)
 
-    def wait_until_no_jobs_running(self, hosts, sleep_seconds=5, show_indicator=True):
+    def wait_until_no_jobs_running(self, hosts, sleep_seconds=15, show_indicator=True):
         we_have_waited = False
         while True:
             jrd = self.get_jobs_running_data(hosts)
@@ -41,6 +41,18 @@ class Status:
             we_have_waited = True
             if show_indicator:
                 print(".", end="")
+
+    # given list of hosts, return one that's idle
+    def get_idle_host(self, hosts, sleep_time=15):
+        hosts_set = set(hosts)
+        while True:
+            hosts_with_non_completed_or_failed_jobs_set = set(
+                self.get_jobs_running_data(hosts)
+            )
+            hosts_idle = hosts_set - hosts_with_non_completed_or_failed_jobs_set
+            if hosts_idle:
+                return list(hosts_idle)[0]
+            time.sleep(sleep_time)
 
     def get_jobs_running_data(self, hosts):
         worker_groups = self.tc_h.get_worker_groups(self.worker_type)
