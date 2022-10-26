@@ -13,6 +13,11 @@ import time
 
 from worker_health import quarantine, status, utils
 
+# TODO: progress/state tracking
+#   - how to do? just ignore that commands could change between commands initially... let users handle
+#   - statefile name 'sr_state'
+#   - contents: current host, completed hosts
+
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
     return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]

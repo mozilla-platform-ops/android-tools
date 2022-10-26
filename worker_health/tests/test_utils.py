@@ -50,3 +50,11 @@ def test_arr_get_followers():
 
     # if requested past length of array, return what we can
     assert utils.arr_get_followers(test_arr, "z", 10) == ["z"]
+
+
+def test_arr_get_slice_from_item():
+    test_arr = ["a"]
+    assert utils.arr_get_slice_from_item(test_arr, "a") == ["a"]
+
+    test_arr = list(string.ascii_lowercase)
+    assert utils.arr_get_slice_from_item(test_arr, "w") == ["w", "x", "y", "z"]
