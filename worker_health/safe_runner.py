@@ -200,6 +200,7 @@ if __name__ == "__main__":
     # TODO: add as real option?
     args.pre_quarantine = True
     args.verbose = True
+    args.pre_quarantine_additional_host_count = 2
 
     # print(args)
     # sys.exit(0)
@@ -234,11 +235,9 @@ if __name__ == "__main__":
         status_print(f"*** {counter}/{host_total}: {host}")
 
         if args.pre_quarantine:
-            pre_quarantine_additional_host_count = 2
             pre_quarantine_hosts = utils.arr_get_followers(
-                args.hosts, host, pre_quarantine_additional_host_count
+                args.hosts, host, args.pre_quarantine_additional_host_count
             )
-            # print(f"pre_quarantine_hosts: {pre_quarantine_hosts}")
             if args.verbose:
                 status_print(
                     f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}"
