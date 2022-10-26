@@ -163,7 +163,7 @@ class SafeRunner:
         if verbose:
             status_print(f"{hostname}: command completed successfully.")
             if talk:
-                say("converted")
+                say("converged")
 
         # lift quarantine
         if verbose:
