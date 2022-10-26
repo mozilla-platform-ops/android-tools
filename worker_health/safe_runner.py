@@ -123,11 +123,19 @@ class SafeRunner:
             split_custom_cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE
         )
         rc = ro.returncode
-
         output = ro.stdout.decode()
+
         # write output to a file per host in a directory for the run?
         # TODO: add SR to file output? sort of obvious?
-        file_output = f"# command run: '{custom_cmd}'\n#\n#\n{output}"
+        # TODO: add provisioner, worker_type, host (in filename, but whatever), date?
+        header = ""
+        header += f"# provisioners: '{self.provisioner}'\n"
+        header += f"# worker_type: '{self.worker_type}'\n"
+        header += f"# hostname: '{hostname}'\n"
+        header += f"# run datetime: '{self.start_datetime}'\n"
+        header += f"# command run: '{custom_cmd}'\n"
+        header += f"# exit code: '{rc}'\n"
+        file_output = f"{header}#\n#\n{output}"
         utils.mkdir_p(self.output_dirname)
         with open(f"{self.output_dirname}/{hostname}.txt", "w") as out:
             out.write(file_output)
