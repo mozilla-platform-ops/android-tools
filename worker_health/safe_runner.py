@@ -86,6 +86,12 @@ class SafeRunner:
 
         # wait until drained (not running jobs)
         if verbose:
+            # TODO: show link to tc page
+            #  - https://firefox-ci-tc.services.mozilla.com/provisioners/releng-hardware/worker-types/gecko-t-osx-1015-r8/workers/mdc1/macmini-r8-12?sortBy=started&sortDirection=desc
+            # wgs = tc_helpers.get_worker_groups(
+            #             provisioner=provisioner_id, worker_type=worker_type
+            #         )
+
             status_print(f"{hostname}: waiting for host to drain...")
             if talk:
                 say("draining")
@@ -134,7 +140,7 @@ class SafeRunner:
         header += f"# hostname: '{hostname}'\n"
         header += f"# run datetime: '{self.start_datetime}'\n"
         header += f"# command run: '{custom_cmd}'\n"
-        header += f"# exit code: '{rc}'\n"
+        header += f"# exit code: {rc}\n"
         file_output = f"{header}#\n#\n{output}"
         utils.mkdir_p(self.output_dirname)
         with open(f"{self.output_dirname}/{hostname}.txt", "w") as out:
@@ -213,6 +219,9 @@ if __name__ == "__main__":
         print("user chose to exit")
         sys.exit(0)
 
+    # TODO: eventually use this as outer code for safe_run_multi_host
+    # TODO: add 'quarantine ahead' feature
+    #   - currently we end up waiting a long time for drain
     host_total = len(args.hosts)
     counter = 0
     for host in args.hosts:
@@ -220,6 +229,7 @@ if __name__ == "__main__":
         if args.talk:
             say(f"SR: starting {host}")
         status_print(f"*** {counter}/{host_total}: {host}")
+        # TODO: do pre-quarantine
         sr.safe_run_single_host(host, args.command, talk=args.talk)
         if args.talk:
             say(f"SR: completed {host}")

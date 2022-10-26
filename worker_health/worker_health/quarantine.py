@@ -63,6 +63,7 @@ class Quarantine:
         # TODO: catch exception and wrap?
         self.quarantine(provisioner, worker_type, device_arr, duration="-1 year")
 
+    # TODO: use the implementation in tc_helpers?
     def get_worker_groups(self, provisioner, worker_type):
         f = fitness.Fitness(log_level=0, provisioner=provisioner, alert_percent=85)
         output = f.get_workers(worker_type)["workers"]

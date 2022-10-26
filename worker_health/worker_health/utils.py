@@ -186,3 +186,29 @@ def get_jsonc2(an_url, verbosity=0):
 
 def mkdir_p(dir_to_create):
     subprocess.run(f"mkdir -p {dir_to_create}", shell=True)
+
+
+# given an array, find <item> in array, and return item and <number_of_followers> after item
+def arr_get_followers(array, item, number_of_followers, raise_on_errors=False):
+    if len(array) == 0:
+        if raise_on_errors:
+            raise Exception("empty array")
+        return []
+
+    if item not in array:
+        if raise_on_errors:
+            raise Exception("item not in array!")
+        return []
+
+    if number_of_followers > len(array):
+        raise Exception("too many followers for length of array!")
+
+    # print(array)
+    counter = 0
+    for a_item in array:
+        print(a_item)
+        if a_item == item:
+            end_index = counter + number_of_followers + 1
+            print(f"c: {counter} ei: {end_index}")
+            return array[counter:end_index]
+        counter += 1
