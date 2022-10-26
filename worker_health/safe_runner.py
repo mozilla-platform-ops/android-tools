@@ -136,9 +136,7 @@ class SafeRunner:
         rc = ro.returncode
         output = ro.stdout.decode()
 
-        # write output to a file per host in a directory for the run?
-        # TODO: add SR to file output? sort of obvious?
-        # TODO: add provisioner, worker_type, host (in filename, but whatever), date?
+        # write output to a file per host in a directory for the run
         header = ""
         header += "# safe_runner output'\n"
         header += "#'\n"
