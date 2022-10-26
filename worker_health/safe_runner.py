@@ -197,6 +197,9 @@ if __name__ == "__main__":
     parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
     args.hosts = args.host_csv
+    # TODO: add as real option?
+    args.pre_quarantine = True
+    args.verbose = True
 
     # print(args)
     # sys.exit(0)
@@ -229,7 +232,25 @@ if __name__ == "__main__":
         if args.talk:
             say(f"SR: starting {host}")
         status_print(f"*** {counter}/{host_total}: {host}")
-        # TODO: do pre-quarantine
+
+        if args.pre_quarantine:
+            pre_quarantine_additional_host_count = 2
+            pre_quarantine_hosts = utils.arr_get_followers(
+                args.hosts, host, pre_quarantine_additional_host_count
+            )
+            # print(f"pre_quarantine_hosts: {pre_quarantine_hosts}")
+            if args.verbose:
+                status_print(
+                    f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}"
+                )
+            sr.q.quarantine(
+                args.provisioner, args.worker_type, pre_quarantine_hosts, verbose=False
+            )
+            if args.verbose:
+                status_print(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+                if args.talk:
+                    say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+
         sr.safe_run_single_host(host, args.command, talk=args.talk)
         if args.talk:
             say(f"SR: completed {host}")

@@ -206,9 +206,9 @@ def arr_get_followers(array, item, number_of_followers, raise_on_errors=False):
     # print(array)
     counter = 0
     for a_item in array:
-        print(a_item)
+        # print(a_item)
         if a_item == item:
             end_index = counter + number_of_followers + 1
-            print(f"c: {counter} ei: {end_index}")
+            # print(f"c: {counter} ei: {end_index}")
             return array[counter:end_index]
         counter += 1
