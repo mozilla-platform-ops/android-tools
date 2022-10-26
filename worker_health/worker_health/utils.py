@@ -111,7 +111,7 @@ def graph_percentage(value, show_label=False, round_value=False):
     return_string += "["
     for i in range(1, 11):
         if value >= i * 0.1:
-            return_string += u"="
+            return_string += "="
         else:
             return_string += " "
     return_string += "]"
@@ -182,3 +182,7 @@ def get_jsonc2(an_url, verbosity=0):
         result = response.text
         output = json.loads(result)
     return an_url, output, None
+
+
+def mkdir_p(dir_to_create):
+    subprocess.run(f"mkdir -p {dir_to_create}", shell=True)

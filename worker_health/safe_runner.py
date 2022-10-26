@@ -5,12 +5,13 @@
 # takes same args as quarantine-tool
 
 import argparse
+import datetime
 import re
 import subprocess
 import sys
 import time
 
-from worker_health import quarantine, status
+from worker_health import quarantine, status, utils
 
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
@@ -34,8 +35,11 @@ def csv_strs(vstr, sep=","):
 
 
 # uses os x speech api
-def say(what_to_say):
-    subprocess.run(f"say '{what_to_say}' &", shell=True)
+def say(what_to_say, background_mode=False):
+    cmd_to_run = f"say '{what_to_say}'"
+    if background_mode:
+        cmd_to_run += " &"
+    subprocess.run(cmd_to_run, shell=True)
 
 
 class SafeRunner:
@@ -45,15 +49,23 @@ class SafeRunner:
         self.provisioner = provisioner
         self.worker_type = worker_type
 
+        # for writing logs to a dated dir
+        self.start_datetime = datetime.datetime.now()
+
         # TODO: take as an arg
         self.fqdn_postfix = fqdn_prefix
 
         self.si = status.Status(provisioner, worker_type)
         self.q = quarantine.Quarantine()
 
+    @property
+    def output_dirname(self):
+        datetime_format_for_directory = "%Y%m%d-%H%M%S"
+        datetime_part = self.start_datetime.strftime(datetime_format_for_directory)
+        return f"sr_{datetime_part}"
+
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
-
     def safe_run_single_host(self, hostname, command, verbose=True, talk=False):
         # TODO: ensure command has SR_HOST variable in it
 
@@ -86,6 +98,8 @@ class SafeRunner:
         up_check_cmd = f"nc -z {hostname}{self.fqdn_postfix} 22"
         if verbose:
             print(f"{hostname}: waiting for ssh on host to be responsive...")
+            if talk:
+                say("waiting for ssh")
         while True:
             spr = subprocess.run(up_check_cmd, shell=True)
             rc = spr.returncode
@@ -94,21 +108,28 @@ class SafeRunner:
             time.sleep(2)
         if verbose:
             print(f"{hostname}: ssh is responsive.")
-            if talk:
-                subprocess.run("host is up", shell=True)
 
         # run command
         custom_cmd = command.replace("SR_HOST", hostname)
         if verbose:
             print(f"{hostname}: running command '{custom_cmd}'...")
+            if talk:
+                say("converging")
         split_custom_cmd = ["/bin/bash", "-l", "-c", custom_cmd]
         ro = subprocess.run(
             split_custom_cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE
         )
         rc = ro.returncode
 
-        print("")
         output = ro.stdout.decode()
+        # write output to a file per host in a directory for the run?
+        # TODO: add SR to file output?
+        file_output = f"# command run: '{custom_cmd}'\n{output}"
+        utils.mkdir_p(self.output_dirname)
+        with open(f"{self.output_dirname}/{hostname}", "w") as out:
+            out.write(file_output)
+
+        print("")
         for line in output.strip().split("\n"):
             print(line)
         print("")
@@ -164,7 +185,7 @@ if __name__ == "__main__":
     sr = SafeRunner(args.provisioner, args.worker_type)
 
     if args.talk:
-        say("SR talk enabled")
+        say("SR talk enabled", background_mode=True)
 
     # get user to ack what we're about to do
     print("about to do the following:")
