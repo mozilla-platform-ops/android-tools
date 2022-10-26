@@ -186,6 +186,11 @@ if __name__ == "__main__":
         description="runs a command against a set of hosts once they are quarantined and not working"
     )
     parser.add_argument(
+        "--pre_quarantine_additional_host_count",
+        help="quarantine the specified number of following hosts. 0 to disable pre-quarantine",
+        default=3,
+    )
+    parser.add_argument(
         "--talk",
         "-t",
         action="store_true",
@@ -207,7 +212,6 @@ if __name__ == "__main__":
     # TODO: add as real option?
     args.pre_quarantine = True
     args.verbose = True
-    args.pre_quarantine_additional_host_count = 2
 
     # print(args)
     # sys.exit(0)
@@ -240,7 +244,7 @@ if __name__ == "__main__":
 
         # pre-quarantine code
         #   - gets a few workers ready (quarantined) before we're working on them
-        if args.pre_quarantine:
+        if args.pre_quarantine_additional_host_count != 0:
             pre_quarantine_hosts = utils.arr_get_followers(
                 args.hosts, host, args.pre_quarantine_additional_host_count
             )
@@ -262,5 +266,5 @@ if __name__ == "__main__":
         status_print(f"*** {counter}/{host_total}: {host}")
         sr.safe_run_single_host(host, args.command, talk=args.talk)
         if args.talk:
-            say(f"SR: completed {host}")
+            say(f"SR: completed {host}. {host_total - counter} hosts remaining.")
         print("")
