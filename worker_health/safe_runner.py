@@ -42,18 +42,22 @@ def say(what_to_say, background_mode=False):
     subprocess.run(cmd_to_run, shell=True)
 
 
+def status_print(line_to_print):
+    ctime = datetime.datetime.now()
+    ctime_str = ctime.strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{ctime_str}: {line_to_print}")
+
+
 class SafeRunner:
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
 
     def __init__(self, provisioner, worker_type, fqdn_prefix=default_fqdn_postfix):
         self.provisioner = provisioner
         self.worker_type = worker_type
-
-        # for writing logs to a dated dir
-        self.start_datetime = datetime.datetime.now()
-
-        # TODO: take as an arg
         self.fqdn_postfix = fqdn_prefix
+
+        # for writing logs to a consistent dated dir
+        self.start_datetime = datetime.datetime.now()
 
         self.si = status.Status(provisioner, worker_type)
         self.q = quarantine.Quarantine()
@@ -70,34 +74,33 @@ class SafeRunner:
         # TODO: ensure command has SR_HOST variable in it
 
         # quarantine
+        # TODO: check if already quarantined and skip if so
         if verbose:
-            print(f"{hostname}: adding to quarantine...")
-        # TODO: make this silent
+            status_print(f"{hostname}: adding to quarantine...")
         self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
         # TODO: verify?
         if verbose:
-            print(f"{hostname}: quarantined.")
+            status_print(f"{hostname}: quarantined.")
             if talk:
                 say("quarantined")
 
         # wait until drained (not running jobs)
-        # TODO: where to get the fqdn? our input is only hostname...
         if verbose:
-            print(f"{hostname}: waiting for host to drain...")
+            status_print(f"{hostname}: waiting for host to drain...")
             if talk:
                 say("draining")
         self.si.wait_until_no_jobs_running([hostname])
         if verbose:
-            print(f"{hostname}: drained.")
+            status_print(f"{hostname}: drained.")
             if talk:
                 say("drained")
 
-        # TODO: check that nz is present first
+        # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
         # wait for host to be back up, otherwise ssh will time out.
         up_check_cmd = f"nc -z {hostname}{self.fqdn_postfix} 22"
         if verbose:
-            print(f"{hostname}: waiting for ssh on host to be responsive...")
+            status_print(f"{hostname}: waiting for ssh on host to be responsive...")
             if talk:
                 say("waiting for ssh")
         while True:
@@ -107,12 +110,12 @@ class SafeRunner:
                 break
             time.sleep(2)
         if verbose:
-            print(f"{hostname}: ssh is responsive.")
+            status_print(f"{hostname}: ssh is responsive.")
 
         # run command
         custom_cmd = command.replace("SR_HOST", hostname)
         if verbose:
-            print(f"{hostname}: running command '{custom_cmd}'...")
+            status_print(f"{hostname}: running command '{custom_cmd}'...")
             if talk:
                 say("converging")
         split_custom_cmd = ["/bin/bash", "-l", "-c", custom_cmd]
@@ -123,10 +126,10 @@ class SafeRunner:
 
         output = ro.stdout.decode()
         # write output to a file per host in a directory for the run?
-        # TODO: add SR to file output?
-        file_output = f"# command run: '{custom_cmd}'\n{output}"
+        # TODO: add SR to file output? sort of obvious?
+        file_output = f"# command run: '{custom_cmd}'\n#\n#\n{output}"
         utils.mkdir_p(self.output_dirname)
-        with open(f"{self.output_dirname}/{hostname}", "w") as out:
+        with open(f"{self.output_dirname}/{hostname}.txt", "w") as out:
             out.write(file_output)
 
         print("")
@@ -135,22 +138,24 @@ class SafeRunner:
         print("")
 
         if rc != 0:
-            print(f"{hostname}: command failed. exiting...")
+            status_print(
+                f"{hostname}: command failed. host is still quarantined. exiting..."
+            )
             if talk:
                 say("failure")
             sys.exit(1)
         if verbose:
-            print(f"{hostname}: command completed successfully.")
+            status_print(f"{hostname}: command completed successfully.")
             if talk:
                 say("converted")
 
         # lift quarantine
         if verbose:
-            print(f"{hostname}: lifting quarantine...")
+            status_print(f"{hostname}: lifting quarantine...")
         self.q.lift_quarantine(self.provisioner, self.worker_type, [hostname])
         # TODO: verify?
         if verbose:
-            print(f"{hostname}: quarantine lifted.")
+            status_print(f"{hostname}: quarantine lifted.")
             if talk:
                 say("quarantine lifted")
 
@@ -205,8 +210,9 @@ if __name__ == "__main__":
     for host in args.hosts:
         counter += 1
         if args.talk:
-            subprocess.run(f"say SR: starting {host}", shell=True)
-        print(f"*** {counter}/{host_total}: {host}")
+            say(f"SR: starting {host}")
+        status_print(f"*** {counter}/{host_total}: {host}")
         sr.safe_run_single_host(host, args.command, talk=args.talk)
-    if args.talk:
-        subprocess.run(f"say SR: completed {host}", shell=True)
+        if args.talk:
+            say(f"SR: completed {host}")
+        print("")

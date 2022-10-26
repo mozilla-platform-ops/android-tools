@@ -21,3 +21,6 @@ MANIFEST
 
 # coverage
 .coverage*
+
+# output directories
+sr_*
