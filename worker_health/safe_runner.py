@@ -34,12 +34,14 @@ def csv_strs(vstr, sep=","):
 
 
 class SafeRunner:
-    def __init__(self, provisioner, worker_type):
+    default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
+
+    def __init__(self, provisioner, worker_type, fqdn_prefix=default_fqdn_postfix):
         self.provisioner = provisioner
         self.worker_type = worker_type
 
         # TODO: take as an arg
-        self.fqdn_postfix = ".test.releng.mdc1.mozilla.com"
+        self.fqdn_postfix = fqdn_prefix
 
         self.si = status.Status(provisioner, worker_type)
         self.q = quarantine.Quarantine()
@@ -114,6 +116,13 @@ class SafeRunner:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--fqdn-postfix",
+        "-f",
+        help=(
+            f"string to append to host (used for ssh check). defaults to '{SafeRunner.default_fqdn_postfix}'."
+        ),
+    )
     parser.add_argument("provisioner")
     parser.add_argument("worker_type")
     parser.add_argument("host_csv", type=csv_strs)
