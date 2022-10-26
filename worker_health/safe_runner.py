@@ -15,8 +15,10 @@ from worker_health import quarantine, status, utils
 
 # TODO: progress/state tracking
 #   - how to do? just ignore that commands could change between commands initially... let users handle
-#   - statefile name 'sr_state'
+#   - statefile name 'sr_state', TOML
+#      - will have all run details and state
 #   - contents: current host, completed hosts
+#   - where: place in sr_directory... to resume, pass in that directory
 
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
@@ -235,10 +237,9 @@ if __name__ == "__main__":
     counter = 0
     for host in args.hosts:
         counter += 1
-        if args.talk:
-            say(f"SR: starting {host}")
-        status_print(f"*** {counter}/{host_total}: {host}")
 
+        # pre-quarantine code
+        #   - gets a few workers ready (quarantined) before we're working on them
         if args.pre_quarantine:
             pre_quarantine_hosts = utils.arr_get_followers(
                 args.hosts, host, args.pre_quarantine_additional_host_count
@@ -255,6 +256,10 @@ if __name__ == "__main__":
                 if args.talk:
                     say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
 
+        # safe_run_single_host
+        if args.talk:
+            say(f"SR: starting {host}")
+        status_print(f"*** {counter}/{host_total}: {host}")
         sr.safe_run_single_host(host, args.command, talk=args.talk)
         if args.talk:
             say(f"SR: completed {host}")
