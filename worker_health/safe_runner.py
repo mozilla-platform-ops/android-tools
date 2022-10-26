@@ -221,8 +221,8 @@ if __name__ == "__main__":
     parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
     args.hosts = args.host_csv
-    # TODO: add as real option?
-    args.pre_quarantine = True
+
+    # TODO: add as an exposed option?
     args.verbose = True
 
     # print(args)
@@ -256,8 +256,8 @@ if __name__ == "__main__":
         # load toml
 
     # TODO: eventually use this as outer code for safe_run_multi_host
-    # TODO: add 'quarantine ahead' feature
-    #   - currently we end up waiting a long time for drain
+    # TODO: make a more-intelligent multi-host version...
+    #   - this will wait on current host if not drained (when other hosts in pre-quarantine group are ready)
     host_total = len(args.hosts)
     counter = 0
     for host in args.hosts:
