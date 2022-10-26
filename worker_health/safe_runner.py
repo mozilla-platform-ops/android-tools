@@ -66,20 +66,14 @@ class SafeRunner:
         if verbose:
             print(f"{hostname}: drained.")
 
-        # TODO: if we waited, the host just finished a job and is probably rebooting.
-        #   wait for host to be back up, otherwise ssh will timeout
+        # if we waited, the host just finished a job and is probably rebooting, so
+        # wait for host to be back up, otherwise ssh will time out.
         up_check_cmd = f"nc -z {hostname}{self.fqdn_postfix} 22"
         if verbose:
             print(f"{hostname}: waiting for ssh on host to be responsive...")
         while True:
-            spr = subprocess.run(
-                up_check_cmd,
-                shell=True,
-                stderr=subprocess.STDOUT,
-                stdout=subprocess.PIPE,
-            )
+            spr = subprocess.run(up_check_cmd, shell=True)
             rc = spr.returncode
-            # output = spr.stdout.decode()
             if rc == 0:
                 break
             time.sleep(2)
