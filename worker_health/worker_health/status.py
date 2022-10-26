@@ -30,13 +30,15 @@ class Status:
         self.tc_h = tc_helpers.TCHelper(provisioner=self.provisioner)
 
     def wait_until_no_jobs_running(self, hosts, sleep_seconds=5, show_indicator=True):
+        we_have_waited = False
         while True:
             jrd = self.get_jobs_running_data(hosts)
             if len(jrd) == 0:
-                if show_indicator:
+                if show_indicator and we_have_waited:
                     print("")
                 break
             time.sleep(sleep_seconds)
+            we_have_waited = True
             if show_indicator:
                 print(".", end="")
 
