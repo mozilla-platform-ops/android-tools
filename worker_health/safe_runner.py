@@ -8,6 +8,7 @@ import argparse
 import re
 import subprocess
 import sys
+import time
 
 from worker_health import quarantine, status
 
@@ -37,6 +38,9 @@ class SafeRunner:
         self.provisioner = provisioner
         self.worker_type = worker_type
 
+        # TODO: take as an arg
+        self.fqdn_postfix = ".test.releng.mdc1.mozilla.com"
+
         self.si = status.Status(provisioner, worker_type)
         self.q = quarantine.Quarantine()
 
@@ -55,11 +59,32 @@ class SafeRunner:
             print(f"{hostname}: quarantined.")
 
         # wait until drained (not running jobs)
+        # TODO: where to get the fqdn? our input is only hostname...
         if verbose:
             print(f"{hostname}: waiting for host to drain...")
         self.si.wait_until_no_jobs_running([hostname])
         if verbose:
             print(f"{hostname}: drained.")
+
+        # TODO: if we waited, the host just finished a job and is probably rebooting.
+        #   wait for host to be back up, otherwise ssh will timeout
+        up_check_cmd = f"nc -z {hostname}{self.fqdn_postfix} 22"
+        if verbose:
+            print(f"{hostname}: waiting for ssh on host to be responsive...")
+        while True:
+            spr = subprocess.run(
+                up_check_cmd,
+                shell=True,
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE,
+            )
+            rc = spr.returncode
+            # output = spr.stdout.decode()
+            if rc == 0:
+                break
+            time.sleep(2)
+        if verbose:
+            print(f"{hostname}: ssh is responsive.")
 
         # run command
         custom_cmd = command.replace("SR_HOST", hostname)
@@ -73,7 +98,7 @@ class SafeRunner:
 
         print("")
         output = ro.stdout.decode()
-        for line in output:
+        for line in output.strip().split("\n"):
             print(line)
         print("")
 
@@ -111,8 +136,9 @@ if __name__ == "__main__":
     print("about to do the following:")
     print(f"  provisioner: {args.provisioner}")
     print(f"  worker_type: {args.worker_type}")
-    print(f"  hosts: {args.hosts}")
+    print(f"  hosts ({len(args.hosts)}): {args.hosts}")
     print(f"  command: {args.command}")
+    print("")
     print("type 'yes' to continue: ", end="")
     user_input = input()
     if user_input != "yes":
