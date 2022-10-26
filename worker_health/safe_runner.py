@@ -33,6 +33,11 @@ def csv_strs(vstr, sep=","):
     return values
 
 
+# uses os x speech api
+def say(what_to_say):
+    subprocess.run(f"say '{what_to_say}' &", shell=True)
+
+
 class SafeRunner:
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
 
@@ -49,25 +54,33 @@ class SafeRunner:
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
 
-    def safe_run_single_host(self, hostname, command, verbose=True):
+    def safe_run_single_host(self, hostname, command, verbose=True, talk=False):
         # TODO: ensure command has SR_HOST variable in it
 
         # quarantine
         if verbose:
             print(f"{hostname}: adding to quarantine...")
-        self.q.quarantine(self.provisioner, self.worker_type, [hostname])
+        # TODO: make this silent
+        self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
         # TODO: verify?
         if verbose:
             print(f"{hostname}: quarantined.")
+            if talk:
+                say("quarantined")
 
         # wait until drained (not running jobs)
         # TODO: where to get the fqdn? our input is only hostname...
         if verbose:
             print(f"{hostname}: waiting for host to drain...")
+            if talk:
+                say("draining")
         self.si.wait_until_no_jobs_running([hostname])
         if verbose:
             print(f"{hostname}: drained.")
+            if talk:
+                say("drained")
 
+        # TODO: check that nz is present first
         # if we waited, the host just finished a job and is probably rebooting, so
         # wait for host to be back up, otherwise ssh will time out.
         up_check_cmd = f"nc -z {hostname}{self.fqdn_postfix} 22"
@@ -81,6 +94,8 @@ class SafeRunner:
             time.sleep(2)
         if verbose:
             print(f"{hostname}: ssh is responsive.")
+            if talk:
+                subprocess.run("host is up", shell=True)
 
         # run command
         custom_cmd = command.replace("SR_HOST", hostname)
@@ -100,9 +115,13 @@ class SafeRunner:
 
         if rc != 0:
             print(f"{hostname}: command failed. exiting...")
+            if talk:
+                say("failure")
             sys.exit(1)
         if verbose:
             print(f"{hostname}: command completed successfully.")
+            if talk:
+                say("converted")
 
         # lift quarantine
         if verbose:
@@ -111,11 +130,20 @@ class SafeRunner:
         # TODO: verify?
         if verbose:
             print(f"{hostname}: quarantine lifted.")
-        pass
+            if talk:
+                say("quarantine lifted")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="runs a command against a set of hosts once they are quarantined and not working"
+    )
+    parser.add_argument(
+        "--talk",
+        "-t",
+        action="store_true",
+        help="use OS X's speech API to give updates",
+    )
     parser.add_argument(
         "--fqdn-postfix",
         "-f",
@@ -123,9 +151,9 @@ if __name__ == "__main__":
             f"string to append to host (used for ssh check). defaults to '{SafeRunner.default_fqdn_postfix}'."
         ),
     )
-    parser.add_argument("provisioner")
-    parser.add_argument("worker_type")
-    parser.add_argument("host_csv", type=csv_strs)
+    parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
+    parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
+    parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
     parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
     args.hosts = args.host_csv
@@ -134,6 +162,9 @@ if __name__ == "__main__":
     # sys.exit(0)
 
     sr = SafeRunner(args.provisioner, args.worker_type)
+
+    if args.talk:
+        say("SR talk enabled")
 
     # get user to ack what we're about to do
     print("about to do the following:")
@@ -152,5 +183,9 @@ if __name__ == "__main__":
     counter = 0
     for host in args.hosts:
         counter += 1
+        if args.talk:
+            subprocess.run(f"say SR: starting {host}", shell=True)
         print(f"*** {counter}/{host_total}: {host}")
-        sr.safe_run_single_host(host, args.command)
+        sr.safe_run_single_host(host, args.command, talk=args.talk)
+    if args.talk:
+        subprocess.run(f"say SR: completed {host}", shell=True)
