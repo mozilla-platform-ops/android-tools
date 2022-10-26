@@ -55,6 +55,12 @@ If a queue doesn't have work, we can't verify they're functioning (via the curre
 
 Runs a command on a set of hosts once each has been quarantined and no jobs are running.
 
+Features:
+- integrates with Taskcluster API to quarantine, check no jobs are running, and lift quarantine
+- OS X speech support for updates
+- pre-quarantine feature so there's less waiting for jobs to finish
+- command output is logged to file
+
 ```bash
 # for options
 ./safe_runner.py -h
