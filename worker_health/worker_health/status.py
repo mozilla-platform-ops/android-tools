@@ -3,6 +3,7 @@
 import json
 import os
 import pprint
+import random
 import time
 
 import taskcluster
@@ -51,7 +52,7 @@ class Status:
             )
             hosts_idle = hosts_set - hosts_with_non_completed_or_failed_jobs_set
             if hosts_idle:
-                return list(hosts_idle)[0]
+                return random.choice(list(hosts_idle))
             time.sleep(sleep_time)
 
     def get_jobs_running_data(self, hosts):
