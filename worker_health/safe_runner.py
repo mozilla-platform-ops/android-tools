@@ -111,19 +111,9 @@ class SafeRunner:
     def from_resume(cls, resume_dir):
         # open file and read
         resume_file = f"{resume_dir}/{SafeRunner.state_file_name}"
-        # with open(resume_file) as f:
-        #     data_from_file = f.read()
-        # with io.open(resume_file, "rb") as f:
-        #     data_from_file =  toml_reader.lo
         with open(resume_file, "rb") as f:
             data = toml_reader.load(f)
-        print(data)
-
-        #  = self.provisioner
-        #  = self.worker_type
-        # data['config']["command"] = self.command
-        #  = self.remaining_hosts
-        # data["state"]["completed_hosts"] = self.completed_hosts
+        # print(data)
 
         # TODO: get minimums to create class
         i = cls(
@@ -136,7 +126,6 @@ class SafeRunner:
         i.completed_hosts = data["state"]["completed_hosts"]
         i.run_dir = resume_dir
         i.state_file = f"{resume_dir}/{SafeRunner.state_file_name}"
-
         return i
 
     @property
