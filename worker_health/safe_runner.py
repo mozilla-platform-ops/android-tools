@@ -310,6 +310,18 @@ def handler(_signum, _frame):
     )
 
 
+# given a string hostname, returns True if sshable, else False.
+def host_is_sshable(hostname):
+    up_check_cmd = f"nc -z {hostname} 22 2>&1"
+    spr = subprocess.run(
+        up_check_cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True
+    )
+    rc = spr.returncode
+    if rc == 0:
+        return True
+    return False
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="runs a command against a set of hosts once they are quarantined and not working"
@@ -410,9 +422,28 @@ if __name__ == "__main__":
             status_print(f"pre-quarantine: added {len(pre_quarantine_hosts)} hosts")
             if args.talk:
                 say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
-            status_print("waiting for idle pre-quarantined host...")
-            # TODO: wrap this and wait for a host that's ready
-            host = sr.si.wait_for_idle_host(pre_quarantine_hosts)
+
+            # waits for a host that isn't running jobs
+            # status_print("waiting for idle pre-quarantined host...")
+            # host = sr.si.wait_for_idle_host(pre_quarantine_hosts)
+            #
+            # waits for a host that isn't running jobs and ssh-able
+            status_print("waiting for idle pre-quarantined host that is ssh-able...")
+            exit_while = False
+            while True:
+                idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts)
+                print(f"idle_hosts: {idle_hosts}")
+                for i_host in idle_hosts:
+                    i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
+                    print(f"checking for ssh: {i_host_fqdn}")
+                    if host_is_sshable(i_host_fqdn):
+                        print(f"{i_host_fqdn} is sshable")
+                        host = i_host
+                        exit_while = True
+                        break
+                if exit_while:
+                    break
+                time.sleep(10)
         else:
             host = sr.remaining_hosts[0]
 
