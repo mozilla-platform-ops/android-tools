@@ -38,7 +38,7 @@ def csv_strs(vstr, sep=","):
             v = str(v0)
             values.append(v)
         except ValueError as err:
-            raise argparse.ArgumentError(
+            raise Exception(
                 "Invalid value %s, values must be a number (%s)" % (vstr, err)
             )
     return values
@@ -148,7 +148,7 @@ class SafeRunner:
 
         # write output to a file per host in a directory for the run
         header = ""
-        header += "# safe_runner output'\n"
+        header += "# safe_runner output\n"
         header += "#'\n"
         header += f"# provisioners: '{self.provisioner}'\n"
         header += f"# worker_type: '{self.worker_type}'\n"
