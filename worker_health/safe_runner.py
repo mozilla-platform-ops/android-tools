@@ -337,12 +337,6 @@ if __name__ == "__main__":
         description="runs a command against a set of hosts once they are quarantined and not working"
     )
     parser.add_argument(
-        "--pre_quarantine_additional_host_count",
-        help="quarantine the specified number of following hosts. 0 to disable pre-quarantine",
-        metavar="COUNT",
-        default=3,
-    )
-    parser.add_argument(
         "--resume_dir",
         "-r",
         metavar="RUN_DIR",
@@ -357,10 +351,17 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--fqdn-postfix",
-        "-f",
+        "-F",
         help=(
             f"string to append to host (used for ssh check). defaults to '{SafeRunner.default_fqdn_postfix}'."
         ),
+    )
+    parser.add_argument(
+        "--pre_quarantine_additional_host_count",
+        "-P",
+        help="quarantine the specified number of following hosts. 0 to disable pre-quarantine",
+        metavar="COUNT",
+        default=3,
     )
     parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
     parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
