@@ -238,9 +238,9 @@ class SafeRunner:
         header += f"# run datetime: '{self.start_datetime}' \n"
         header += f"# command run: '{custom_cmd}' \n"
         header += f"# exit code: {rc} \n"
-        file_output = f"{header}#\n{output}"
+        file_output = f"{header}#\n{output}\n"
         utils.mkdir_p(self.run_dir)
-        with open(f"{self.run_dir}/{hostname}.txt", "w") as out:
+        with open(f"{self.run_dir}/{hostname}.txt", "a") as out:
             out.write(file_output)
 
         print(colorama.Style.DIM + "")
@@ -370,11 +370,11 @@ if __name__ == "__main__":
 
     if not args.resume_dir:
         # fresh start: write out toml file
-        print("no resume")
+        # print("no resume")
         sr = SafeRunner(args.provisioner, args.worker_type, args.hosts, args.command)
     else:
         # handle resume: load file
-        print("resume passed in")
+        # print("resume passed in")
         sr = SafeRunner.from_resume(args.resume_dir)
 
     # get user to ack what we're about to do
