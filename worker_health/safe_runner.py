@@ -411,7 +411,8 @@ if __name__ == "__main__":
             if args.talk:
                 say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
             status_print("waiting for idle pre-quarantined host...")
-            host = sr.si.get_idle_host(pre_quarantine_hosts)
+            # TODO: wrap this and wait for a host that's ready
+            host = sr.si.wait_for_idle_host(pre_quarantine_hosts)
         else:
             host = sr.remaining_hosts[0]
 
