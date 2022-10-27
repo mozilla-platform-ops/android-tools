@@ -30,3 +30,4 @@ humanhash3 = "*"
 tomli = {version = "*", markers="python_version < '3.11'"}
 tomli-w = "*"
 colorama = "*"
+tomlkit = "*"

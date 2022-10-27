@@ -13,15 +13,7 @@ import sys
 import time
 
 import colorama
-
-try:
-    # can get rid of the try soon as py 3.11 min supported version
-    # reason is py 3.11 includes tomli in stdlib
-    import tomllib as toml_reader
-except ModuleNotFoundError:  # pragma: no cover
-    import tomli as toml_reader
-
-import tomli_w as toml_writer  # type: ignore
+import tomlkit
 
 from worker_health import quarantine, status, utils
 
@@ -79,6 +71,7 @@ class SafeRunner:
             "provisioner": "",
             "worker_type": "",
             "command": "",
+            "hosts_to_skip": [],
         },
         "state": {
             "remaining_hosts": [],
@@ -87,41 +80,68 @@ class SafeRunner:
     }
 
     def __init__(
-        self, provisioner, worker_type, hosts, command, fqdn_prefix=default_fqdn_postfix
+        self,
+        provisioner,
+        worker_type,
+        hosts,
+        command,
+        fqdn_prefix=default_fqdn_postfix,
     ):
+        # required args
         self.provisioner = provisioner
         self.worker_type = worker_type
         self.command = command
-        # optional
+        # optional args
         self.fqdn_postfix = fqdn_prefix
 
+        # TODO: should we store this? so write will preserve comments?
+        # self._config_toml = {}
         # state
         self.completed_hosts = []
         self.remaining_hosts = hosts
+
+        # instances
+        self.si = status.Status(provisioner, worker_type)
+        self.q = quarantine.Quarantine()
 
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
         self.run_dir = self.default_rundir_path
         self.state_file = self.default_state_file_path
 
-        # instances
-        self.si = status.Status(provisioner, worker_type)
-        self.q = quarantine.Quarantine()
-
     # alternate constructor
     @classmethod
     def from_resume(cls, resume_dir):
         # open file and read
         resume_file = f"{resume_dir}/{SafeRunner.state_file_name}"
+
+        # load file
+        #
+        # tomli
+        # with open(resume_file, "rb") as f:
+        # data = toml_reader.load(f)
+        #
+        # tomlkit
         with open(resume_file, "rb") as f:
-            data = toml_reader.load(f)
+            data = tomlkit.load(f)
+        #
         # print(data)
 
-        # TODO: get minimums to create class
+        # filter out skipped hosts
+        # TODO: don't use sets, they mess with ordering
+        # remaining_hosts_without_hosts_to_skip = list(
+        #     set(data["state"]["remaining_hosts"]) - set(data["config"]["hosts_to_skip"]))
+        # new version
+        remaining_hosts_without_hosts_to_skip = []
+        for h in data["state"]["remaining_hosts"]:
+            if h not in data["config"]["hosts_to_skip"]:
+                remaining_hosts_without_hosts_to_skip.append(h)
+
+        # create class with minimum params
         i = cls(
             data["config"]["provisioner"],
             data["config"]["worker_type"],
-            data["state"]["remaining_hosts"],
+            remaining_hosts_without_hosts_to_skip,
             data["config"]["command"],
         )
         # populate rest
@@ -147,19 +167,38 @@ class SafeRunner:
     #       - hm, can add completed and remaining (but what if user modifies?)
     #     - completed hosts is currently in class, but not used (just metadata)
     #     - what else?
-    def write_toml(self):
+    def write_initial_toml(self):
         # populate data
         data = copy.deepcopy(SafeRunner.empty_config_dict)
+        # config
         data["config"]["provisioner"] = self.provisioner
         data["config"]["worker_type"] = self.worker_type
         data["config"]["command"] = self.command
+        # not writing hosts_to_skip
+        # state
         data["state"]["remaining_hosts"] = self.remaining_hosts
-        data["state"]["completed_hosts"] = self.completed_hosts
+        # not writing remaining
 
-        toml_output = toml_writer.dumps(data)
         utils.mkdir_p(os.path.dirname(self.state_file))
-        with open(self.state_file, "w") as out:
-            out.write(toml_output)
+        # tomli_w
+        # toml_output = toml_writer.dumps(data)
+        # with open(self.state_file, "w") as out:
+        #     out.write(toml_output)
+        # tomlkit
+        tomlkit.dump(self.state_file, data)
+
+    # loads existing state file first, so we can preserve comments
+    def checkpoint_toml(self):
+        with open(self.state_file, "rb") as f:
+            data = tomlkit.load(f)
+
+        # update data
+        data["state"]["completed_hosts"] = self.completed_hosts
+        data["state"]["remaining_hosts"] = self.remaining_hosts
+
+        # write
+        with open(self.state_file, "wb") as f:
+            tomlkit.dump(data, f)
 
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
@@ -209,7 +248,7 @@ class SafeRunner:
                 break
             time.sleep(5)
         if verbose:
-            print(" ready.")
+            print("ready.")
 
         # run command
         custom_cmd = command.replace("SR_HOST", hostname)
@@ -219,7 +258,11 @@ class SafeRunner:
                 say("converging")
         split_custom_cmd = ["/bin/bash", "-l", "-c", custom_cmd]
         ro = subprocess.run(
-            split_custom_cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE
+            split_custom_cmd,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+            # process should ignore parent ctrl-c
+            preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_IGN),
         )
         rc = ro.returncode
         output = ro.stdout.decode()
@@ -234,6 +277,7 @@ class SafeRunner:
         header += f"# run datetime: '{self.start_datetime}' \n"
         header += f"# command run: '{custom_cmd}' \n"
         header += f"# exit code: {rc} \n"
+        # TODO: add skipped hosts?
         file_output = f"{header}#\n{output}\n"
         utils.mkdir_p(self.run_dir)
         with open(f"{self.run_dir}/{hostname}.txt", "a") as out:
@@ -392,6 +436,7 @@ if __name__ == "__main__":
         sr = SafeRunner.from_resume(args.resume_dir)
 
     # get user to ack what we're about to do
+    # TODO: mention skipped hosts?
     print("Run options:")
     print(f"  provisioner: {sr.provisioner}")
     print(f"  worker_type: {sr.worker_type}")
@@ -410,7 +455,7 @@ if __name__ == "__main__":
 
     # for fresh runs, write toml
     if not args.resume_dir:
-        sr.write_toml()
+        sr.write_initial_toml()
 
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: make a more-intelligent multi-host version...
@@ -446,26 +491,28 @@ if __name__ == "__main__":
             #
             # waits for a host that isn't running jobs and ssh-able
             status_print(
-                "waiting for pre-quarantined host that is idle and ssh-able... ", end=""
+                "waiting for pre-quarantined host that is idle and ssh-able... "  # , end=""
             )
             exit_while = False
             while True:
-                print("0", end="", flush=True)
+                # print("0", end="", flush=True)
+                status_print("searching for idle hosts among pre-quarantined...")
                 idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts)
-                # print(f"idle_hosts: {idle_hosts}")
+                status_print(f"hosts found: {', '.join(idle_hosts)}.")
                 for i_host in idle_hosts:
-                    print(".", end="", flush=True)
+                    # print(".", end="", flush=True)
                     i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
-                    # print(f"checking for ssh: {i_host_fqdn}")
+                    status_print(f"checking for ssh: {i_host_fqdn}...")
                     if host_is_sshable(i_host_fqdn):
                         host = i_host
                         exit_while = True
                         break
                 if exit_while:
                     break
-                print("Z", end="", flush=True)
+                # print("Z", end="", flush=True)
+                status_print("no quarantined idle ssh-able hosts found. sleeping...")
                 time.sleep(60)
-            print(" found.", flush=True)
+            # print(" found.", flush=True)
         else:
             host = sr.remaining_hosts[0]
 
@@ -483,7 +530,7 @@ if __name__ == "__main__":
             say(f"completed {host}.")
             say(f"{len(sr.remaining_hosts)} of {host_total} hosts remaining.")
         sr.completed_hosts.append(host)
-        sr.write_toml()
+        sr.checkpoint_toml()
         if terminate > 0:
             status_print("graceful exiting...")
             # TODO: show quarantined hosts?
