@@ -5,6 +5,7 @@
 # takes same args as quarantine-tool
 
 import argparse
+import copy
 import datetime
 import os
 import re
@@ -76,11 +77,10 @@ class SafeRunner:
             "provisioner": "",
             "worker_type": "",
             "command": "",
-            "hosts": [],
         },
         "state": {
-            "remaining": [],
-            "completed": [],
+            "remaining_hosts": [],
+            "completed_hosts": [],
         },
     }
 
@@ -90,7 +90,6 @@ class SafeRunner:
         self.provisioner = provisioner
         self.worker_type = worker_type
         self.command = command
-        self.hosts = hosts
         # optional
         self.fqdn_postfix = fqdn_prefix
 
@@ -100,7 +99,8 @@ class SafeRunner:
 
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
-        self.output_dir = None
+        self.run_dir = self.default_rundir_path
+        self.state_file = self.default_state_file_path
 
         # instances
         self.si = status.Status(provisioner, worker_type)
@@ -111,45 +111,52 @@ class SafeRunner:
     def from_resume(cls, resume_dir):
         # open file and read
         resume_file = f"{resume_dir}/{SafeRunner.state_file_name}"
-        toml_data = toml_reader.load(resume_file)
-        print(toml_data)
+        data = toml_reader.load(resume_file)
+        print(data)
+
+        #  = self.provisioner
+        #  = self.worker_type
+        # data['config']["command"] = self.command
+        #  = self.remaining_hosts
+        # data["state"]["completed_hosts"] = self.completed_hosts
 
         # TODO: get minimums to create class
-        i = cls()
-        # TODO: populate rest
+        i = cls(
+            data["config"]["provisioner"],
+            data["config"]["worker_type"],
+            data["state"]["remaining_hosts"],
+            data["config"]["command"],
+        )
+        # populate rest
+        i.completed_hosts = data["state"]["completed_hosts"]
+        i.run_dir = resume_dir
+        i.state_file = f"{resume_dir}/{SafeRunner.state_file_name}"
 
         return i
 
     @property
-    def default_output_dirname(self):
+    def default_rundir_path(self):
         datetime_format_for_directory = "%Y%m%d-%H%M%S"
         datetime_part = self.start_datetime.strftime(datetime_format_for_directory)
         return f"sr_{datetime_part}"
 
     @property
-    def default_config_file_path(self):
-        return f"{self.default_output_dirname}/{SafeRunner.state_file_name}"
+    def default_state_file_path(self):
+        return f"{self.default_rundir_path}/{SafeRunner.state_file_name}"
 
-    def write_toml(self, file_path=None):
-        if not file_path:
-            file_path = self.default_config_file_path
+    # TODO: use tomlkit?
+    def write_toml(self):
+        # populate data
+        data = copy.deepcopy(SafeRunner.empty_config_dict)
+        data["config"]["provisioner"] = self.provisioner
+        data["config"]["worker_type"] = self.worker_type
+        data["config"]["command"] = self.command
+        data["state"]["remaining_hosts"] = self.remaining_hosts
+        data["state"]["completed_hosts"] = self.completed_hosts
 
-        # TODO: populate data
-        data = {
-            "config": {
-                "provisioner": self.provisioner,
-                "worker_type": self.worker_type,
-                "command": self.command,
-                "hosts": self.hosts,
-            },
-            "state": {
-                "remaining": [],
-                "completed": [],
-            },
-        }
         toml_output = toml_writer.dumps(data)
-        utils.mkdir_p(os.path.dirname(file_path))
-        with open(file_path, "w") as out:
+        utils.mkdir_p(os.path.dirname(self.config_file_path))
+        with open(self.config_file_path, "w") as out:
             out.write(toml_output)
 
     # TODO: have a multi-host with smarter sequencing...
@@ -228,8 +235,8 @@ class SafeRunner:
         header += f"# command run: '{custom_cmd}'\n"
         header += f"# exit code: {rc}\n"
         file_output = f"{header}#\n{output}"
-        utils.mkdir_p(self.default_output_dirname)
-        with open(f"{self.default_output_dirname}/{hostname}.txt", "w") as out:
+        utils.mkdir_p(self.default_rundir_path)
+        with open(f"{self.default_rundir_path}/{hostname}.txt", "w") as out:
             out.write(file_output)
 
         print("")
@@ -304,12 +311,24 @@ if __name__ == "__main__":
     if args.talk:
         say("SR talk enabled", background_mode=True)
 
+    if not args.resume_dir:
+        # fresh start: write out toml file
+        print("no resume")
+        sr = SafeRunner(args.provisioner, args.worker_type, args.hosts, args.command)
+        # sys.exit()
+    else:
+        # handle resume: load file
+        print("resume passed in")
+        sr = SafeRunner.from_resume(args.resume_dir)
+        # sys.exit(1)
+        # load toml
+
     # get user to ack what we're about to do
     print("about to do the following:")
-    print(f"  provisioner: {args.provisioner}")
-    print(f"  worker_type: {args.worker_type}")
-    print(f"  hosts ({len(args.hosts)}): {args.hosts}")
-    print(f"  command: {args.command}")
+    print(f"  provisioner: {sr.provisioner}")
+    print(f"  worker_type: {sr.worker_type}")
+    print(f"  hosts ({len(sr.remaining_hosts)}): {sr.remaining_hosts}")
+    print(f"  command: {sr.command}")
     print("")
     print("type 'yes' to continue: ", end="")
     user_input = input()
@@ -317,26 +336,16 @@ if __name__ == "__main__":
         print("user chose to exit")
         sys.exit(0)
 
+    # for fresh runs, write toml
     if not args.resume_dir:
-        # write out toml report(/config) file
-        sr = SafeRunner(args.provisioner, args.worker_type, args.hosts, args.command)
         sr.write_toml()
-        print("no resume")
-        sys.exit()
-    else:
-        # TODO: handle resume
-        print("resume passed in")
-        sr = SafeRunner.from_resume(args.resume_dir)
-        sys.exit(1)
-        # load toml
 
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: make a more-intelligent multi-host version...
     #   - this will wait on current host if not drained (when other hosts in pre-quarantine group are ready)
-    host_total = len(args.hosts)
-    hosts_left = args.hosts
+    host_total = len(sr.hosts)
     counter = 0
-    while hosts_left:
+    while sr.remaining_hosts:
         counter += 1
 
         # pre-quarantine code
@@ -345,7 +354,7 @@ if __name__ == "__main__":
         # pre_quarantine_hosts = utils.arr_get_followers(
         #     args.hosts, host, args.pre_quarantine_additional_host_count
         # )
-        pre_quarantine_hosts = hosts_left[
+        pre_quarantine_hosts = sr.remaining_hosts[
             0 : (args.pre_quarantine_additional_host_count + 1)
         ]
         if args.pre_quarantine_additional_host_count:
@@ -361,16 +370,19 @@ if __name__ == "__main__":
             status_print("waiting for idle host...")
             host = sr.si.get_idle_host(pre_quarantine_hosts)
         else:
-            host = hosts_left[0]
+            host = sr.remaining_hosts[0]
 
         # safe_run_single_host
         status_print(f"*** {counter}/{host_total}: {host}")
         if args.talk:
             say(f"SR: starting {host}")
         sr.safe_run_single_host(host, args.command, talk=args.talk)
-        hosts_left.remove(host)
+        sr.remaining_hosts.remove(host)
         if args.talk:
-            say(f"SR: completed {host}. {len(hosts_left)} hosts remaining.")
-        status_print(f"hosts remaining ({len(hosts_left)}): {hosts_left}")
-        # TODO: add to sr.completed_host
+            say(f"SR: completed {host}. {len(sr.remaining_hosts)} hosts remaining.")
+        status_print(
+            f"hosts remaining ({len(sr.remaining_hosts)}): {sr.remaining_hosts}"
+        )
+        sr.completed_hosts.append(host)
+        sr.write_toml()
         print("")
