@@ -428,22 +428,24 @@ if __name__ == "__main__":
             # host = sr.si.wait_for_idle_host(pre_quarantine_hosts)
             #
             # waits for a host that isn't running jobs and ssh-able
-            status_print("waiting for idle pre-quarantined host that is ssh-able...")
+            status_print(
+                "waiting for pre-quarantined host that is idle and ssh-able..."
+            )
             exit_while = False
             while True:
                 idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts)
-                print(f"idle_hosts: {idle_hosts}")
+                # print(f"idle_hosts: {idle_hosts}")
                 for i_host in idle_hosts:
                     i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
-                    print(f"checking for ssh: {i_host_fqdn}")
+                    # print(f"checking for ssh: {i_host_fqdn}")
                     if host_is_sshable(i_host_fqdn):
-                        print(f"{i_host_fqdn} is sshable")
+                        # print(f"{i_host_fqdn} is sshable")
                         host = i_host
                         exit_while = True
                         break
                 if exit_while:
                     break
-                time.sleep(10)
+                time.sleep(30)
         else:
             host = sr.remaining_hosts[0]
 
