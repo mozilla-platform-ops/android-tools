@@ -14,6 +14,8 @@ import subprocess
 import sys
 import time
 
+import colorama
+
 try:
     # can get rid of the try soon as py 3.11 min supported version
     # reason is py 3.11 includes tomli in stdlib
@@ -73,6 +75,7 @@ def status_print(line_to_print):
 class SafeRunner:
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "sr_state.toml"
+    # TODO: once using tomlkit, add field for skipped_hosts
     empty_config_dict = {
         "config": {
             "provisioner": "",
@@ -240,10 +243,10 @@ class SafeRunner:
         with open(f"{self.run_dir}/{hostname}.txt", "w") as out:
             out.write(file_output)
 
-        print("")
+        print(colorama.Style.DIM + "")
         for line in output.strip().split("\n"):
             print(line)
-        print("")
+        print(colorama.Style.RESET_ALL + "")
 
         if rc != 0:
             status_print(
@@ -297,9 +300,14 @@ class ResumeAction(argparse.Action):
 
 def handler(_signum, _frame):
     global terminate
-    terminate = True
+    terminate += 1
     print("")
-    print("ctrl-c detected. will exit at end of current host.")
+    if terminate >= 2:
+        print("double ctrl-c detected. exiting immediately!")
+        sys.exit(0)
+    print(
+        "ctrl-c detected. will exit at end of current host (another will exit immediately)."
+    )
 
 
 if __name__ == "__main__":
@@ -363,13 +371,14 @@ if __name__ == "__main__":
     print(f"  worker_type: {sr.worker_type}")
     print(f"  hosts ({len(sr.remaining_hosts)}): {sr.remaining_hosts}")
     print(f"  command: {sr.command}")
-    print("")
     print("type 'yes' to continue: ", end="")
     user_input = input()
     if user_input != "yes":
         print("user chose to exit")
         sys.exit(0)
+    print("")
 
+    # TODO: ideally this would just be when we're converging until done
     signal.signal(signal.SIGINT, handler)
 
     # for fresh runs, write toml
@@ -382,7 +391,7 @@ if __name__ == "__main__":
     host_total = len(sr.remaining_hosts)
     counter = 0
     global terminate
-    terminate = False
+    terminate = 0
     while sr.remaining_hosts:
         counter += 1
 
@@ -419,7 +428,7 @@ if __name__ == "__main__":
         )
         sr.completed_hosts.append(host)
         sr.write_toml()
-        if terminate:
+        if terminate > 0:
             status_print("graceful exiting...")
             # TODO: show quarantined hosts?
             break
