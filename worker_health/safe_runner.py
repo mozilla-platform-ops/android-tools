@@ -416,15 +416,16 @@ if __name__ == "__main__":
             host = sr.remaining_hosts[0]
 
         # safe_run_single_host
-        status_print(f"*** {counter}/{host_total}: {host}")
+        status_print(f":{host}: starting")
         if args.talk:
             say(f"SR: starting {host}")
         sr.safe_run_single_host(host, sr.command, talk=args.talk)
         sr.remaining_hosts.remove(host)
+        status_print(f"{host}: complete")
         if args.talk:
             say(f"SR: completed {host}. {len(sr.remaining_hosts)} hosts remaining.")
         status_print(
-            f"hosts remaining ({len(sr.remaining_hosts)}): {sr.remaining_hosts}"
+            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {sr.remaining_hosts}"
         )
         sr.completed_hosts.append(host)
         sr.write_toml()
@@ -432,4 +433,4 @@ if __name__ == "__main__":
             status_print("graceful exiting...")
             # TODO: show quarantined hosts?
             break
-        print("")
+        # print("")
