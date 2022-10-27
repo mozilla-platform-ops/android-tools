@@ -71,7 +71,7 @@ def preexec_function():
 class SafeRunner:
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "sr_state.toml"
-    # TODO: once using tomlkit, add field for skipped_hosts
+    # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
         "config": {
             "provisioner": "",
