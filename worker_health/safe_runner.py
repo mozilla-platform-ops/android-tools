@@ -154,6 +154,7 @@ class SafeRunner:
     #     - (pre_)quarantined hosts
     #     - original hosts: otherwise we lose this data?
     #       - hm, can add completed and remaining (but what if user modifies?)
+    #     - completed hosts is currently in class, but not used (just metadata)
     #     - what else?
     def write_toml(self):
         # populate data
@@ -394,7 +395,7 @@ if __name__ == "__main__":
                 f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}"
             )
             sr.q.quarantine(
-                args.provisioner, args.worker_type, pre_quarantine_hosts, verbose=False
+                sr.provisioner, sr.worker_type, pre_quarantine_hosts, verbose=False
             )
             status_print(f"pre-quarantine: added {len(pre_quarantine_hosts)} hosts")
             if args.talk:
@@ -408,7 +409,7 @@ if __name__ == "__main__":
         status_print(f"*** {counter}/{host_total}: {host}")
         if args.talk:
             say(f"SR: starting {host}")
-        sr.safe_run_single_host(host, args.command, talk=args.talk)
+        sr.safe_run_single_host(host, sr.command, talk=args.talk)
         sr.remaining_hosts.remove(host)
         if args.talk:
             say(f"SR: completed {host}. {len(sr.remaining_hosts)} hosts remaining.")
