@@ -127,21 +127,27 @@ class SafeRunner:
         #
         # print(data)
 
+        # sanity check
+        try:
+            data["state"]
+            data["config"]
+        except tomlkit.exceptions.NonExistentKey:
+            raise Exception(f"invalid file format in '{resume_file}'")
+
         # filter out skipped hosts
-        # TODO: don't use sets, they mess with ordering
-        # remaining_hosts_without_hosts_to_skip = list(
-        #     set(data["state"]["remaining_hosts"]) - set(data["config"]["hosts_to_skip"]))
-        # new version
-        remaining_hosts_without_hosts_to_skip = []
+        # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from remaining_hosts...
+        # remaining_hosts_without_hosts_to_skip = []
+        # mutate this because it's a special tomlkit datastructure (preserves formatting)
         for h in data["state"]["remaining_hosts"]:
-            if h not in data["config"]["hosts_to_skip"]:
-                remaining_hosts_without_hosts_to_skip.append(h)
+            if h in data["config"]["hosts_to_skip"]:
+                data["state"]["remaining_hosts"].remove(h)
+                # remaining_hosts_without_hosts_to_skip.append(h)
 
         # create class with minimum params
         i = cls(
             data["config"]["provisioner"],
             data["config"]["worker_type"],
-            remaining_hosts_without_hosts_to_skip,
+            data["state"]["remaining_hosts"],
             data["config"]["command"],
         )
         # populate rest
@@ -189,7 +195,7 @@ class SafeRunner:
 
     # loads existing state file first, so we can preserve comments
     def checkpoint_toml(self):
-        with open(self.state_file, "rb") as f:
+        with open(self.state_file, "r") as f:
             data = tomlkit.load(f)
 
         # update data
@@ -197,7 +203,7 @@ class SafeRunner:
         data["state"]["remaining_hosts"] = self.remaining_hosts
 
         # write
-        with open(self.state_file, "wb") as f:
+        with open(self.state_file, "w") as f:
             tomlkit.dump(data, f)
 
     # TODO: have a multi-host with smarter sequencing...
