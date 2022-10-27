@@ -59,9 +59,11 @@ class Quarantine:
                 # TODO: inspect message
                 raise e
 
-    def lift_quarantine(self, provisioner, worker_type, device_arr):
+    def lift_quarantine(self, provisioner, worker_type, device_arr, verbose=True):
         # TODO: catch exception and wrap?
-        self.quarantine(provisioner, worker_type, device_arr, duration="-1 year")
+        self.quarantine(
+            provisioner, worker_type, device_arr, duration="-1 year", verbose=verbose
+        )
 
     # TODO: use the implementation in tc_helpers?
     def get_worker_groups(self, provisioner, worker_type):

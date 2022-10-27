@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 -u
+# the `-u` disables output buffering
 
 # drains host (quarantines and wait for jobs to finish), runs a command, and then lifts the quarantine
 
@@ -66,10 +67,11 @@ def say(what_to_say, background_mode=False):
     subprocess.run(cmd_to_run, shell=True)
 
 
-def status_print(line_to_print):
+def status_print(line_to_print, end="\n"):
     ctime = datetime.datetime.now()
     ctime_str = ctime.strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{ctime_str}: {line_to_print}")
+    print(f"{ctime_str}: {line_to_print}", end=end)
+    sys.stdout.flush()
 
 
 class SafeRunner:
@@ -173,11 +175,11 @@ class SafeRunner:
         # quarantine
         # TODO: check if already quarantined and skip if so
         if verbose:
-            status_print(f"{hostname}: adding to quarantine...")
+            status_print(f"{hostname}: adding to quarantine... ", end="")
         self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
         # TODO: verify?
         if verbose:
-            status_print(f"{hostname}: quarantined.")
+            print(" quarantined.")
             if talk:
                 say("quarantined")
 
@@ -189,31 +191,29 @@ class SafeRunner:
             #             provisioner=provisioner_id, worker_type=worker_type
             #         )
 
-            status_print(f"{hostname}: waiting for host to drain...")
+            status_print(f"{hostname}: waiting for host to drain...", end="")
             if talk:
                 say("draining")
         self.si.wait_until_no_jobs_running([hostname])
         if verbose:
-            status_print(f"{hostname}: drained.")
+            print(" drained.")
             if talk:
                 say("drained")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
         # wait for host to be back up, otherwise ssh will time out.
-        up_check_cmd = f"nc -z {hostname}{self.fqdn_postfix} 22"
         if verbose:
-            status_print(f"{hostname}: waiting for ssh on host to be responsive...")
+            status_print(f"{hostname}: waiting for ssh to be up... ", end="")
             if talk:
                 say("waiting for ssh")
         while True:
-            spr = subprocess.run(up_check_cmd, shell=True)
-            rc = spr.returncode
-            if rc == 0:
+            host_fqdn = f"{hostname}{self.fqdn_postfix}"
+            if host_is_sshable(host_fqdn):
                 break
-            time.sleep(2)
+            time.sleep(5)
         if verbose:
-            status_print(f"{hostname}: ssh is responsive.")
+            print(" ready.")
 
         # run command
         custom_cmd = command.replace("SR_HOST", hostname)
@@ -262,11 +262,13 @@ class SafeRunner:
 
         # lift quarantine
         if verbose:
-            status_print(f"{hostname}: lifting quarantine...")
-        self.q.lift_quarantine(self.provisioner, self.worker_type, [hostname])
+            status_print(f"{hostname}: lifting quarantine...", end="")
+        self.q.lift_quarantine(
+            self.provisioner, self.worker_type, [hostname], verbose=False
+        )
         # TODO: verify?
         if verbose:
-            status_print(f"{hostname}: quarantine lifted.")
+            print(" lifted.")
             if talk:
                 say("quarantine lifted")
 
@@ -322,6 +324,18 @@ def host_is_sshable(hostname):
     return False
 
 
+def print_banner():
+    # from `figlet -f smslant safe runner`
+    # looks strange as first line is indented
+    print(
+        """            ___
+  ___ ___ _/ _/__   ______ _____  ___  ___ ____
+ (_-</ _ `/ _/ -_) / __/ // / _ \/ _ \/ -_) __/
+/___/\_,_/_/ \__/ /_/  \_,_/_//_/_//_/\__/_/
+"""  # noqa: W605
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="runs a command against a set of hosts once they are quarantined and not working"
@@ -358,9 +372,10 @@ if __name__ == "__main__":
     parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
     args.hosts = args.host_csv
-
     # TODO: add as an exposed option?
     args.verbose = True
+
+    print_banner()
 
     # print(args)
     # sys.exit(0)
@@ -383,7 +398,8 @@ if __name__ == "__main__":
     print(f"  worker_type: {sr.worker_type}")
     print(f"  hosts ({len(sr.remaining_hosts)}): {sr.remaining_hosts}")
     print(f"  command: {sr.command}")
-    print("type 'yes' to continue: ", end="")
+    print("")
+    print("Does that look correct? Type 'yes' to proceed: ", end="")
     user_input = input()
     if user_input != "yes":
         print("user chose to exit")
@@ -429,7 +445,7 @@ if __name__ == "__main__":
             #
             # waits for a host that isn't running jobs and ssh-able
             status_print(
-                "waiting for pre-quarantined host that is idle and ssh-able..."
+                "waiting for pre-quarantined host that is idle and ssh-able... ", end=""
             )
             exit_while = False
             while True:
@@ -445,19 +461,22 @@ if __name__ == "__main__":
                         break
                 if exit_while:
                     break
-                time.sleep(30)
+                print(".", end="")
+                time.sleep(60)
+            print(" found.")
         else:
             host = sr.remaining_hosts[0]
 
         # safe_run_single_host
         status_print(f"{host}: starting")
         if args.talk:
-            say(f"SR: starting {host}")
+            say(f"starting {host}")
         sr.safe_run_single_host(host, sr.command, talk=args.talk)
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
         if args.talk:
-            say(f"SR: completed {host}. {len(sr.remaining_hosts)} hosts remaining.")
+            say(f"completed {host}.")
+            say(f"{len(sr.remaining_hosts)} of {host_total} hosts remaining.")
         status_print(
             f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {sr.remaining_hosts}"
         )
