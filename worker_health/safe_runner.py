@@ -9,6 +9,7 @@ import copy
 import datetime
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -294,6 +295,13 @@ class ResumeAction(argparse.Action):
         setattr(args, self.dest, values)
 
 
+def handler(_signum, _frame):
+    global terminate
+    terminate = True
+    print("")
+    print("ctrl-c detected. will exit at end of current host.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="runs a command against a set of hosts once they are quarantined and not working"
@@ -362,6 +370,8 @@ if __name__ == "__main__":
         print("user chose to exit")
         sys.exit(0)
 
+    signal.signal(signal.SIGINT, handler)
+
     # for fresh runs, write toml
     if not args.resume_dir:
         sr.write_toml()
@@ -371,6 +381,8 @@ if __name__ == "__main__":
     #   - this will wait on current host if not drained (when other hosts in pre-quarantine group are ready)
     host_total = len(sr.remaining_hosts)
     counter = 0
+    global terminate
+    terminate = False
     while sr.remaining_hosts:
         counter += 1
 
@@ -407,4 +419,8 @@ if __name__ == "__main__":
         )
         sr.completed_hosts.append(host)
         sr.write_toml()
+        if terminate:
+            status_print("graceful exiting...")
+            # TODO: show quarantined hosts?
+            break
         print("")
