@@ -392,7 +392,7 @@ if __name__ == "__main__":
     print("Run options:")
     print(f"  provisioner: {sr.provisioner}")
     print(f"  worker_type: {sr.worker_type}")
-    print(f"  hosts ({len(sr.remaining_hosts)}): {sr.remaining_hosts}")
+    print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
     print(f"  command: {sr.command}")
     print("")
     print("Does this look correct? Type 'yes' to proceed: ", end="")
@@ -463,7 +463,7 @@ if __name__ == "__main__":
                     break
                 print("Z", end="", flush=True)
                 time.sleep(60)
-            print(" found.")
+            print(" found.", flush=True)
         else:
             host = sr.remaining_hosts[0]
 
@@ -475,7 +475,7 @@ if __name__ == "__main__":
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
         status_print(
-            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {sr.remaining_hosts}"
+            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {', '.join(sr.remaining_hosts)}"
         )
         if args.talk:
             say(f"completed {host}.")
