@@ -239,10 +239,10 @@ class SafeRunner:
         with open(f"{self.run_dir}/{hostname}.txt", "a") as out:
             out.write(file_output)
 
-        print(colorama.Style.DIM + "")
+        print(colorama.Style.DIM, end="")
         for line in output.strip().split("\n"):
-            print(line)
-        print(colorama.Style.RESET_ALL + "")
+            print(f"  {line}")
+        print(colorama.Style.RESET_ALL, end="")
 
         if rc != 0:
             status_print(
@@ -310,7 +310,7 @@ def handler(_signum, _frame):
 
 # given a string hostname, returns True if sshable, else False.
 def host_is_sshable(hostname):
-    up_check_cmd = f"nc -z {hostname} 22 2>&1"
+    up_check_cmd = f"nc -w 2 -G 3 -z {hostname} 22 2>&1"
     spr = subprocess.run(
         up_check_cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True
     )
@@ -377,7 +377,7 @@ if __name__ == "__main__":
     # sys.exit(0)
 
     if args.talk:
-        say("SR talk enabled", background_mode=True)
+        say("safe runner: talk enabled", background_mode=True)
 
     if not args.resume_dir:
         # fresh start: write out toml file
@@ -447,20 +447,21 @@ if __name__ == "__main__":
             )
             exit_while = False
             while True:
+                print("0", end="", flush=True)
                 idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts)
                 # print(f"idle_hosts: {idle_hosts}")
                 for i_host in idle_hosts:
+                    print(".", end="", flush=True)
                     i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
                     # print(f"checking for ssh: {i_host_fqdn}")
                     if host_is_sshable(i_host_fqdn):
-                        # print(f"{i_host_fqdn} is sshable")
+                        status_print(f"{i_host_fqdn} is ssh-able")
                         host = i_host
                         exit_while = True
                         break
                 if exit_while:
                     break
-                print(".", end="", flush=True)
-                sys.stdout.flush()
+                print("Z", end="", flush=True)
                 time.sleep(60)
             print(" found.")
         else:
