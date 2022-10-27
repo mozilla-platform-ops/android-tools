@@ -324,11 +324,13 @@ def print_banner():
     # from `figlet -f smslant safe runner`
     # looks strange as first line is indented
     print(
-        """            ___
+        colorama.Style.BRIGHT
+        + """            ___
   ___ ___ _/ _/__   ______ _____  ___  ___ ____
  (_-</ _ `/ _/ -_) / __/ // / _ \/ _ \/ -_) __/
 /___/\_,_/_/ \__/ /_/  \_,_/_//_/_//_/\__/_/
 """  # noqa: W605
+        + colorama.Style.RESET_ALL
     )
 
 
