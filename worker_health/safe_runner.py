@@ -155,8 +155,8 @@ class SafeRunner:
         data["state"]["completed_hosts"] = self.completed_hosts
 
         toml_output = toml_writer.dumps(data)
-        utils.mkdir_p(os.path.dirname(self.config_file_path))
-        with open(self.config_file_path, "w") as out:
+        utils.mkdir_p(os.path.dirname(self.state_file))
+        with open(self.state_file, "w") as out:
             out.write(toml_output)
 
     # TODO: have a multi-host with smarter sequencing...
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: make a more-intelligent multi-host version...
     #   - this will wait on current host if not drained (when other hosts in pre-quarantine group are ready)
-    host_total = len(sr.hosts)
+    host_total = len(sr.remaining_hosts)
     counter = 0
     while sr.remaining_hosts:
         counter += 1
