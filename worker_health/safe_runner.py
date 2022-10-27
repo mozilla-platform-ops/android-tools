@@ -350,10 +350,6 @@ if __name__ == "__main__":
 
         # pre-quarantine code
         #   - gets a few workers ready (quarantined) before we're working on them
-        # if args.pre_quarantine_additional_host_count != 0:
-        # pre_quarantine_hosts = utils.arr_get_followers(
-        #     args.hosts, host, args.pre_quarantine_additional_host_count
-        # )
         pre_quarantine_hosts = sr.remaining_hosts[
             0 : (args.pre_quarantine_additional_host_count + 1)
         ]
