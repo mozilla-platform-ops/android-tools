@@ -11,6 +11,8 @@ from worker_health import status
 
 # import ipdb
 
+# TODO: make more useful (not useful via script, not the data we want) or delete
+
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
     return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]
@@ -40,8 +42,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args.hosts = args.host_csv
 
-    si = status.Status()
+    si = status.Status(args.provisioner, args.worker_type)
 
     # print(args)
 
-    si.show_jobs_running_report(args.provisioner, args.worker_type, args.hosts)
+    si.show_jobs_running_report(args.hosts)
