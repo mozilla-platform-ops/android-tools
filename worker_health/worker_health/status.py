@@ -2,7 +2,6 @@
 
 import json
 import os
-import pprint
 import random
 import time
 
@@ -87,9 +86,10 @@ class Status:
 
     def show_jobs_running_report(self, hosts):
         hosts_with_non_completed_or_failed_jobs = self.get_hosts_running_jobs(hosts)
-        # less useful now that it's just a len call vs the internal value from above?
         hosts_checked = hosts
 
+        # TODO: move this print into get_hosts_running_jobs()
+        #   - less useful now that it's just a len call vs the internal value from above?
         print(f"hosts checked ({len(hosts_checked)}): {hosts_checked}")
         print(
             f"hosts_with_non_completed_or_failed_jobs ({len(hosts_with_non_completed_or_failed_jobs)}): {hosts_with_non_completed_or_failed_jobs}"
@@ -99,11 +99,11 @@ class Status:
         return hosts_with_non_completed_or_failed_jobs
 
     # TODO: not used... ok to remove?
-    def list_workers(self):
-        results = self.tc_wm.listWorkers(self.worker_type, self.provisioner)
-        pprint.pprint(results)
-        for result in results["workers"]:
-            pprint.pprint(result)
+    # def list_workers(self):
+    #     results = self.tc_wm.listWorkers(self.worker_type, self.provisioner)
+    #     pprint.pprint(results)
+    #     for result in results["workers"]:
+    #         pprint.pprint(result)
 
 
 if __name__ == "__main__":
