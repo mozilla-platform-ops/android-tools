@@ -62,6 +62,12 @@ def status_print(line_to_print, end="\n"):
     print(f"{ctime_str}: {line_to_print}", end=end, flush=True)
 
 
+def preexec_function():
+    # Ignore the SIGINT signal by setting the handler to the standard
+    # signal handler SIG_IGN.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
 class SafeRunner:
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "sr_state.toml"
@@ -268,7 +274,7 @@ class SafeRunner:
             stderr=subprocess.STDOUT,
             stdout=subprocess.PIPE,
             # process should ignore parent ctrl-c
-            preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_IGN),
+            preexec_fn=lambda: preexec_function,
         )
         rc = ro.returncode
         output = ro.stdout.decode()
