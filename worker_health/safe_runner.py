@@ -226,14 +226,14 @@ class SafeRunner:
 
         # write output to a file per host in a directory for the run
         header = ""
-        header += "# safe_runner output\n"
-        header += "#'\n"
-        header += f"# provisioners: '{self.provisioner}'\n"
-        header += f"# worker_type: '{self.worker_type}'\n"
-        header += f"# hostname: '{hostname}'\n"
-        header += f"# run datetime: '{self.start_datetime}'\n"
-        header += f"# command run: '{custom_cmd}'\n"
-        header += f"# exit code: {rc}\n"
+        header += "# safe_runner output \n"
+        header += "# \n"
+        header += f"# provisioners: '{self.provisioner}' \n"
+        header += f"# worker_type: '{self.worker_type}' \n"
+        header += f"# hostname: '{hostname}' \n"
+        header += f"# run datetime: '{self.start_datetime}' \n"
+        header += f"# command run: '{custom_cmd}' \n"
+        header += f"# exit code: {rc} \n"
         file_output = f"{header}#\n{output}"
         utils.mkdir_p(self.default_rundir_path)
         with open(f"{self.default_rundir_path}/{hostname}.txt", "w") as out:
