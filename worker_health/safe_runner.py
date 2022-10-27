@@ -111,7 +111,12 @@ class SafeRunner:
     def from_resume(cls, resume_dir):
         # open file and read
         resume_file = f"{resume_dir}/{SafeRunner.state_file_name}"
-        data = toml_reader.load(resume_file)
+        # with open(resume_file) as f:
+        #     data_from_file = f.read()
+        # with io.open(resume_file, "rb") as f:
+        #     data_from_file =  toml_reader.lo
+        with open(resume_file, "rb") as f:
+            data = toml_reader.load(f)
         print(data)
 
         #  = self.provisioner
@@ -145,6 +150,11 @@ class SafeRunner:
         return f"{self.default_rundir_path}/{SafeRunner.state_file_name}"
 
     # TODO: use tomlkit?
+    #   - we can have comment-like metadata fields that we don't have to load/save
+    #     - (pre_)quarantined hosts
+    #     - original hosts: otherwise we lose this data?
+    #       - hm, can add completed and remaining (but what if user modifies?)
+    #     - what else?
     def write_toml(self):
         # populate data
         data = copy.deepcopy(SafeRunner.empty_config_dict)
@@ -267,6 +277,33 @@ class SafeRunner:
                 say("quarantine lifted")
 
 
+def remove_argument(parser, arg):
+    for action in parser._actions:
+        # print(action)
+        opts = action.option_strings
+        if (opts and opts[0] == arg) or action.dest == arg:
+            parser._remove_action(action)
+            break
+
+    for action in parser._action_groups:
+        # print(action)
+        for group_action in action._group_actions:
+            if group_action.dest == arg:
+                action._group_actions.remove(group_action)
+                return
+
+
+class ResumeAction(argparse.Action):
+    def __call__(self, parser, args, values, option_string):
+        # remove these arguments becuase they're not needed with -r/--resume_file
+        remove_argument(parser, "provisioner")
+        remove_argument(parser, "worker_type")
+        remove_argument(parser, "command")
+        remove_argument(parser, "host_csv")
+        # the normal part
+        setattr(args, self.dest, values)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="runs a command against a set of hosts once they are quarantined and not working"
@@ -279,7 +316,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--resume_dir",
+        "-r",
         metavar="RUN_DIR",
+        action=ResumeAction,
         help="'sr_' run directory. causes positional arguments to be ignored.",
     )
     parser.add_argument(
@@ -315,13 +354,10 @@ if __name__ == "__main__":
         # fresh start: write out toml file
         print("no resume")
         sr = SafeRunner(args.provisioner, args.worker_type, args.hosts, args.command)
-        # sys.exit()
     else:
         # handle resume: load file
         print("resume passed in")
         sr = SafeRunner.from_resume(args.resume_dir)
-        # sys.exit(1)
-        # load toml
 
     # get user to ack what we're about to do
     print("about to do the following:")
