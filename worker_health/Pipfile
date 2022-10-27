@@ -28,3 +28,4 @@ taskcluster = "*"
 humanhash3 = "*"
 # tomli is in stdlib as of 3.11
 tomli = {version = "*", markers="python_version < '3.11'"}
+tomli-w = "*"

@@ -11,6 +11,15 @@ import subprocess
 import sys
 import time
 
+try:
+    # can get rid of the try soon as py 3.11 min supported version
+    # reason is py 3.11 includes tomli in stdlib
+    import tomllib as toml_reader
+except ModuleNotFoundError:  # pragma: no cover
+    import tomli as toml_reader
+
+import tomli_w as toml_writer  # type: ignore
+
 from worker_health import quarantine, status, utils
 
 # TODO: progress/state tracking
@@ -60,6 +69,7 @@ def status_print(line_to_print):
 
 class SafeRunner:
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
+    state_file_name = "sr_state.toml"
 
     def __init__(self, provisioner, worker_type, fqdn_prefix=default_fqdn_postfix):
         self.provisioner = provisioner
@@ -72,14 +82,32 @@ class SafeRunner:
         self.si = status.Status(provisioner, worker_type)
         self.q = quarantine.Quarantine()
 
+    # alternate constructor
+    @classmethod
+    def from_resume(cls, resume_dir):
+        # open file and read
+        resume_file = f"{resume_dir}/{SafeRunner.state_file_name}"
+        toml_data = toml_reader.load(resume_file)
+        print(toml_data)
+
+        # TODO: get minimums to create class
+        i = cls()
+        # TODO: populate rest
+
+        return i
+
     @property
-    def output_dirname(self):
+    def default_output_dirname(self):
         datetime_format_for_directory = "%Y%m%d-%H%M%S"
         datetime_part = self.start_datetime.strftime(datetime_format_for_directory)
         return f"sr_{datetime_part}"
 
-    def write_toml(self):
-        print("TODO: write toml")
+    def write_toml(self, file_path):
+        # TODO: populate data
+        data = []
+        toml_output = toml_writer.dumps(data)
+        with open(file_path, "w") as out:
+            out.write(toml_output)
 
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
@@ -157,8 +185,8 @@ class SafeRunner:
         header += f"# command run: '{custom_cmd}'\n"
         header += f"# exit code: {rc}\n"
         file_output = f"{header}#\n{output}"
-        utils.mkdir_p(self.output_dirname)
-        with open(f"{self.output_dirname}/{hostname}.txt", "w") as out:
+        utils.mkdir_p(self.default_output_dirname)
+        with open(f"{self.default_output_dirname}/{hostname}.txt", "w") as out:
             out.write(file_output)
 
         print("")
@@ -246,14 +274,15 @@ if __name__ == "__main__":
         print("user chose to exit")
         sys.exit(0)
 
-    sr = SafeRunner(args.provisioner, args.worker_type)
     if not args.resume_dir:
         # TODO: write out toml report(/config) file
+        sr = SafeRunner(args.provisioner, args.worker_type)
         sr.write_toml()
         print("no resume")
     else:
         # TODO: handle resume
         print("resume passed in")
+        # sr = SafeRunner(resume_file)
         sys.exit(1)
         # load toml
 
