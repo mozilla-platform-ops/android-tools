@@ -246,8 +246,8 @@ class SafeRunner:
         header += f"# command run: '{custom_cmd}' \n"
         header += f"# exit code: {rc} \n"
         file_output = f"{header}#\n{output}"
-        utils.mkdir_p(self.default_rundir_path)
-        with open(f"{self.default_rundir_path}/{hostname}.txt", "w") as out:
+        utils.mkdir_p(self.run_dir)
+        with open(f"{self.run_dir}/{hostname}.txt", "w") as out:
             out.write(file_output)
 
         print("")
