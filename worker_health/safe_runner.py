@@ -455,7 +455,6 @@ if __name__ == "__main__":
                     i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
                     # print(f"checking for ssh: {i_host_fqdn}")
                     if host_is_sshable(i_host_fqdn):
-                        status_print(f"{i_host_fqdn} is ssh-able")
                         host = i_host
                         exit_while = True
                         break
