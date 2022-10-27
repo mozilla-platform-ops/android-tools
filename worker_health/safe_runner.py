@@ -1,9 +1,6 @@
-#!/usr/bin/env python3 -u
-# the `-u` disables output buffering
+#!/usr/bin/env python3
 
 # drains host (quarantines and wait for jobs to finish), runs a command, and then lifts the quarantine
-
-# takes same args as quarantine-tool
 
 import argparse
 import copy
@@ -70,8 +67,7 @@ def say(what_to_say, background_mode=False):
 def status_print(line_to_print, end="\n"):
     ctime = datetime.datetime.now()
     ctime_str = ctime.strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{ctime_str}: {line_to_print}", end=end)
-    sys.stdout.flush()
+    print(f"{ctime_str}: {line_to_print}", end=end, flush=True)
 
 
 class SafeRunner:
@@ -393,13 +389,13 @@ if __name__ == "__main__":
         sr = SafeRunner.from_resume(args.resume_dir)
 
     # get user to ack what we're about to do
-    print("about to do the following:")
+    print("Run options:")
     print(f"  provisioner: {sr.provisioner}")
     print(f"  worker_type: {sr.worker_type}")
     print(f"  hosts ({len(sr.remaining_hosts)}): {sr.remaining_hosts}")
     print(f"  command: {sr.command}")
     print("")
-    print("Does that look correct? Type 'yes' to proceed: ", end="")
+    print("Does this look correct? Type 'yes' to proceed: ", end="")
     user_input = input()
     if user_input != "yes":
         print("user chose to exit")
@@ -435,7 +431,9 @@ if __name__ == "__main__":
             sr.q.quarantine(
                 sr.provisioner, sr.worker_type, pre_quarantine_hosts, verbose=False
             )
-            status_print(f"pre-quarantine: added {len(pre_quarantine_hosts)} hosts")
+            status_print(
+                f"pre-quarantine: quarantined {len(pre_quarantine_hosts)} hosts"
+            )
             if args.talk:
                 say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
 
@@ -461,7 +459,8 @@ if __name__ == "__main__":
                         break
                 if exit_while:
                     break
-                print(".", end="")
+                print(".", end="", flush=True)
+                sys.stdout.flush()
                 time.sleep(60)
             print(" found.")
         else:
@@ -474,12 +473,12 @@ if __name__ == "__main__":
         sr.safe_run_single_host(host, sr.command, talk=args.talk)
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
-        if args.talk:
-            say(f"completed {host}.")
-            say(f"{len(sr.remaining_hosts)} of {host_total} hosts remaining.")
         status_print(
             f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {sr.remaining_hosts}"
         )
+        if args.talk:
+            say(f"completed {host}.")
+            say(f"{len(sr.remaining_hosts)} of {host_total} hosts remaining.")
         sr.completed_hosts.append(host)
         sr.write_toml()
         if terminate > 0:
