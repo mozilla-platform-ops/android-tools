@@ -389,7 +389,7 @@ if __name__ == "__main__":
             status_print(f"pre-quarantine: added {len(pre_quarantine_hosts)} hosts")
             if args.talk:
                 say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
-            status_print("waiting for idle host...")
+            status_print("waiting for idle pre-quarantined host...")
             host = sr.si.get_idle_host(pre_quarantine_hosts)
         else:
             host = sr.remaining_hosts[0]
