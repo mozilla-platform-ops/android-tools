@@ -450,7 +450,7 @@ if __name__ == "__main__":
             host = sr.remaining_hosts[0]
 
         # safe_run_single_host
-        status_print(f":{host}: starting")
+        status_print(f"{host}: starting")
         if args.talk:
             say(f"SR: starting {host}")
         sr.safe_run_single_host(host, sr.command, talk=args.talk)
