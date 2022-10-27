@@ -6,6 +6,7 @@
 
 import argparse
 import datetime
+import os
 import re
 import subprocess
 import sys
@@ -70,15 +71,38 @@ def status_print(line_to_print):
 class SafeRunner:
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "sr_state.toml"
+    empty_config_dict = {
+        "config": {
+            "provisioner": "",
+            "worker_type": "",
+            "command": "",
+            "hosts": [],
+        },
+        "state": {
+            "remaining": [],
+            "completed": [],
+        },
+    }
 
-    def __init__(self, provisioner, worker_type, fqdn_prefix=default_fqdn_postfix):
+    def __init__(
+        self, provisioner, worker_type, hosts, command, fqdn_prefix=default_fqdn_postfix
+    ):
         self.provisioner = provisioner
         self.worker_type = worker_type
+        self.command = command
+        self.hosts = hosts
+        # optional
         self.fqdn_postfix = fqdn_prefix
+
+        # state
+        self.completed_hosts = []
+        self.remaining_hosts = hosts
 
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
+        self.output_dir = None
 
+        # instances
         self.si = status.Status(provisioner, worker_type)
         self.q = quarantine.Quarantine()
 
@@ -102,10 +126,29 @@ class SafeRunner:
         datetime_part = self.start_datetime.strftime(datetime_format_for_directory)
         return f"sr_{datetime_part}"
 
-    def write_toml(self, file_path):
+    @property
+    def default_config_file_path(self):
+        return f"{self.default_output_dirname}/{SafeRunner.state_file_name}"
+
+    def write_toml(self, file_path=None):
+        if not file_path:
+            file_path = self.default_config_file_path
+
         # TODO: populate data
-        data = []
+        data = {
+            "config": {
+                "provisioner": self.provisioner,
+                "worker_type": self.worker_type,
+                "command": self.command,
+                "hosts": self.hosts,
+            },
+            "state": {
+                "remaining": [],
+                "completed": [],
+            },
+        }
         toml_output = toml_writer.dumps(data)
+        utils.mkdir_p(os.path.dirname(file_path))
         with open(file_path, "w") as out:
             out.write(toml_output)
 
@@ -275,14 +318,15 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if not args.resume_dir:
-        # TODO: write out toml report(/config) file
-        sr = SafeRunner(args.provisioner, args.worker_type)
+        # write out toml report(/config) file
+        sr = SafeRunner(args.provisioner, args.worker_type, args.hosts, args.command)
         sr.write_toml()
         print("no resume")
+        sys.exit()
     else:
         # TODO: handle resume
         print("resume passed in")
-        # sr = SafeRunner(resume_file)
+        sr = SafeRunner.from_resume(args.resume_dir)
         sys.exit(1)
         # load toml
 
@@ -328,4 +372,5 @@ if __name__ == "__main__":
         if args.talk:
             say(f"SR: completed {host}. {len(hosts_left)} hosts remaining.")
         status_print(f"hosts remaining ({len(hosts_left)}): {hosts_left}")
+        # TODO: add to sr.completed_host
         print("")
