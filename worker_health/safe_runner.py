@@ -301,10 +301,10 @@ def handler(_signum, _frame):
     terminate += 1
     print("")
     if terminate >= 2:
-        print("double ctrl-c detected. exiting immediately!")
+        print("*** double ctrl-c detected. exiting immediately!")
         sys.exit(0)
     print(
-        "ctrl-c detected. will exit at end of current host (another will exit immediately)."
+        "*** ctrl-c detected. will exit at end of current host (another will exit immediately)."
     )
 
 
