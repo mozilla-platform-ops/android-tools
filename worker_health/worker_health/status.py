@@ -49,15 +49,21 @@ class Status:
         return random.choice(self.wait_for_idle_hosts(hosts, sleep_time))
 
     # given list of hosts, return those that are idle (once one is available)
-    def wait_for_idle_hosts(self, hosts, sleep_time=15):
+    def wait_for_idle_hosts(self, hosts, sleep_time=15, show_indicator=True):
         hosts_set = set(hosts)
         while True:
+            if show_indicator:
+                print(".", end="", flush=True)
             hosts_with_non_completed_or_failed_jobs_set = set(
                 self.get_hosts_running_jobs(hosts)
             )
             hosts_idle = hosts_set - hosts_with_non_completed_or_failed_jobs_set
             if hosts_idle:
+                if show_indicator:
+                    print("")
                 return list(hosts_idle)
+            if show_indicator:
+                print("z", end="", flush=True)
             time.sleep(sleep_time)
 
     def get_hosts_running_jobs(self, hosts):
