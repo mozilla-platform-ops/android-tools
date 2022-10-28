@@ -2,10 +2,12 @@
 
 import json
 import os
+import pprint
 import random
 import time
 
 import taskcluster
+from natsort import natsorted
 
 from worker_health import tc_helpers
 
@@ -99,30 +101,49 @@ class Status:
         return hosts_with_non_completed_or_failed_jobs
 
     # TODO: not used... ok to remove?
-    # def list_workers(self):
-    #     results = self.tc_wm.listWorkers(self.worker_type, self.provisioner)
-    #     pprint.pprint(results)
-    #     for result in results["workers"]:
-    #         pprint.pprint(result)
+    def list_workers_human(self):
+        results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
+        return_str = ""
+        for result in results["workers"]:
+            return_str += f"{result['workerPoolId']} {result['workerGroup']} {result['workerId']}\n"
+        return return_str
+
+    def list_workers_csv(self):
+        results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
+        return_str = ""
+        for result in results["workers"]:
+            return_str += f"{result['workerId']},"
+        # trim trailing comma
+        print(return_str[:-1])
+
+    def list_workers_py(self):
+        results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
+        return_arr = []
+        for result in results["workers"]:
+            return_arr.append(result["workerId"])
+        pprint.pprint(natsorted(return_arr))
 
 
 if __name__ == "__main__":
-    si = Status()
+    si = Status("releng-hardware", "gecko-t-osx-1015-r8")
     # example usage
-    si.show_jobs_running_report(
-        "releng-hardware",
-        "gecko-t-osx-1015-r8",
-        [
-            "macmini-r8-1",
-            # "macmini-r8-2",
-            # "macmini-r8-3",
-            # "macmini-r8-4",
-            # "macmini-r8-5",
-            # "macmini-r8-7",
-            # "macmini-r8-8",
-            # "macmini-r8-9",
-            # "macmini-r8-10",
-        ],
-    )
+    # si.show_jobs_running_report(
+    #     [
+    #         "macmini-r8-1",
+    #         # "macmini-r8-2",
+    #         # "macmini-r8-3",
+    #         # "macmini-r8-4",
+    #         # "macmini-r8-5",
+    #         # "macmini-r8-7",
+    #         # "macmini-r8-8",
+    #         # "macmini-r8-9",
+    #         # "macmini-r8-10",
+    #     ],
+    # )
     # for futher debugging
     # import ipdb; ipdb.set_trace()
+
+    # TODO: pull out into binary `list_workers`
+    # si.list_workers_human()
+    # si.list_workers_csv()
+    si.list_workers_py()
