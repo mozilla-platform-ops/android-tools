@@ -70,6 +70,7 @@ def preexec_function():
 
 
 class SafeRunner:
+    default_pre_quarantine_additional_host_count = 5
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "sr_state.toml"
     # TODO: use tomlkit tables so formatting is nice for empty lists?
@@ -439,9 +440,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pre_quarantine_additional_host_count",
         "-P",
-        help="quarantine the specified number of following hosts. 0 to disable pre-quarantine",
+        help=f"quarantine the specified number of following hosts. defaults to {SafeRunner.default_pre_quarantine_additional_host_count}. specify 0 to disable pre-quarantine.",
         metavar="COUNT",
-        default=3,
+        default=SafeRunner.default_pre_quarantine_additional_host_count,
     )
     parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
     parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
