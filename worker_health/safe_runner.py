@@ -50,7 +50,8 @@ def csv_strs(vstr, sep=","):
 
 # uses os x speech api
 def say(what_to_say, background_mode=False):
-    cmd_to_run = f"say '{what_to_say}'"
+    # Samantha is the Siri voice, default is System setting
+    cmd_to_run = f"say -v Samantha '{what_to_say}'"
     if background_mode:
         cmd_to_run += " &"
     subprocess.run(cmd_to_run, shell=True)
@@ -261,6 +262,27 @@ class SafeRunner:
             time.sleep(5)
         if verbose:
             print("ready.")
+
+        # run `ssh-keygen -R` and `ssh-keyscan -t rsa` and update our known_hosts
+        # TODO: put behind flag?
+        # TODO: mention we're doing this?
+        host_fqdn = f"{hostname}{self.fqdn_postfix}"
+        cmd = f"ssh-keygen -R {host_fqdn}"
+        subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
+        cmd = f"ssh-keyscan -t rsa {host_fqdn} >> ~/.ssh/known_hosts"
+        subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
 
         # run command
         custom_cmd = command.replace("SR_HOST", hostname)
