@@ -532,8 +532,10 @@ if __name__ == "__main__":
             exit_while = False
             while True:
                 # print("0", end="", flush=True)
-                status_print("searching for idle hosts among pre-quarantined...")
-                idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts)
+                status_print("waiting for idle hosts among pre-quarantined... ", end="")
+                idle_hosts = sr.si.wait_for_idle_hosts(
+                    pre_quarantine_hosts, show_indicator=True
+                )
                 status_print(f"hosts found: {', '.join(idle_hosts)}.")
                 for i_host in idle_hosts:
                     # print(".", end="", flush=True)
