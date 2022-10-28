@@ -226,7 +226,7 @@ class SafeRunner:
         self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
         # TODO: verify?
         if verbose:
-            print(" quarantined.")
+            print("quarantined.")
             if talk:
                 say("quarantined")
 
