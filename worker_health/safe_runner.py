@@ -442,6 +442,7 @@ if __name__ == "__main__":
         "-P",
         help=f"quarantine the specified number of following hosts. defaults to {SafeRunner.default_pre_quarantine_additional_host_count}. specify 0 to disable pre-quarantine.",
         metavar="COUNT",
+        type=int,
         default=SafeRunner.default_pre_quarantine_additional_host_count,
     )
     parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
