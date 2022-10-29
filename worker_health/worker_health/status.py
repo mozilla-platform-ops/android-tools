@@ -106,18 +106,17 @@ class Status:
         # return hosts not idle
         return hosts_with_non_completed_or_failed_jobs
 
-    # TODO: not used... ok to remove?
     def list_workers_human(self):
         results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
         return_str = ""
-        for result in results["workers"]:
+        for result in natsorted(results["workers"]):
             return_str += f"{result['workerPoolId']} {result['workerGroup']} {result['workerId']}\n"
         return return_str
 
     def list_workers_csv(self):
         results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
         return_str = ""
-        for result in results["workers"]:
+        for result in natsorted(results["workers"]):
             return_str += f"{result['workerId']},"
         # trim trailing comma
         print(return_str[:-1])
