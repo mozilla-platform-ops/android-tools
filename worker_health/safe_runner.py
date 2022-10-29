@@ -526,9 +526,6 @@ if __name__ == "__main__":
             # host = sr.si.wait_for_idle_host(pre_quarantine_hosts)
             #
             # waits for a host that isn't running jobs and ssh-able
-            status_print(
-                "waiting for pre-quarantined host that is idle and ssh-able... "  # , end=""
-            )
             exit_while = False
             while True:
                 # print("0", end="", flush=True)
