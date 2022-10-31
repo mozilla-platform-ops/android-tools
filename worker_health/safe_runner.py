@@ -217,7 +217,9 @@ class SafeRunner:
 
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
-    def safe_run_single_host(self, hostname, command, verbose=True, talk=False):
+    def safe_run_single_host(
+        self, hostname, command, verbose=True, talk=False, dont_lift_quarantine=False
+    ):
         # TODO: ensure command has SR_HOST variable in it
         if "SR_HOST" not in command:
             raise Exception("command doesn't have SR_HOST in it!")
@@ -337,16 +339,20 @@ class SafeRunner:
                 say("converged")
 
         # lift quarantine
-        if verbose:
-            status_print(f"{hostname}: lifting quarantine...", end="")
-        self.q.lift_quarantine(
-            self.provisioner, self.worker_type, [hostname], verbose=False
-        )
-        # TODO: verify?
-        if verbose:
-            print(" lifted.")
-            if talk:
-                say("quarantine lifted")
+        if not dont_lift_quarantine:
+            if verbose:
+                status_print(f"{hostname}: lifting quarantine...", end="")
+            self.q.lift_quarantine(
+                self.provisioner, self.worker_type, [hostname], verbose=False
+            )
+            # TODO: verify?
+            if verbose:
+                print(" lifted.")
+                if talk:
+                    say("quarantine lifted")
+        else:
+            if verbose:
+                status_print(f"{hostname}: NOT lifting quarantine (per option).")
 
 
 def remove_argument(a_parser, arg):
@@ -431,6 +437,13 @@ if __name__ == "__main__":
         action="store_true",
         help="use OS X's speech API to give updates",
     )
+    parser.add_argument(
+        "--dont-lift_quarantine",
+        "-D",
+        action="store_true",
+        help="don't lift the quarantine after successfully running. useful for pre-quarantined bad hosts.",
+    )
+    # TODO: add argument to do a reboot if run is successful?
     parser.add_argument(
         "--fqdn-postfix",
         "-F",
@@ -556,7 +569,12 @@ if __name__ == "__main__":
         status_print(f"{host}: starting")
         if args.talk:
             say(f"starting {host}")
-        sr.safe_run_single_host(host, sr.command, talk=args.talk)
+        sr.safe_run_single_host(
+            host,
+            sr.command,
+            talk=args.talk,
+            dont_lift_quarantine=args.dont_lift_quarantine,
+        )
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
         status_print(
