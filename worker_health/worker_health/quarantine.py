@@ -28,6 +28,8 @@ class Quarantine:
     def quarantine(
         self, provisioner_id, worker_type, host_arr, duration="10 years", verbose=True
     ):
+        # TODO: if host is already quarantined, short-circuit and return
+
         # try to detect worker group
         wgs = self.get_worker_groups(
             provisioner=provisioner_id, worker_type=worker_type

@@ -547,7 +547,9 @@ if __name__ == "__main__":
                 idle_hosts = sr.si.wait_for_idle_hosts(
                     pre_quarantine_hosts, show_indicator=True
                 )
-                status_print(f"hosts found: {', '.join(idle_hosts)}.")
+                status_print(
+                    f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
+                )
                 for i_host in idle_hosts:
                     # print(".", end="", flush=True)
                     i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
