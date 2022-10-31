@@ -199,7 +199,8 @@ class SafeRunner:
         # with open(self.state_file, "w") as out:
         #     out.write(toml_output)
         # tomlkit
-        tomlkit.dump(self.state_file, data)
+        with open(self.state_file, "w") as f:
+            tomlkit.dump(data, f)
 
     # loads existing state file first, so we can preserve comments
     def checkpoint_toml(self):
