@@ -349,15 +349,15 @@ class SafeRunner:
                 say("quarantine lifted")
 
 
-def remove_argument(parser, arg):
-    for action in parser._actions:
+def remove_argument(a_parser, arg):
+    for action in a_parser._actions:
         # print(action)
         opts = action.option_strings
         if (opts and opts[0] == arg) or action.dest == arg:
-            parser._remove_action(action)
+            a_parser._remove_action(action)
             break
 
-    for action in parser._action_groups:
+    for action in a_parser._action_groups:
         # print(action)
         for group_action in action._group_actions:
             if group_action.dest == arg:
