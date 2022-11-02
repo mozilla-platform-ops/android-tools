@@ -124,16 +124,8 @@ class SafeRunner:
         resume_file = f"{resume_dir}/{SafeRunner.state_file_name}"
 
         # load file
-        #
-        # tomli
-        # with open(resume_file, "rb") as f:
-        # data = toml_reader.load(f)
-        #
-        # tomlkit
         with open(resume_file, "rb") as f:
             data = tomlkit.load(f)
-        #
-        # print(data)
 
         # sanity check
         try:
@@ -144,7 +136,6 @@ class SafeRunner:
 
         # filter out skipped hosts
         # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from remaining_hosts...
-        # remaining_hosts_without_hosts_to_skip = []
         # mutate this because it's a special tomlkit datastructure (preserves formatting)
         for h in data["state"]["remaining_hosts"]:
             if h in data["config"]["hosts_to_skip"]:
@@ -174,13 +165,6 @@ class SafeRunner:
     def default_state_file_path(self):
         return f"{self.default_rundir_path}/{SafeRunner.state_file_name}"
 
-    # TODO: use tomlkit?
-    #   - we can have comment-like metadata fields that we don't have to load/save
-    #     - (pre_)quarantined hosts
-    #     - original hosts: otherwise we lose this data?
-    #       - hm, can add completed and remaining (but what if user modifies?)
-    #     - completed hosts is currently in class, but not used (just metadata)
-    #     - what else?
     def write_initial_toml(self):
         # populate data
         data = copy.deepcopy(SafeRunner.empty_config_dict)
@@ -194,11 +178,6 @@ class SafeRunner:
         # not writing remaining
 
         utils.mkdir_p(os.path.dirname(self.state_file))
-        # tomli_w
-        # toml_output = toml_writer.dumps(data)
-        # with open(self.state_file, "w") as out:
-        #     out.write(toml_output)
-        # tomlkit
         with open(self.state_file, "w") as f:
             tomlkit.dump(data, f)
 
@@ -355,6 +334,7 @@ class SafeRunner:
                 status_print(f"{hostname}: NOT lifting quarantine (per option).")
 
 
+# from stack overflow
 def remove_argument(a_parser, arg):
     for action in a_parser._actions:
         # print(action)
@@ -428,6 +408,7 @@ if __name__ == "__main__":
         "--resume_dir",
         "-r",
         metavar="RUN_DIR",
+        # custom action that removes the positional args
         action=ResumeAction,
         help="'sr_' run directory. causes positional arguments to be ignored.",
     )
@@ -477,12 +458,8 @@ if __name__ == "__main__":
         say("safe runner: talk enabled", background_mode=True)
 
     if not args.resume_dir:
-        # fresh start: write out toml file
-        # print("no resume")
         sr = SafeRunner(args.provisioner, args.worker_type, args.hosts, args.command)
     else:
-        # handle resume: load file
-        # print("resume passed in")
         sr = SafeRunner.from_resume(args.resume_dir)
 
     # get user to ack what we're about to do
@@ -593,4 +570,4 @@ if __name__ == "__main__":
             break
         # TODO: play success sound
         # TODO: can we show any stats?
-        # status_print("all hosts complete!")
+        status_print("all hosts complete!")
