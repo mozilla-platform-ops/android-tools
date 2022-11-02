@@ -1,3 +1,4 @@
+import string
 from urllib.error import URLError
 
 import pytest
@@ -28,3 +29,32 @@ def test_fetch_url():
 def test_get_jsonc2():
     with pytest.raises(requests.exceptions.ConnectionError):
         url, res, exc = utils.get_jsonc2("http://badurl.comaaa/bad")
+
+
+def test_arr_get_followers():
+    # most basic
+    test_arr = ["a"]
+    assert utils.arr_get_followers(test_arr, "a", 0) == ["a"]
+
+    assert utils.arr_get_followers(test_arr, "a", 1)
+
+    # item not in array
+    with pytest.raises(Exception):
+        utils.arr_get_followers(test_arr, "c", 2, raise_on_errors=True)
+    # in default no raise mode
+    utils.arr_get_followers(test_arr, "c", 2) == []
+
+    # ['a', 'b', 'c', ...]
+    test_arr = list(string.ascii_lowercase)
+    assert utils.arr_get_followers(test_arr, "c", 2) == ["c", "d", "e"]
+
+    # if requested past length of array, return what we can
+    assert utils.arr_get_followers(test_arr, "z", 10) == ["z"]
+
+
+def test_arr_get_slice_from_item():
+    test_arr = ["a"]
+    assert utils.arr_get_slice_from_item(test_arr, "a") == ["a"]
+
+    test_arr = list(string.ascii_lowercase)
+    assert utils.arr_get_slice_from_item(test_arr, "w") == ["w", "x", "y", "z"]

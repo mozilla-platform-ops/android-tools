@@ -3,8 +3,11 @@
 import json
 import os
 import pprint
+import random
+import time
 
 import taskcluster
+from natsort import natsorted
 
 from worker_health import tc_helpers
 
@@ -15,7 +18,10 @@ class Status:
     tc_wm = None
     root_url = "https://firefox-ci-tc.services.mozilla.com"
 
-    def __init__(self):
+    def __init__(self, provisioner, worker_type):
+        self.provisioner = provisioner
+        self.worker_type = worker_type
+
         with open(os.path.expanduser("~/.tc_token")) as json_file:
             data = json.load(json_file)
         creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
@@ -23,38 +29,75 @@ class Status:
         self.tc_wm = taskcluster.WorkerManager(
             {"rootUrl": self.root_url, "credentials": creds}
         )
+        self.tc_h = tc_helpers.TCHelper(provisioner=self.provisioner)
 
-    def show_jobs_running_report(self, provisioner, worker_type, hosts):
-        tch = tc_helpers.TCHelper(provisioner=provisioner)
-        # issue: doesn't show state (running or idle)
-        # pprint.pprint(f.get_workers(worker_type))
+    def wait_until_no_jobs_running(self, hosts, sleep_seconds=15, show_indicator=True):
+        we_have_waited = False
+        while True:
+            jrd = self.get_hosts_running_jobs(hosts)
+            if len(jrd) == 0:
+                if show_indicator and we_have_waited:
+                    print("")
+                break
+            time.sleep(sleep_seconds)
+            we_have_waited = True
+            if show_indicator:
+                print(".", end="")
 
-        if len(hosts) == 0:
-            raise Exception("no hosts specified")
+    # given list of hosts, return one that's idle (once one is available)
+    def wait_for_idle_host(self, hosts, sleep_time=15):
+        return random.choice(self.wait_for_idle_hosts(hosts, sleep_time))
 
-        worker_groups = tch.get_worker_groups(worker_type)
-        if len(worker_groups) > 1:
-            raise Exception(
-                "currently doesn't support worker types with more than one worker group!"
+    # given list of hosts, return those that are idle (once one is available)
+    def wait_for_idle_hosts(self, hosts, sleep_time=15, show_indicator=True):
+        hosts_set = set(hosts)
+        while True:
+            if show_indicator:
+                print(".", end="", flush=True)
+            hosts_with_non_completed_or_failed_jobs_set = set(
+                self.get_hosts_running_jobs(hosts)
             )
+            hosts_idle = hosts_set - hosts_with_non_completed_or_failed_jobs_set
+            if hosts_idle:
+                if show_indicator:
+                    print("")
+                return list(hosts_idle)
+            if show_indicator:
+                print("z", end="", flush=True)
+            time.sleep(sleep_time)
+
+    def get_hosts_running_jobs(self, hosts):
+        worker_groups = self.tc_h.get_worker_groups(self.worker_type)
         worker_group = worker_groups[0]
 
         hosts_with_non_completed_or_failed_jobs = []
         hosts_checked = []
         for host in hosts:
             hosts_checked.append(host)
-            results = tch.get_worker_jobs(worker_type, worker_group, host)
+            results = self.tc_h.get_worker_jobs(self.worker_type, worker_group, host)
             # pprint.pprint(results)
             for result in results["recentTasks"]:
                 task_id = result["taskId"]
                 # pprint.pprint(task_id)
-                _tid, status_blob, _exc = tch.get_task_status(task_id)
+                _tid, status_blob, _exc = self.tc_h.get_task_status(task_id)
                 # pprint.pprint(status_blob)
                 t_status = status_blob["status"]["state"]
-                if t_status != "completed" and t_status != "failed":
+                if (
+                    t_status != "completed"
+                    and t_status != "failed"
+                    and t_status != "exception"
+                ):
+                    # TODO: show task id and state if in verbose?
                     # pprint.pprint(status_blob["status"]["state"])
                     hosts_with_non_completed_or_failed_jobs.append(host)
+        return hosts_with_non_completed_or_failed_jobs
 
+    def show_jobs_running_report(self, hosts):
+        hosts_with_non_completed_or_failed_jobs = self.get_hosts_running_jobs(hosts)
+        hosts_checked = hosts
+
+        # TODO: move this print into get_hosts_running_jobs()
+        #   - less useful now that it's just a len call vs the internal value from above?
         print(f"hosts checked ({len(hosts_checked)}): {hosts_checked}")
         print(
             f"hosts_with_non_completed_or_failed_jobs ({len(hosts_with_non_completed_or_failed_jobs)}): {hosts_with_non_completed_or_failed_jobs}"
@@ -63,30 +106,49 @@ class Status:
         # return hosts not idle
         return hosts_with_non_completed_or_failed_jobs
 
-    def list_workers(self, provisioner, worker_type):
-        results = self.tc_wm.listWorkers(worker_type, provisioner)
-        pprint.pprint(results)
+    def list_workers_human(self):
+        results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
+        return_str = ""
+        for result in natsorted(results["workers"]):
+            return_str += f"{result['workerPoolId']} {result['workerGroup']} {result['workerId']}\n"
+        return return_str
+
+    def list_workers_csv(self):
+        results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
+        return_str = ""
+        for result in natsorted(results["workers"]):
+            return_str += f"{result['workerId']},"
+        # trim trailing comma
+        print(return_str[:-1])
+
+    def list_workers_py(self):
+        results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
+        return_arr = []
         for result in results["workers"]:
-            pprint.pprint(result)
+            return_arr.append(result["workerId"])
+        pprint.pprint(natsorted(return_arr))
 
 
 if __name__ == "__main__":
-    si = Status()
+    si = Status("releng-hardware", "gecko-t-osx-1015-r8")
     # example usage
-    si.show_jobs_running_report(
-        "releng-hardware",
-        "gecko-t-osx-1015-r8",
-        [
-            "macmini-r8-1",
-            # "macmini-r8-2",
-            # "macmini-r8-3",
-            # "macmini-r8-4",
-            # "macmini-r8-5",
-            # "macmini-r8-7",
-            # "macmini-r8-8",
-            # "macmini-r8-9",
-            # "macmini-r8-10",
-        ],
-    )
+    # si.show_jobs_running_report(
+    #     [
+    #         "macmini-r8-1",
+    #         # "macmini-r8-2",
+    #         # "macmini-r8-3",
+    #         # "macmini-r8-4",
+    #         # "macmini-r8-5",
+    #         # "macmini-r8-7",
+    #         # "macmini-r8-8",
+    #         # "macmini-r8-9",
+    #         # "macmini-r8-10",
+    #     ],
+    # )
     # for futher debugging
     # import ipdb; ipdb.set_trace()
+
+    # TODO: pull out into binary `list_workers`
+    # si.list_workers_human()
+    # si.list_workers_csv()
+    si.list_workers_py()

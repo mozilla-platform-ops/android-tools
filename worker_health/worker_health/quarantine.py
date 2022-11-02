@@ -25,7 +25,11 @@ class Quarantine:
             {"rootUrl": self.root_url, "credentials": creds}
         )
 
-    def quarantine(self, provisioner_id, worker_type, host_arr, duration="10 years"):
+    def quarantine(
+        self, provisioner_id, worker_type, host_arr, duration="10 years", verbose=True
+    ):
+        # TODO: if host is already quarantined, short-circuit and return
+
         # try to detect worker group
         wgs = self.get_worker_groups(
             provisioner=provisioner_id, worker_type=worker_type
@@ -38,10 +42,13 @@ class Quarantine:
 
         for a_host in host_arr:
             if "-" in duration:
-                print("lifting quarantine on %s... " % a_host)
+                if verbose:
+                    print("lifting quarantine on %s... " % a_host)
             else:
-                print("adding %s to quarantine... " % a_host)
+                if verbose:
+                    print("adding %s to quarantine... " % a_host)
             try:
+                # TODO: use self.quarantine?
                 self.tc_queue.quarantineWorker(
                     provisioner_id,
                     worker_type,
@@ -52,11 +59,15 @@ class Quarantine:
             except taskcluster.exceptions.TaskclusterRestFailure as e:
                 # usually due to worker not being in pool...
                 # TODO: inspect message
-                print(e)
+                raise e
 
-    def lift_quarantine(self, provisioner, worker_type, device_arr):
-        self.quarantine(provisioner, worker_type, device_arr, duration="-1 year")
+    def lift_quarantine(self, provisioner, worker_type, device_arr, verbose=True):
+        # TODO: catch exception and wrap?
+        self.quarantine(
+            provisioner, worker_type, device_arr, duration="-1 year", verbose=verbose
+        )
 
+    # TODO: use the implementation in tc_helpers?
     def get_worker_groups(self, provisioner, worker_type):
         f = fitness.Fitness(log_level=0, provisioner=provisioner, alert_percent=85)
         output = f.get_workers(worker_type)["workers"]
