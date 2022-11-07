@@ -197,7 +197,13 @@ class SafeRunner:
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
     def safe_run_single_host(
-        self, hostname, command, verbose=True, talk=False, dont_lift_quarantine=False
+        self,
+        hostname,
+        command,
+        verbose=True,
+        talk=False,
+        dont_lift_quarantine=False,
+        reboot_host=False,
     ):
         host_fqdn = f"{hostname}{self.fqdn_postfix}"
         # TODO: ensure command has SR_HOST variable in it
@@ -316,6 +322,27 @@ class SafeRunner:
             if talk:
                 say("converged")
 
+        # reboot host
+        if reboot_host:
+            special_string = "bouncing_ball_9183"
+            cmd = f"ssh {host_fqdn} 'echo '{special_string}'; sudo reboot'"
+            r = subprocess.run(
+                cmd,
+                shell=True,
+                check=False,  # will return 255 on success because remote end disconnected...
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE,
+            )
+            # if special string in output, success. else failure.
+            process_output = r.stdout.decode()
+            if special_string not in process_output:
+                print(process_output)
+                raise Exception("couldn't reboot host")
+            if verbose:
+                status_print(f"{hostname}: host rebooted.")
+                if talk:
+                    say("rebooted")
+
         # lift quarantine
         if not dont_lift_quarantine:
             if verbose:
@@ -418,6 +445,12 @@ if __name__ == "__main__":
         help="use OS X's speech API to give updates",
     )
     parser.add_argument(
+        "--reboot-host",
+        "-R",
+        action="store_true",
+        help="reboot the host after command runs successfully.",
+    )
+    parser.add_argument(
         "--dont-lift_quarantine",
         "-D",
         action="store_true",
@@ -464,10 +497,11 @@ if __name__ == "__main__":
     # get user to ack what we're about to do
     # TODO: mention skipped hosts?
     print("Run options:")
+    print(f"  command: {sr.command}")
+    # TODO: mention talk, reboot, pre-quarantine count
     print(f"  provisioner: {sr.provisioner}")
     print(f"  worker_type: {sr.worker_type}")
     print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
-    print(f"  command: {sr.command}")
     print("")
     print("Does this look correct? Type 'yes' to proceed: ", end="")
     user_input = input()
@@ -552,6 +586,7 @@ if __name__ == "__main__":
             sr.command,
             talk=args.talk,
             dont_lift_quarantine=args.dont_lift_quarantine,
+            reboot_host=args.reboot_host,
         )
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
