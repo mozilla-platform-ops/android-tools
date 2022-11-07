@@ -44,8 +44,10 @@ if __name__ == "__main__":
     si = status.Status(args.provisioner, args.worker_type)
 
     # print(args)
+    not_idle_hosts = si.show_jobs_running_report(args.hosts)
 
-    return_value = si.show_jobs_running_report(args.hosts)
-
-    if len(return_value) != 0:
-        sys.exit(1)
+    # TODO: have flag for all mode (re: should this return 0 if any idle workers? vs only if they're all?)
+    # if there are any idle hosts, return 0, else 1
+    if len(not_idle_hosts) != len(args.hosts):
+        sys.exit(0)
+    sys.exit(1)
