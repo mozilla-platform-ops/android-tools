@@ -92,6 +92,7 @@ class Status:
                     hosts_with_non_completed_or_failed_jobs.append(host)
         return hosts_with_non_completed_or_failed_jobs
 
+    # TOOD: rename/decompose (fetch and present) this function
     def show_jobs_running_report(self, hosts):
         hosts_with_non_completed_or_failed_jobs = self.get_hosts_running_jobs(hosts)
         hosts_checked = hosts

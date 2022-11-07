@@ -199,6 +199,7 @@ class SafeRunner:
     def safe_run_single_host(
         self, hostname, command, verbose=True, talk=False, dont_lift_quarantine=False
     ):
+        host_fqdn = f"{hostname}{self.fqdn_postfix}"
         # TODO: ensure command has SR_HOST variable in it
         if "SR_HOST" not in command:
             raise Exception("command doesn't have SR_HOST in it!")
@@ -239,7 +240,6 @@ class SafeRunner:
             if talk:
                 say("waiting for ssh")
         while True:
-            host_fqdn = f"{hostname}{self.fqdn_postfix}"
             if host_is_sshable(host_fqdn):
                 break
             time.sleep(5)
@@ -248,8 +248,7 @@ class SafeRunner:
 
         # run `ssh-keygen -R` and `ssh-keyscan -t rsa` and update our known_hosts
         # TODO: put behind flag?
-        # TODO: mention we're doing this?
-        host_fqdn = f"{hostname}{self.fqdn_postfix}"
+        # TODO: mention we're removing keys/scanning?
         cmd = f"ssh-keygen -R {host_fqdn}"
         subprocess.run(
             cmd,
