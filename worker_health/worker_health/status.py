@@ -110,13 +110,16 @@ class Status:
     def list_workers_human(self):
         results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
         return_str = ""
+        # TODO: fix natsorting, copy how _py does it?
         for result in natsorted(results["workers"]):
             return_str += f"{result['workerPoolId']} {result['workerGroup']} {result['workerId']}\n"
+        print(return_str)
         return return_str
 
     def list_workers_csv(self):
         results = self.tc_wm.listWorkers(self.provisioner, self.worker_type)
         return_str = ""
+        # TODO: fix natsorting, copy how _py does it?
         for result in natsorted(results["workers"]):
             return_str += f"{result['workerId']},"
         # trim trailing comma
@@ -152,4 +155,4 @@ if __name__ == "__main__":
     # TODO: pull out into binary `list_workers`
     # si.list_workers_human()
     # si.list_workers_csv()
-    si.list_workers_py()
+    # si.list_workers_py()
