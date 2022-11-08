@@ -602,6 +602,6 @@ if __name__ == "__main__":
             status_print("graceful exiting...")
             # TODO: show quarantined hosts?
             break
-        # TODO: play success sound
-        # TODO: can we show any stats?
-        status_print("all hosts complete!")
+    # TODO: play success sound
+    # TODO: can we show any stats?
+    status_print("all hosts complete!")
