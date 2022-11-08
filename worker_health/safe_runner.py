@@ -595,7 +595,7 @@ if __name__ == "__main__":
         )
         if args.talk:
             say(f"completed {host}.")
-            say(f"{len(sr.remaining_hosts)} of {host_total} hosts remaining.")
+            say(f"{len(sr.remaining_hosts)} hosts remaining.")
         sr.completed_hosts.append(host)
         sr.checkpoint_toml()
         if terminate > 0:
