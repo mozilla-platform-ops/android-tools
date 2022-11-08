@@ -197,8 +197,15 @@ class SafeRunner:
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
     def safe_run_single_host(
-        self, hostname, command, verbose=True, talk=False, dont_lift_quarantine=False
+        self,
+        hostname,
+        command,
+        verbose=True,
+        talk=False,
+        dont_lift_quarantine=False,
+        reboot_host=False,
     ):
+        host_fqdn = f"{hostname}{self.fqdn_postfix}"
         # TODO: ensure command has SR_HOST variable in it
         if "SR_HOST" not in command:
             raise Exception("command doesn't have SR_HOST in it!")
@@ -239,7 +246,6 @@ class SafeRunner:
             if talk:
                 say("waiting for ssh")
         while True:
-            host_fqdn = f"{hostname}{self.fqdn_postfix}"
             if host_is_sshable(host_fqdn):
                 break
             time.sleep(5)
@@ -248,8 +254,7 @@ class SafeRunner:
 
         # run `ssh-keygen -R` and `ssh-keyscan -t rsa` and update our known_hosts
         # TODO: put behind flag?
-        # TODO: mention we're doing this?
-        host_fqdn = f"{hostname}{self.fqdn_postfix}"
+        # TODO: mention we're removing keys/scanning?
         cmd = f"ssh-keygen -R {host_fqdn}"
         subprocess.run(
             cmd,
@@ -316,6 +321,27 @@ class SafeRunner:
             status_print(f"{hostname}: command completed successfully.")
             if talk:
                 say("converged")
+
+        # reboot host
+        if reboot_host:
+            special_string = "bouncing_ball_9183"
+            cmd = f"ssh {host_fqdn} 'echo '{special_string}'; sudo reboot'"
+            r = subprocess.run(
+                cmd,
+                shell=True,
+                check=False,  # will return 255 on success because remote end disconnected...
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE,
+            )
+            # if special string in output, success. else failure.
+            process_output = r.stdout.decode()
+            if special_string not in process_output:
+                print(process_output)
+                raise Exception("couldn't reboot host")
+            if verbose:
+                status_print(f"{hostname}: host rebooted.")
+                if talk:
+                    say("rebooted")
 
         # lift quarantine
         if not dont_lift_quarantine:
@@ -419,6 +445,12 @@ if __name__ == "__main__":
         help="use OS X's speech API to give updates",
     )
     parser.add_argument(
+        "--reboot-host",
+        "-R",
+        action="store_true",
+        help="reboot the host after command runs successfully.",
+    )
+    parser.add_argument(
         "--dont-lift_quarantine",
         "-D",
         action="store_true",
@@ -465,10 +497,11 @@ if __name__ == "__main__":
     # get user to ack what we're about to do
     # TODO: mention skipped hosts?
     print("Run options:")
+    print(f"  command: {sr.command}")
+    # TODO: mention talk, reboot, pre-quarantine count
     print(f"  provisioner: {sr.provisioner}")
     print(f"  worker_type: {sr.worker_type}")
     print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
-    print(f"  command: {sr.command}")
     print("")
     print("Does this look correct? Type 'yes' to proceed: ", end="")
     user_input = input()
@@ -553,6 +586,7 @@ if __name__ == "__main__":
             sr.command,
             talk=args.talk,
             dont_lift_quarantine=args.dont_lift_quarantine,
+            reboot_host=args.reboot_host,
         )
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
@@ -561,13 +595,13 @@ if __name__ == "__main__":
         )
         if args.talk:
             say(f"completed {host}.")
-            say(f"{len(sr.remaining_hosts)} of {host_total} hosts remaining.")
+            say(f"{len(sr.remaining_hosts)} hosts remaining.")
         sr.completed_hosts.append(host)
         sr.checkpoint_toml()
         if terminate > 0:
             status_print("graceful exiting...")
             # TODO: show quarantined hosts?
             break
-        # TODO: play success sound
-        # TODO: can we show any stats?
-        status_print("all hosts complete!")
+    # TODO: play success sound
+    # TODO: can we show any stats?
+    status_print("all hosts complete!")
