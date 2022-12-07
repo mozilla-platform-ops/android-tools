@@ -80,10 +80,10 @@ ssh "$the_host" 'sudo -u bitbar bash -c "chmod 640 /home/bitbar/.bitbar*"'
 # TODO: grab this from SOPS vs local clone of devicepool
 ./distribute_bitbar_env.sh "$the_host"
 
-# venvs are now created in puppet
+# send out bitbar-devicepool files
+./distribute_bitbar_files.sh "$the_host"
 
-# TODO: place ~bitbar/mozilla-bitbar-devicepool/files
-#   - see config file for exact names
+# venvs are now created in puppet
 
 cat << 'EOF'
 

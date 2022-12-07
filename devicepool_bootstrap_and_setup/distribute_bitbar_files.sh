@@ -19,6 +19,8 @@ set -x
 # show what's there now
 ssh "$the_host" ls -l ${destdir} || true
 
+# TODO: if present, don't do anything unless given force argument or something?
+
 # shellcheck disable=SC2029  # we want tempdir expanded
 ssh "$the_host" "rm -rf ${tempdir} && mkdir -p ${tempdir}"
 # shellcheck disable=SC2086  # we want globbing of tempdir here
