@@ -11,7 +11,7 @@ if [ -z "$the_host" ]; then
   exit 1
 fi
 
-tempdir="/tmp/disribute_bitbar_files"
+tempdir="/tmp/distribute_bitbar_files"
 destdir="/home/bitbar/mozilla-bitbar-devicepool/files"
 
 set -x
