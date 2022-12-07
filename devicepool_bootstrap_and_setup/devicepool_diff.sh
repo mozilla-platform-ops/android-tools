@@ -4,6 +4,8 @@ set -e
 
 # goal: checksum config files on the devicepool fleet for comparison
 
+# TODO: make this bring configs back to localhost and show diffs
+
 # things to diff
 # shellcheck disable=SC2034
 TELEGRAF_CONFIG_FILE='/etc/telegraf/telegraf.d/devicepool.conf'
