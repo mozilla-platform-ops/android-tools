@@ -82,6 +82,9 @@ ssh "$the_host" 'sudo -u bitbar bash -c "chmod 640 /home/bitbar/.bitbar*"'
 
 # venvs are now created in puppet
 
+# TODO: place ~bitbar/mozilla-bitbar-devicepool/files
+#   - see config file for exact names
+
 cat << 'EOF'
 
  ___ _   _  ___ ___ ___  ___ ___
