@@ -40,8 +40,13 @@ ssh "$the_host" 'sudo -iu bitbar bash -c "cd ~bitbar/mozilla-bitbar-devicepool &
 #
 
 echo "running puppet..."
-scp "$BOOTSTRAP_SCRIPT_PATH" "$the_host":/tmp/
-ssh "$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh
+DATESTAMP=$(date "+%Y.%m.%d-%H.%M.%S")
+# shellcheck disable=SC2029,SC2086
+DEST_FILE_BASENAME=$(basename $BOOTSTRAP_SCRIPT_PATH.$DATESTAMP)
+DEST_FILE="/tmp/$DEST_FILE_BASENAME"
+scp "$BOOTSTRAP_SCRIPT_PATH" "$the_host":"$DEST_FILE"
+# shellcheck disable=SC2029
+ssh "$the_host" sudo "$DEST_FILE"
 
 #
 # SETUP
