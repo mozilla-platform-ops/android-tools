@@ -11,13 +11,15 @@ if [ -z "$the_host" ]; then
   exit 1
 fi
 
-tempdir="/tmp/disribute_bitbar_files"
+tempdir="/tmp/distribute_bitbar_files"
 destdir="/home/bitbar/mozilla-bitbar-devicepool/files"
 
 set -x
 
 # show what's there now
 ssh "$the_host" ls -l ${destdir} || true
+
+# TODO: if present, don't do anything unless given force argument or something?
 
 # shellcheck disable=SC2029  # we want tempdir expanded
 ssh "$the_host" "rm -rf ${tempdir} && mkdir -p ${tempdir}"

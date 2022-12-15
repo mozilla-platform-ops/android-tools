@@ -32,12 +32,19 @@ fi
 
 # TODO: detect which phase we're in, don't rerun first phase if we don't need to
 set +e
-if ! ssh relops@"$the_host" id > /dev/null 2>&1; then
+ssh relops@"$the_host" exit
+rc=$?
+if [ $rc -eq 0 ]; then
   echo "performing first bootstrap phase"
   # TODO: add "-o StrictHostKeyChecking=no"?
-  scp "$BOOTSTRAP_SCRIPT_PATH" relops@"$the_host":/tmp/
+  DATESTAMP=$(date "+%Y.%m.%d-%H.%M.%S")
+  # shellcheck disable=SC2029,SC2086
+  DEST_FILE_BASENAME="$(basename $BOOTSTRAP_SCRIPT_PATH.$DATESTAMP)"
+  DEST_FILE="/tmp/$DEST_FILE_BASENAME"
+  scp "$BOOTSTRAP_SCRIPT_PATH" relops@"$the_host":"$DEST_FILE"
   # run first as bootstrap user (relops)
-  ssh relops@"$the_host" sudo /tmp/bootstrap_bitbar_devicepool.sh || true
+  # shellcheck disable=SC2086,SC2029
+  ssh relops@"$the_host" sudo "$DEST_FILE" || true
 else
   echo "host does not have a relops user, skipping first bootstrap phase..."
 fi
