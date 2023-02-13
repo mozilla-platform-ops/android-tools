@@ -101,8 +101,6 @@ class UnsafeRunner:
         fqdn_prefix=default_fqdn_postfix,
     ):
         # required args
-        # self.provisioner = provisioner
-        # self.worker_type = worker_type
         self.command = command
         # optional args
         self.fqdn_postfix = fqdn_prefix
@@ -112,10 +110,6 @@ class UnsafeRunner:
         # state
         self.completed_hosts = []
         self.remaining_hosts = hosts
-
-        # instances
-        # self.si = status.Status(provisioner, worker_type)
-        # self.q = quarantine.Quarantine()
 
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
@@ -415,10 +409,7 @@ d888b     `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' d888b
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=(
-            "runs a command against a set of hosts once "
-            "they are quarantined and not working"
-        )
+        description=("runs a command against a set of hosts")
     )
     parser.add_argument(
         "--resume_dir",
@@ -480,8 +471,6 @@ if __name__ == "__main__":
     print("Run options:")
     print(f"  command: {sr.command}")
     # TODO: mention talk, reboot, pre-quarantine count
-    # print(f"  provisioner: {sr.provisioner}")
-    # print(f"  worker_type: {sr.worker_type}")
     print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
     print("")
     print("Does this look correct? Type 'yes' to proceed: ", end="")
@@ -503,7 +492,6 @@ if __name__ == "__main__":
     #   - this will wait on current host if not drained
     #       (when other hosts in pre-quarantine group are ready)
     host_total = len(sr.remaining_hosts)
-    # counter = 0
     global terminate
     terminate = 0
     # print(list(sr.remaining_hosts))
@@ -564,11 +552,7 @@ if __name__ == "__main__":
             # say(f"completed {host}.")
             say(f"{len(sr.remaining_hosts)} hosts remaining.")
         sr.completed_hosts.append(host)
-        # short circuit 2
-        # sys.exit(0)
         sr.checkpoint_toml()
-        # testing, short circuit after one
-        # terminate = 1
         if terminate > 0:
             status_print("graceful exiting...")
             # TODO: show quarantined hosts?
