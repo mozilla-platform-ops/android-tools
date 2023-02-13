@@ -327,7 +327,7 @@ class SafeRunner:
         if verbose:
             status_print(f"{hostname}: command completed successfully.")
             if talk:
-                say("converged")
+                say("completed")
 
         # reboot host
         if reboot_host:
@@ -492,6 +492,7 @@ if __name__ == "__main__":
         type=int,
         default=SafeRunner.default_pre_quarantine_additional_host_count,
     )
+    # positional args
     parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
     parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
     parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")

@@ -144,8 +144,6 @@ class UnsafeRunner:
 
         # create class with minimum params
         i = cls(
-            # data["config"]["provisioner"],
-            # data["config"]["worker_type"],
             data["state"]["remaining_hosts"],
             data["config"]["command"],
         )
@@ -265,8 +263,6 @@ class UnsafeRunner:
         header = ""
         header += "# safe_runner output \n"
         header += "# \n"
-        # header += f"# provisioners: '{self.provisioner}' \n"
-        # header += f"# worker_type: '{self.worker_type}' \n"
         header += f"# hostname: '{hostname}' \n"
         header += f"# run datetime: '{self.start_datetime}' \n"
         header += f"# command run: '{custom_cmd}' \n"
@@ -430,6 +426,7 @@ if __name__ == "__main__":
             f"defaults to '{UnsafeRunner.default_fqdn_postfix}'."
         ),
     )
+    # positional args
     parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
     parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
