@@ -17,12 +17,14 @@ import time
 import colorama
 import tomlkit
 
-from worker_health import quarantine, status, utils
+from worker_health import utils
 
 # TODO: persist fqdn suffix
 # TODO: alive_progress bar
 # TODO: progress/state tracking
-#   - how to do? just ignore that commands could change between commands initially... let users handle
+#   - how to do?
+#     - just ignore that commands could change between commands initially...
+#     - let users handle
 #   - statefile name 'sr_state', TOML
 #      - will have all run details and state
 #   - contents: current host, completed hosts
@@ -112,7 +114,7 @@ class UnsafeRunner:
 
         # instances
         # self.si = status.Status(provisioner, worker_type)
-        self.q = quarantine.Quarantine()
+        # self.q = quarantine.Quarantine()
 
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
@@ -137,8 +139,9 @@ class UnsafeRunner:
             raise Exception(f"invalid file format in '{resume_file}'")
 
         # filter out skipped hosts
-        # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from remaining_hosts...
-        # mutate this because it's a special tomlkit datastructure (preserves formatting)
+        # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from
+        #   remaining_hosts... mutate this because it's a special tomlkit
+        #   datastructure (preserves formatting)
         for h in data["state"]["remaining_hosts"]:
             if h in data["config"]["hosts_to_skip"]:
                 data["state"]["remaining_hosts"].remove(h)
@@ -210,34 +213,6 @@ class UnsafeRunner:
         # TODO: ensure command has SR_HOST variable in it
         if "SR_HOST" not in command:
             raise Exception("command doesn't have SR_HOST in it!")
-
-        # quarantine
-        # TODO: check if already quarantined and skip if so
-        # if verbose:
-        #     status_print(f"{hostname}: adding to quarantine... ", end="")
-        # self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
-        # # TODO: verify?
-        # if verbose:
-        #     print("quarantined.")
-        #     if talk:
-        #         say("quarantined")
-
-        # wait until drained (not running jobs)
-        # if verbose:
-        #     # TODO: show link to tc page
-        #     #  - https://firefox-ci-tc.services.mozilla.com/provisioners/releng-hardware/worker-types/gecko-t-osx-1015-r8/workers/mdc1/macmini-r8-12?sortBy=started&sortDirection=desc
-        #     # wgs = tc_helpers.get_worker_groups(
-        #     #             provisioner=provisioner_id, worker_type=worker_type
-        #     #         )
-
-        #     status_print(f"{hostname}: waiting for host to drain...", end="")
-        #     if talk:
-        #         say("draining")
-        # self.si.wait_until_no_jobs_running([hostname])
-        # if verbose:
-        #     print(" drained.")
-        #     if talk:
-        #         say("drained")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
@@ -465,18 +440,6 @@ if __name__ == "__main__":
         action="store_true",
         help="reboot the host after command runs successfully.",
     )
-    # parser.add_argument(
-    #     "--dont-lift_quarantine",
-    #     "-D",
-    #     action="store_true",
-    #     help="don't lift the quarantine after successfully running. useful for pre-quarantined bad hosts.",
-    # )
-    # parser.add_argument(
-    #     "--no-quarantine",
-    #     "-Q",
-    #     action="store_true",
-    #     help="don't do any quarantine actions (quarantine or lift)"
-    # )
     # TODO: add argument to do a reboot if run is successful?
     parser.add_argument(
         "--fqdn-postfix",
@@ -485,16 +448,6 @@ if __name__ == "__main__":
             f"string to append to host (used for ssh check). defaults to '{UnsafeRunner.default_fqdn_postfix}'."
         ),
     )
-    # parser.add_argument(
-    #     "--pre_quarantine_additional_host_count",
-    #     "-P",
-    #     help=f"quarantine the specified number of following hosts. defaults to {SafeRunner.default_pre_quarantine_additional_host_count}. specify 0 to disable pre-quarantine.",
-    #     metavar="COUNT",
-    #     type=int,
-    #     default=SafeRunner.default_pre_quarantine_additional_host_count,
-    # )
-    # parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
-    # parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
     parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
     parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
