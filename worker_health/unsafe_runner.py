@@ -314,22 +314,6 @@ class UnsafeRunner:
                 if talk:
                     say("rebooted")
 
-        # lift quarantine
-        # if not dont_lift_quarantine:
-        #     if verbose:
-        #         status_print(f"{hostname}: lifting quarantine...", end="")
-        #     self.q.lift_quarantine(
-        #         self.provisioner, self.worker_type, [hostname], verbose=False
-        #     )
-        #     # TODO: verify?
-        #     if verbose:
-        #         print(" lifted.")
-        #         if talk:
-        #             say("quarantine lifted")
-        # else:
-        #     if verbose:
-        #         status_print(f"{hostname}: NOT lifting quarantine (per option).")
-
 
 # from stack overflow
 def remove_argument(a_parser, arg):
@@ -539,7 +523,6 @@ if __name__ == "__main__":
             host,
             sr.command,
             talk=args.talk,
-            # dont_lift_quarantine=args.dont_lift_quarantine,
             reboot_host=args.reboot_host,
         )
         sr.remaining_hosts.remove(host)
