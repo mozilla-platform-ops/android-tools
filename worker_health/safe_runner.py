@@ -589,8 +589,9 @@ if __name__ == "__main__":
                 if exit_while:
                     break
                 # print("Z", end="", flush=True)
-                status_print("no quarantined idle ssh-able hosts found. sleeping...")
-                time.sleep(60)
+            sleep_time = 60
+            status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
+            time.sleep(sleep_time)
             # print(" found.", flush=True)
         else:
             host = sr.remaining_hosts[0]
