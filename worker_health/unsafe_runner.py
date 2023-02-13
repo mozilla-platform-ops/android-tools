@@ -70,7 +70,7 @@ def preexec_function():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
-class SafeRunner:
+class UnsafeRunner:
     # default_pre_quarantine_additional_host_count = 5
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "ur_state.toml"
@@ -120,7 +120,7 @@ class SafeRunner:
     @classmethod
     def from_resume(cls, resume_dir):
         # open file and read
-        resume_file = f"{resume_dir}/{SafeRunner.state_file_name}"
+        resume_file = f"{resume_dir}/{UnsafeRunner.state_file_name}"
 
         # load file
         with open(resume_file, "rb") as f:
@@ -143,15 +143,15 @@ class SafeRunner:
 
         # create class with minimum params
         i = cls(
-            data["config"]["provisioner"],
-            data["config"]["worker_type"],
+            # data["config"]["provisioner"],
+            # data["config"]["worker_type"],
             data["state"]["remaining_hosts"],
             data["config"]["command"],
         )
         # populate rest
         i.completed_hosts = data["state"]["completed_hosts"]
         i.run_dir = resume_dir
-        i.state_file = f"{resume_dir}/{SafeRunner.state_file_name}"
+        i.state_file = f"{resume_dir}/{UnsafeRunner.state_file_name}"
         return i
 
     @property
@@ -162,11 +162,11 @@ class SafeRunner:
 
     @property
     def default_state_file_path(self):
-        return f"{self.default_rundir_path}/{SafeRunner.state_file_name}"
+        return f"{self.default_rundir_path}/{UnsafeRunner.state_file_name}"
 
     def write_initial_toml(self):
         # populate data
-        data = copy.deepcopy(SafeRunner.empty_config_dict)
+        data = copy.deepcopy(UnsafeRunner.empty_config_dict)
         # config
         data["config"]["provisioner"] = self.provisioner
         data["config"]["worker_type"] = self.worker_type
@@ -239,10 +239,11 @@ class SafeRunner:
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
         # wait for host to be back up, otherwise ssh will time out.
+        
         if verbose:
             status_print(f"{hostname}: waiting for ssh to be up... ", end="")
-            if talk:
-                say("waiting for ssh")
+        #     if talk:
+        #         say("waiting for ssh")
         while True:
             if host_is_sshable(host_fqdn):
                 break
@@ -291,8 +292,8 @@ class SafeRunner:
         header = ""
         header += "# safe_runner output \n"
         header += "# \n"
-        header += f"# provisioners: '{self.provisioner}' \n"
-        header += f"# worker_type: '{self.worker_type}' \n"
+        # header += f"# provisioners: '{self.provisioner}' \n"
+        # header += f"# worker_type: '{self.worker_type}' \n"
         header += f"# hostname: '{hostname}' \n"
         header += f"# run datetime: '{self.start_datetime}' \n"
         header += f"# command run: '{custom_cmd}' \n"
@@ -316,7 +317,7 @@ class SafeRunner:
         if verbose:
             status_print(f"{hostname}: command completed successfully.")
             if talk:
-                say("converged")
+                say("completed")
 
         # reboot host
         if reboot_host:
@@ -472,7 +473,7 @@ if __name__ == "__main__":
         "--fqdn-postfix",
         "-F",
         help=(
-            f"string to append to host (used for ssh check). defaults to '{SafeRunner.default_fqdn_postfix}'."
+            f"string to append to host (used for ssh check). defaults to '{UnsafeRunner.default_fqdn_postfix}'."
         ),
     )
     # parser.add_argument(
@@ -483,8 +484,8 @@ if __name__ == "__main__":
     #     type=int,
     #     default=SafeRunner.default_pre_quarantine_additional_host_count,
     # )
-    parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
-    parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
+    # parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
+    # parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
     parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
     parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
@@ -498,20 +499,20 @@ if __name__ == "__main__":
     # sys.exit(0)
 
     if args.talk:
-        say("safe runner: talk enabled", background_mode=True)
+        say("unsafe runner: talk enabled", background_mode=True)
 
     if not args.resume_dir:
-        sr = SafeRunner(args.provisioner, args.worker_type, args.hosts, args.command)
+        sr = UnsafeRunner(args.hosts, args.command)
     else:
-        sr = SafeRunner.from_resume(args.resume_dir)
+        sr = UnsafeRunner.from_resume(args.resume_dir)
 
     # get user to ack what we're about to do
     # TODO: mention skipped hosts?
     print("Run options:")
     print(f"  command: {sr.command}")
     # TODO: mention talk, reboot, pre-quarantine count
-    print(f"  provisioner: {sr.provisioner}")
-    print(f"  worker_type: {sr.worker_type}")
+    # print(f"  provisioner: {sr.provisioner}")
+    # print(f"  worker_type: {sr.worker_type}")
     print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
     print("")
     print("Does this look correct? Type 'yes' to proceed: ", end="")
@@ -590,7 +591,7 @@ if __name__ == "__main__":
 
         while True:
             # print("0", end="", flush=True)
-            status_print("waiting for ssh-able hosts... ", end="")
+            status_print("waiting for ssh-able hosts... ")
             # idle_hosts = sr.si.wait_for_idle_hosts(
             #     pre_quarantine_hosts, show_indicator=True
             # )
@@ -620,7 +621,7 @@ if __name__ == "__main__":
             host,
             sr.command,
             talk=args.talk,
-            dont_lift_quarantine=args.dont_lift_quarantine,
+            # dont_lift_quarantine=args.dont_lift_quarantine,
             reboot_host=args.reboot_host,
         )
         sr.remaining_hosts.remove(host)
@@ -632,7 +633,11 @@ if __name__ == "__main__":
             say(f"completed {host}.")
             say(f"{len(sr.remaining_hosts)} hosts remaining.")
         sr.completed_hosts.append(host)
+        # short circuit 2
+        # sys.exit(0)
         sr.checkpoint_toml()
+        # testing, short circuit after one
+        # terminate = 1
         if terminate > 0:
             status_print("graceful exiting...")
             # TODO: show quarantined hosts?
