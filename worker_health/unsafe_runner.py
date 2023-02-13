@@ -523,9 +523,9 @@ if __name__ == "__main__":
                     host = i_host
                     exit_while = True
                     break
-            # print("Z", end="", flush=True)
             if exit_while:
                 break
+            # print("Z", end="", flush=True)
             sleep_time = 60
             status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
             time.sleep(sleep_time)

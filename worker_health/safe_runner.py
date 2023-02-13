@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-# drains host (quarantines and wait for jobs to finish), runs a command, and then lifts the quarantine
+# drains host (quarantines and wait for jobs to finish),
+#   runs a command, and then lifts the quarantine
 
 import argparse
 import copy
@@ -17,8 +18,13 @@ import tomlkit
 
 from worker_health import quarantine, status, utils
 
+# TODO: persist fqdn suffix
+# TODO: alive_progress bar
+# TODO: command to dump an empty state file in restore dir
 # TODO: progress/state tracking
-#   - how to do? just ignore that commands could change between commands initially... let users handle
+#   - how to do?
+#     - just ignore that commands could change between commands initially...
+#     - let users handle
 #   - statefile name 'sr_state', TOML
 #      - will have all run details and state
 #   - contents: current host, completed hosts
@@ -135,8 +141,9 @@ class SafeRunner:
             raise Exception(f"invalid file format in '{resume_file}'")
 
         # filter out skipped hosts
-        # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from remaining_hosts...
-        # mutate this because it's a special tomlkit datastructure (preserves formatting)
+        # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from
+        #   remaining_hosts... mutate this because it's a special tomlkit
+        #   datastructure (preserves formatting)
         for h in data["state"]["remaining_hosts"]:
             if h in data["config"]["hosts_to_skip"]:
                 data["state"]["remaining_hosts"].remove(h)
@@ -224,7 +231,6 @@ class SafeRunner:
         # wait until drained (not running jobs)
         if verbose:
             # TODO: show link to tc page
-            #  - https://firefox-ci-tc.services.mozilla.com/provisioners/releng-hardware/worker-types/gecko-t-osx-1015-r8/workers/mdc1/macmini-r8-12?sortBy=started&sortDirection=desc
             # wgs = tc_helpers.get_worker_groups(
             #             provisioner=provisioner_id, worker_type=worker_type
             #         )
@@ -241,6 +247,7 @@ class SafeRunner:
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
         # wait for host to be back up, otherwise ssh will time out.
+
         if verbose:
             status_print(f"{hostname}: waiting for ssh to be up... ", end="")
             if talk:
@@ -277,7 +284,7 @@ class SafeRunner:
         if verbose:
             status_print(f"{hostname}: running command '{custom_cmd}'...")
             if talk:
-                say("converging")
+                say("running")
         split_custom_cmd = ["/bin/bash", "-l", "-c", custom_cmd]
         ro = subprocess.run(
             split_custom_cmd,
@@ -329,7 +336,8 @@ class SafeRunner:
             r = subprocess.run(
                 cmd,
                 shell=True,
-                check=False,  # will return 255 on success because remote end disconnected...
+                # will return 255 on success because remote end disconnected...
+                check=False,
                 stderr=subprocess.STDOUT,
                 stdout=subprocess.PIPE,
             )
@@ -396,7 +404,8 @@ def handler(_signum, _frame):
         print("*** double ctrl-c detected. exiting immediately!")
         sys.exit(0)
     print(
-        "*** ctrl-c detected. will exit at end of current host (another will exit immediately)."
+        "*** ctrl-c detected. will exit after current host "
+        "(one more to exit immediately)."
     )
 
 
@@ -428,7 +437,10 @@ def print_banner():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="runs a command against a set of hosts once they are quarantined and not working"
+        description=(
+            "runs a command against a set of hosts once "
+            "they are quarantined and not working"
+        )
     )
     parser.add_argument(
         "--resume_dir",
@@ -454,20 +466,28 @@ if __name__ == "__main__":
         "--dont-lift_quarantine",
         "-D",
         action="store_true",
-        help="don't lift the quarantine after successfully running. useful for pre-quarantined bad hosts.",
+        help=(
+            "don't lift the quarantine after successfully running. "
+            "useful for pre-quarantined bad hosts."
+        ),
     )
     # TODO: add argument to do a reboot if run is successful?
     parser.add_argument(
         "--fqdn-postfix",
         "-F",
         help=(
-            f"string to append to host (used for ssh check). defaults to '{SafeRunner.default_fqdn_postfix}'."
+            "string to append to host (used for ssh check). "
+            f"defaults to '{SafeRunner.default_fqdn_postfix}'."
         ),
     )
     parser.add_argument(
         "--pre_quarantine_additional_host_count",
         "-P",
-        help=f"quarantine the specified number of following hosts. defaults to {SafeRunner.default_pre_quarantine_additional_host_count}. specify 0 to disable pre-quarantine.",
+        help=(
+            "quarantine the specified number of following hosts. "
+            f"defaults to {SafeRunner.default_pre_quarantine_additional_host_count}. "
+            "specify 0 to disable pre-quarantine."
+        ),
         metavar="COUNT",
         type=int,
         default=SafeRunner.default_pre_quarantine_additional_host_count,
@@ -519,14 +539,12 @@ if __name__ == "__main__":
 
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: make a more-intelligent multi-host version...
-    #   - this will wait on current host if not drained (when other hosts in pre-quarantine group are ready)
+    #   - this will wait on current host if not drained
+    #       (when other hosts in pre-quarantine group are ready)
     host_total = len(sr.remaining_hosts)
-    counter = 0
     global terminate
     terminate = 0
     while sr.remaining_hosts:
-        counter += 1
-
         # pre-quarantine code
         #   - gets a few workers ready (quarantined) before we're working on them
         pre_quarantine_hosts = sr.remaining_hosts[
@@ -591,7 +609,8 @@ if __name__ == "__main__":
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
         status_print(
-            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {', '.join(sr.remaining_hosts)}"
+            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): "
+            f"{', '.join(sr.remaining_hosts)}"
         )
         if args.talk:
             say(f"completed {host}.")
