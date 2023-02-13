@@ -21,6 +21,7 @@ from worker_health import utils
 
 # TODO: persist fqdn suffix
 # TODO: alive_progress bar
+# TODO: command to dump an empty state file in restore dir
 # TODO: progress/state tracking
 #   - how to do?
 #     - just ignore that commands could change between commands initially...
