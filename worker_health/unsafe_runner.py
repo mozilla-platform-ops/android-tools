@@ -304,7 +304,8 @@ class UnsafeRunner:
             r = subprocess.run(
                 cmd,
                 shell=True,
-                check=False,  # will return 255 on success because remote end disconnected...
+                # will return 255 on success because remote end disconnected...
+                check=False,
                 stderr=subprocess.STDOUT,
                 stdout=subprocess.PIPE,
             )
@@ -371,7 +372,8 @@ def handler(_signum, _frame):
         print("*** double ctrl-c detected. exiting immediately!")
         sys.exit(0)
     print(
-        "*** ctrl-c detected. will exit at end of current host (another will exit immediately)."
+        "*** ctrl-c detected. will exit after current host "
+        "(one more to exit immediately)."
     )
 
 
@@ -412,7 +414,10 @@ d888b     `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' d888b
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="runs a command against a set of hosts once they are quarantined and not working"
+        description=(
+            "runs a command against a set of hosts once "
+            "they are quarantined and not working"
+        )
     )
     parser.add_argument(
         "--resume_dir",
@@ -445,7 +450,8 @@ if __name__ == "__main__":
         "--fqdn-postfix",
         "-F",
         help=(
-            f"string to append to host (used for ssh check). defaults to '{UnsafeRunner.default_fqdn_postfix}'."
+            "string to append to host (used for ssh check). "
+            f"defaults to '{UnsafeRunner.default_fqdn_postfix}'."
         ),
     )
     parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
@@ -493,7 +499,8 @@ if __name__ == "__main__":
 
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: make a more-intelligent multi-host version...
-    #   - this will wait on current host if not drained (when other hosts in pre-quarantine group are ready)
+    #   - this will wait on current host if not drained
+    #       (when other hosts in pre-quarantine group are ready)
     host_total = len(sr.remaining_hosts)
     # counter = 0
     global terminate
@@ -503,57 +510,6 @@ if __name__ == "__main__":
     remaining_hosts = list(sr.remaining_hosts)
     while remaining_hosts:
         remaining_hosts = list(sr.remaining_hosts)
-        # counter += 1
-
-        # pre-quarantine code
-        #   - gets a few workers ready (quarantined) before we're working on them
-        # pre_quarantine_hosts = sr.remaining_hosts[
-        #     0 : (args.pre_quarantine_additional_host_count + 1)
-        # ]
-        # if args.pre_quarantine_additional_host_count:
-        #     status_print(
-        #         f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}"
-        #     )
-        #     sr.q.quarantine(
-        #         sr.provisioner, sr.worker_type, pre_quarantine_hosts, verbose=False
-        #     )
-        #     status_print(
-        #         f"pre-quarantine: quarantined {len(pre_quarantine_hosts)} hosts"
-        #     )
-        #     if args.talk:
-        #         say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
-
-        #     # waits for a host that isn't running jobs
-        #     # status_print("waiting for idle pre-quarantined host...")
-        #     # host = sr.si.wait_for_idle_host(pre_quarantine_hosts)
-        #     #
-        #     # waits for a host that isn't running jobs and ssh-able
-        #     exit_while = False
-        #     while True:
-        #         # print("0", end="", flush=True)
-        #         status_print("waiting for idle hosts among pre-quarantined... ", end="")
-        #         idle_hosts = sr.si.wait_for_idle_hosts(
-        #             pre_quarantine_hosts, show_indicator=True
-        #         )
-        #         status_print(
-        #             f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
-        #         )
-        #         for i_host in idle_hosts:
-        #             # print(".", end="", flush=True)
-        #             i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
-        #             status_print(f"checking for ssh: {i_host_fqdn}...")
-        #             if host_is_sshable(i_host_fqdn):
-        #                 host = i_host
-        #                 exit_while = True
-        #                 break
-        #         if exit_while:
-        #             break
-        #         # print("Z", end="", flush=True)
-        #         status_print("no quarantined idle ssh-able hosts found. sleeping...")
-        #         time.sleep(60)
-        #     # print(" found.", flush=True)
-        # else:
-        #     host = sr.remaining_hosts[0]
 
         exit_while = False
         while True:
@@ -600,7 +556,8 @@ if __name__ == "__main__":
         sr.remaining_hosts.remove(host)
         status_print(f"{host}: complete")
         status_print(
-            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {', '.join(sr.remaining_hosts)}"
+            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): "
+            f"{', '.join(sr.remaining_hosts)}"
         )
         if args.talk:
             # say(f"completed {host}.")
