@@ -549,6 +549,7 @@ if __name__ == "__main__":
 
     remaining_hosts = list(sr.remaining_hosts)
     while remaining_hosts:
+        remaining_hosts = list(sr.remaining_hosts)
         # counter += 1
 
         # pre-quarantine code
@@ -601,8 +602,6 @@ if __name__ == "__main__":
         # else:
         #     host = sr.remaining_hosts[0]
 
-        print(remaining_hosts)
-
         exit_while = False
         while True:
             # print("0", end="", flush=True)
@@ -613,14 +612,10 @@ if __name__ == "__main__":
             # status_print(
             #     f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
             # )
-
-            # print(sr.remaining_hosts)
-            # hosts_to_check = sr.remaining_hosts.copy()
-            # print(sr.remaining_hosts)
-            # print(hosts_to_check)
+            
             # # randomize host list
-            # if not args.do_not_randomize:
-            #     random.shuffle(hosts_to_check)
+            if not args.do_not_randomize:
+                random.shuffle(remaining_hosts)
 
             for i_host in remaining_hosts:
                 # print(".", end="", flush=True)
@@ -633,8 +628,9 @@ if __name__ == "__main__":
             # print("Z", end="", flush=True)
             if exit_while:
                 break
-            status_print("no ssh-able hosts found. sleeping...")
-            time.sleep(60)
+            sleep_time = 60
+            status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
+            time.sleep(sleep_time)
         # print(" found.", flush=True)
 
         # safe_run_single_host
@@ -649,7 +645,6 @@ if __name__ == "__main__":
             reboot_host=args.reboot_host,
         )
         sr.remaining_hosts.remove(host)
-        remaining_hosts = list(sr.remaining_hosts)
         status_print(f"{host}: complete")
         status_print(
             f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {', '.join(sr.remaining_hosts)}"
