@@ -19,6 +19,7 @@ import tomlkit
 
 from worker_health import quarantine, status, utils
 
+# TODO: persist fqdn suffix
 # TODO: alive_progress bar
 # TODO: progress/state tracking
 #   - how to do? just ignore that commands could change between commands initially... let users handle
@@ -447,6 +448,12 @@ if __name__ == "__main__":
         help="'sr_' run directory. causes positional arguments to be ignored.",
     )
     parser.add_argument(
+        "--do-not-randomize",
+        "-N",
+        action="store_true",
+        help="don't randomize host list",
+    )
+    parser.add_argument(
         "--talk",
         "-t",
         action="store_true",
@@ -538,7 +545,10 @@ if __name__ == "__main__":
     # counter = 0
     global terminate
     terminate = 0
-    while sr.remaining_hosts:
+    # print(list(sr.remaining_hosts))
+
+    remaining_hosts = list(sr.remaining_hosts)
+    while remaining_hosts:
         # counter += 1
 
         # pre-quarantine code
@@ -591,6 +601,9 @@ if __name__ == "__main__":
         # else:
         #     host = sr.remaining_hosts[0]
 
+        print(remaining_hosts)
+
+        exit_while = False
         while True:
             # print("0", end="", flush=True)
             status_print("waiting for ssh-able hosts... ")
@@ -600,13 +613,16 @@ if __name__ == "__main__":
             # status_print(
             #     f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
             # )
-            
-            # TODO: put behind a flag?
-            # randomize host list
-            randomized_remaining = sr.remaining_hosts.copy() 
-            random.shuffle(randomized_remaining)
 
-            for i_host in randomized_remaining:
+            # print(sr.remaining_hosts)
+            # hosts_to_check = sr.remaining_hosts.copy()
+            # print(sr.remaining_hosts)
+            # print(hosts_to_check)
+            # # randomize host list
+            # if not args.do_not_randomize:
+            #     random.shuffle(hosts_to_check)
+
+            for i_host in remaining_hosts:
                 # print(".", end="", flush=True)
                 i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
                 status_print(f"checking for ssh: {i_host_fqdn}...")
@@ -614,9 +630,9 @@ if __name__ == "__main__":
                     host = i_host
                     exit_while = True
                     break
+            # print("Z", end="", flush=True)
             if exit_while:
                 break
-            # print("Z", end="", flush=True)
             status_print("no ssh-able hosts found. sleeping...")
             time.sleep(60)
         # print(" found.", flush=True)
@@ -633,6 +649,7 @@ if __name__ == "__main__":
             reboot_host=args.reboot_host,
         )
         sr.remaining_hosts.remove(host)
+        remaining_hosts = list(sr.remaining_hosts)
         status_print(f"{host}: complete")
         status_print(
             f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {', '.join(sr.remaining_hosts)}"
