@@ -612,7 +612,7 @@ if __name__ == "__main__":
             # status_print(
             #     f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
             # )
-            
+
             # # randomize host list
             if not args.do_not_randomize:
                 random.shuffle(remaining_hosts)
