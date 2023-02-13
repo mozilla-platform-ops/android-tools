@@ -7,6 +7,7 @@ import argparse
 import copy
 import datetime
 import os
+import random
 import re
 import signal
 import subprocess
@@ -18,6 +19,7 @@ import tomlkit
 
 from worker_health import quarantine, status, utils
 
+# TODO: alive_progress bar
 # TODO: progress/state tracking
 #   - how to do? just ignore that commands could change between commands initially... let users handle
 #   - statefile name 'sr_state', TOML
@@ -239,7 +241,7 @@ class UnsafeRunner:
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
         # wait for host to be back up, otherwise ssh will time out.
-        
+
         if verbose:
             status_print(f"{hostname}: waiting for ssh to be up... ", end="")
         #     if talk:
@@ -276,7 +278,7 @@ class UnsafeRunner:
         if verbose:
             status_print(f"{hostname}: running command '{custom_cmd}'...")
             if talk:
-                say("converging")
+                say("running")
         split_custom_cmd = ["/bin/bash", "-l", "-c", custom_cmd]
         ro = subprocess.run(
             split_custom_cmd,
@@ -598,7 +600,13 @@ if __name__ == "__main__":
             # status_print(
             #     f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
             # )
-            for i_host in sr.remaining_hosts:
+            
+            # TODO: put behind a flag?
+            # randomize host list
+            randomized_remaining = sr.remaining_hosts.copy() 
+            random.shuffle(randomized_remaining)
+
+            for i_host in randomized_remaining:
                 # print(".", end="", flush=True)
                 i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
                 status_print(f"checking for ssh: {i_host_fqdn}...")
@@ -630,7 +638,7 @@ if __name__ == "__main__":
             f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): {', '.join(sr.remaining_hosts)}"
         )
         if args.talk:
-            say(f"completed {host}.")
+            # say(f"completed {host}.")
             say(f"{len(sr.remaining_hosts)} hosts remaining.")
         sr.completed_hosts.append(host)
         # short circuit 2
