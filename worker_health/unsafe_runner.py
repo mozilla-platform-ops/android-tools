@@ -14,6 +14,7 @@ import subprocess
 import sys
 import time
 
+import alive_progress
 import colorama
 import tomlkit
 
@@ -111,6 +112,9 @@ class UnsafeRunner:
         self.completed_hosts = []
         self.remaining_hosts = hosts
 
+        # TODO: init to something else?
+        self.hosts_to_skip = []
+
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
         self.run_dir = self.default_rundir_path
@@ -149,6 +153,7 @@ class UnsafeRunner:
         )
         # populate rest
         i.completed_hosts = data["state"]["completed_hosts"]
+        i.hosts_to_skip = data["config"]["hosts_to_skip"]
         i.run_dir = resume_dir
         i.state_file = f"{resume_dir}/{UnsafeRunner.state_file_name}"
         return i
@@ -170,7 +175,7 @@ class UnsafeRunner:
         data["config"]["provisioner"] = self.provisioner
         data["config"]["worker_type"] = self.worker_type
         data["config"]["command"] = self.command
-        # not writing hosts_to_skip
+        data["config"]["hosts_to_skip"] = self.hosts_to_skip
         # state
         data["state"]["remaining_hosts"] = self.remaining_hosts
         # not writing remaining
@@ -478,65 +483,80 @@ if __name__ == "__main__":
     # print(list(sr.remaining_hosts))
 
     remaining_hosts = list(sr.remaining_hosts)
-    while remaining_hosts:
-        remaining_hosts = list(sr.remaining_hosts)
+    completed_hosts = list(sr.completed_hosts)
+    skipped_hosts = list(sr.hosts_to_skip)
+    total_hosts = len(
+        set(remaining_hosts).union(set(completed_hosts)).union(set(skipped_hosts))
+    )
 
-        exit_while = False
-        while True:
-            # print("0", end="", flush=True)
-            status_print("waiting for ssh-able hosts... ")
-            # idle_hosts = sr.si.wait_for_idle_hosts(
-            #     pre_quarantine_hosts, show_indicator=True
-            # )
-            # status_print(
-            #     f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
-            # )
+    with alive_progress.alive_bar(
+        total=total_hosts, enrich_print=False, stats=False
+    ) as bar:
+        while remaining_hosts:
+            remaining_hosts = list(sr.remaining_hosts)
+            completed_hosts = list(sr.completed_hosts)
 
-            # # randomize host list
-            if not args.do_not_randomize:
-                random.shuffle(remaining_hosts)
+            bar(len(completed_hosts))
 
-            for i_host in remaining_hosts:
-                # print(".", end="", flush=True)
-                i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
-                status_print(f"checking for ssh: {i_host_fqdn}...")
-                if host_is_sshable(i_host_fqdn):
-                    host = i_host
-                    exit_while = True
+            exit_while = False
+            bar.pause()
+            while True:
+                # print("0", end="", flush=True)
+                status_print("waiting for ssh-able hosts... ")
+                # idle_hosts = sr.si.wait_for_idle_hosts(
+                #     pre_quarantine_hosts, show_indicator=True
+                # )
+                # status_print(
+                #     f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
+                # )
+
+                # # randomize host list
+                if not args.do_not_randomize:
+                    random.shuffle(remaining_hosts)
+
+                for i_host in remaining_hosts:
+                    # print(".", end="", flush=True)
+                    i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
+                    status_print(f"checking for ssh: {i_host_fqdn}...")
+                    if host_is_sshable(i_host_fqdn):
+                        host = i_host
+                        exit_while = True
+                        break
+                if exit_while:
                     break
-            if exit_while:
-                break
-            # print("Z", end="", flush=True)
-            sleep_time = 60
-            status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
-            time.sleep(sleep_time)
-        # print(" found.", flush=True)
+                # print("Z", end="", flush=True)
+                sleep_time = 60
+                status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
+                time.sleep(sleep_time)
+            # print(" found.", flush=True)
+            bar.unpause()
 
-        # safe_run_single_host
-        status_print(f"{host}: starting")
-        if args.talk:
-            say(f"starting {host}")
-        sr.safe_run_single_host(
-            host,
-            sr.command,
-            talk=args.talk,
-            reboot_host=args.reboot_host,
-        )
-        sr.remaining_hosts.remove(host)
-        status_print(f"{host}: complete")
-        status_print(
-            f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): "
-            f"{', '.join(sr.remaining_hosts)}"
-        )
-        if args.talk:
-            # say(f"completed {host}.")
-            say(f"{len(sr.remaining_hosts)} hosts remaining.")
-        sr.completed_hosts.append(host)
-        sr.checkpoint_toml()
-        if terminate > 0:
-            status_print("graceful exiting...")
-            # TODO: show quarantined hosts?
-            break
-    # TODO: play success sound
-    # TODO: can we show any stats?
-    status_print("all hosts complete!")
+            # safe_run_single_host
+            status_print(f"{host}: starting")
+            if args.talk:
+                say(f"starting {host}")
+            sr.safe_run_single_host(
+                host,
+                sr.command,
+                talk=args.talk,
+                reboot_host=args.reboot_host,
+            )
+            sr.remaining_hosts.remove(host)
+            status_print(f"{host}: complete")
+            status_print(
+                f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): "
+                f"{', '.join(sr.remaining_hosts)}"
+            )
+            if args.talk:
+                # say(f"completed {host}.")
+                say(f"{len(sr.remaining_hosts)} hosts remaining.")
+            sr.completed_hosts.append(host)
+            bar()
+            sr.checkpoint_toml()
+            if terminate > 0:
+                status_print("graceful exiting...")
+                # TODO: show quarantined hosts?
+                break
+        # TODO: play success sound
+        # TODO: can we show any stats?
+        status_print("all hosts complete!")
