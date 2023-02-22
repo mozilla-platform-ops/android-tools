@@ -20,7 +20,6 @@ import tomlkit
 
 from worker_health import utils
 
-# TODO: persist fqdn suffix
 # TODO: alive_progress bar
 # TODO: command to dump an empty state file in restore dir
 # TODO: progress/state tracking
@@ -147,10 +146,15 @@ class UnsafeRunner:
                 # remaining_hosts_without_hosts_to_skip.append(h)
 
         # create class with minimum params
-        i = cls(
-            data["state"]["remaining_hosts"],
-            data["config"]["command"],
-        )
+        try:
+            i = cls(
+                data["state"]["remaining_hosts"],
+                data["config"]["command"],
+                data["config"]["fqdn_prefix"],
+            )
+        except tomlkit.exceptions.NonExistentKey as e:
+            print(f"Missing required config file param: {str(e)}")
+            sys.exit(1)
         # populate rest
         i.completed_hosts = data["state"]["completed_hosts"]
         i.hosts_to_skip = data["config"]["hosts_to_skip"]
@@ -175,6 +179,7 @@ class UnsafeRunner:
         data["config"]["provisioner"] = self.provisioner
         data["config"]["worker_type"] = self.worker_type
         data["config"]["command"] = self.command
+        data["config"]["fqdn_prefix"] = self.fqdn_postfix
         data["config"]["hosts_to_skip"] = self.hosts_to_skip
         # state
         data["state"]["remaining_hosts"] = self.remaining_hosts
@@ -340,6 +345,7 @@ class ResumeAction(argparse.Action):
         remove_argument(parser, "worker_type")
         remove_argument(parser, "command")
         remove_argument(parser, "host_csv")
+        remove_argument(parser, "fqdn_prefix")
         # the normal part
         setattr(args, self.dest, values)
 
@@ -448,7 +454,7 @@ if __name__ == "__main__":
         say("unsafe runner: talk enabled", background_mode=True)
 
     if not args.resume_dir:
-        sr = UnsafeRunner(args.hosts, args.command)
+        sr = UnsafeRunner(args.hosts, args.command, args.fqdn_prefix)
     else:
         sr = UnsafeRunner.from_resume(args.resume_dir)
 
