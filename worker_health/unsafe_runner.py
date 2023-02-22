@@ -548,6 +548,9 @@ if __name__ == "__main__":
                 reboot_host=args.reboot_host,
             )
             sr.remaining_hosts.remove(host)
+            # update this so this exits
+            # TODO: remove need for remaining_hosts... feels gross
+            remaining_hosts = list(sr.remaining_hosts)
             status_print(f"{host}: complete")
             status_print(
                 f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): "
