@@ -505,7 +505,7 @@ if __name__ == "__main__":
             bar(len(completed_hosts))
 
             exit_while = False
-            bar.pause()
+            # bar.pause()
             while True:
                 # print("0", end="", flush=True)
                 status_print("waiting for ssh-able hosts... ")
@@ -535,7 +535,7 @@ if __name__ == "__main__":
                 status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
                 time.sleep(sleep_time)
             # print(" found.", flush=True)
-            bar.unpause()
+            # bar.unpause()
 
             # safe_run_single_host
             status_print(f"{host}: starting")
