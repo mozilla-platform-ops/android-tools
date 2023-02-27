@@ -19,7 +19,7 @@ jobs:
       - run: cd worker_health && pipenv install --dev
       - run: cd worker_health && pipenv run pytest --cov=worker_health -v
       - run: cd worker_health && pipenv run pyflakes *.py
-      - run: cd worker_health && ./test_help.sh
+      - run: cd worker_health && ./tests/test_binary_help_output.py
   test_last_started:
     docker:
       - image: cimg/python:3.9.1
