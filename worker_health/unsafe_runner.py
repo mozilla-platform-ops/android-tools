@@ -76,6 +76,10 @@ def preexec_function():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
+class CommandFailedException(Exception):
+    pass
+
+
 class UnsafeRunner:
     # default_pre_quarantine_additional_host_count = 5
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
@@ -109,6 +113,7 @@ class UnsafeRunner:
         # self._config_toml = {}
         # state
         self.completed_hosts = []
+        self.failed_hosts = []
         self.remaining_hosts = hosts
 
         # TODO: init to something else?
@@ -157,6 +162,7 @@ class UnsafeRunner:
             sys.exit(1)
         # populate rest
         i.completed_hosts = data["state"]["completed_hosts"]
+        i.failed_hosts = data["state"]["failed_hosts"]
         i.hosts_to_skip = data["config"]["hosts_to_skip"]
         i.run_dir = resume_dir
         i.state_file = f"{resume_dir}/{UnsafeRunner.state_file_name}"
@@ -196,6 +202,7 @@ class UnsafeRunner:
 
         # update data
         data["state"]["completed_hosts"] = self.completed_hosts
+        data["state"]["failed_hosts"] = self.failed_hosts
         data["state"]["remaining_hosts"] = self.remaining_hosts
 
         # write
@@ -211,6 +218,7 @@ class UnsafeRunner:
         verbose=True,
         talk=False,
         reboot_host=False,
+        continue_on_failure=False,
     ):
         host_fqdn = f"{hostname}{self.fqdn_postfix}"
         # TODO: ensure command has SR_HOST variable in it
@@ -292,6 +300,8 @@ class UnsafeRunner:
             status_print(f"{hostname}: command failed.")
             if talk:
                 say("failure")
+            if continue_on_failure:
+                raise CommandFailedException("command failed")
             sys.exit(1)
         if verbose:
             status_print(f"{hostname}: command completed successfully.")
@@ -488,21 +498,31 @@ if __name__ == "__main__":
     terminate = 0
     # print(list(sr.remaining_hosts))
 
+    # TODO: stop doing this, just cast to list where needed?
+    #   - can't because we need to persist the non-list
     remaining_hosts = list(sr.remaining_hosts)
     completed_hosts = list(sr.completed_hosts)
+    failed_hosts = list(sr.failed_hosts)
     skipped_hosts = list(sr.hosts_to_skip)
     total_hosts = len(
-        set(remaining_hosts).union(set(completed_hosts)).union(set(skipped_hosts))
+        # TODO: need to add failed for correct counts
+        set(remaining_hosts)
+        .union(set(completed_hosts))
+        .union(set(skipped_hosts))
+        .union(set(failed_hosts))
     )
 
+    # TODO: should bar length be total hosts or remaining hosts?
     with alive_progress.alive_bar(
         total=total_hosts, enrich_print=False, stats=False
     ) as bar:
+        # init bar count
+        bar(len(completed_hosts) + len(failed_hosts))
+
         while remaining_hosts:
             remaining_hosts = list(sr.remaining_hosts)
             completed_hosts = list(sr.completed_hosts)
-
-            bar(len(completed_hosts))
+            failed_hosts = list(sr.failed_hosts)
 
             exit_while = False
             # bar.pause()
@@ -541,12 +561,28 @@ if __name__ == "__main__":
             status_print(f"{host}: starting")
             if args.talk:
                 say(f"starting {host}")
-            sr.safe_run_single_host(
-                host,
-                sr.command,
-                talk=args.talk,
-                reboot_host=args.reboot_host,
-            )
+            try:
+                sr.safe_run_single_host(
+                    host,
+                    sr.command,
+                    talk=args.talk,
+                    reboot_host=args.reboot_host,
+                    continue_on_failure=True,
+                )
+            except CommandFailedException:
+                # TODO: control decision to continue or exit via flag
+                print("command failed, continuing...")
+                sr.remaining_hosts.remove(host)
+                remaining_hosts = list(sr.remaining_hosts)
+                sr.failed_hosts.append(host)
+                bar()
+                sr.checkpoint_toml()
+                if terminate > 0:
+                    status_print("graceful exiting...")
+                    # TODO: show quarantined hosts?
+                    sys.exit(0)
+                    break
+                continue
             sr.remaining_hosts.remove(host)
             # update this so this exits
             # TODO: remove need for remaining_hosts... feels gross
@@ -564,6 +600,7 @@ if __name__ == "__main__":
             sr.checkpoint_toml()
             if terminate > 0:
                 status_print("graceful exiting...")
+                sys.exit(0)
                 # TODO: show quarantined hosts?
                 break
         # TODO: play success sound

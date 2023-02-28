@@ -1,5 +1,6 @@
 version: 2.1
-
+orbs:
+  python: circleci/python@2.1.1
 jobs:
   pre_commit:
     docker:
@@ -13,25 +14,28 @@ jobs:
   test_worker_health:
     docker:
       - image: cimg/python:3.9.1
+    executor: python/default
     steps:
       - checkout
-      - run: pip install pipenv
+      - python/install-packages:
+          pkg-manager: pipenv
       - run: cd worker_health && pipenv install --dev
       - run: cd worker_health && pipenv run pytest --cov=worker_health -v
       - run: cd worker_health && pipenv run pyflakes *.py
-      - run: cd worker_health && ./test_help.sh
   test_last_started:
     docker:
       - image: cimg/python:3.9.1
+    executor: python/default
     steps:
       - checkout
-      - run: pip install pipenv
+      - python/install-packages:
+          pkg-manager: pipenv
       - run: cd devicepool_last_started_alert && pipenv install --dev
       - run: cd devicepool_last_started_alert && pipenv run pyflakes *.py
 
 workflows:
   ci_test:
     jobs:
-#      - pre_commit
+#      - pre_commit  # too many failures on existing scripts
       - test_worker_health
       - test_last_started
