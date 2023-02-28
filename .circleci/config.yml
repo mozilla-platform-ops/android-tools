@@ -36,6 +36,6 @@ jobs:
 workflows:
   ci_test:
     jobs:
-#      - pre_commit  # why disabled?
+#      - pre_commit  # too many failures on existing scripts
       - test_worker_health
       - test_last_started
