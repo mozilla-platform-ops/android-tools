@@ -1,5 +1,6 @@
 version: 2.1
-
+orbs:
+  python: circleci/python@2.1.1
 jobs:
   pre_commit:
     docker:
@@ -15,7 +16,9 @@ jobs:
       - image: cimg/python:3.9.1
     steps:
       - checkout
-      - run: pip install pipenv
+      - python/install-packages:
+          args: pytest
+          pkg-manager: pipenv
       - run: cd worker_health && pipenv install --dev
       - run: cd worker_health && pipenv run pytest --cov=worker_health -v
       - run: cd worker_health && pipenv run pyflakes *.py
@@ -24,13 +27,15 @@ jobs:
       - image: cimg/python:3.9.1
     steps:
       - checkout
-      - run: pip install pipenv
+      - python/install-packages:
+          args: pytest
+          pkg-manager: pipenv
       - run: cd devicepool_last_started_alert && pipenv install --dev
       - run: cd devicepool_last_started_alert && pipenv run pyflakes *.py
 
 workflows:
   ci_test:
     jobs:
-#      - pre_commit
+#      - pre_commit  # why disabled?
       - test_worker_health
       - test_last_started
