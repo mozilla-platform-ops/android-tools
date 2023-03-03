@@ -130,6 +130,16 @@ class UnsafeRunner:
         # open file and read
         resume_file = f"{resume_dir}/{UnsafeRunner.state_file_name}"
 
+        if not os.path.exists(resume_file):
+            # write emtpy file
+            # TODO: verify user wants this
+            print(
+                "no state file found in directory, creating empty file and exiting..."
+            )
+            with open(resume_file, "w") as f:
+                tomlkit.dump(cls.empty_config_dict, f)
+            sys.exit(0)
+
         # load file
         with open(resume_file, "rb") as f:
             data = tomlkit.load(f)
