@@ -87,13 +87,13 @@ class UnsafeRunner:
     # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
         "config": {
-            "provisioner": "",
-            "worker_type": "",
-            "command": "",
+            "command": "ssh SR_HOST.SR_FQDN",
             "hosts_to_skip": [],
+            "fqdn_prefix": "",
         },
         "state": {
             "remaining_hosts": [],
+            "failed_hosts": [],
             "completed_hosts": [],
         },
     }
@@ -129,6 +129,16 @@ class UnsafeRunner:
     def from_resume(cls, resume_dir):
         # open file and read
         resume_file = f"{resume_dir}/{UnsafeRunner.state_file_name}"
+
+        if not os.path.exists(resume_file):
+            # write emtpy file
+            # TODO: verify user wants this
+            print(
+                "no state file found in directory, creating empty file and exiting..."
+            )
+            with open(resume_file, "w") as f:
+                tomlkit.dump(cls.empty_config_dict, f)
+            sys.exit(0)
 
         # load file
         with open(resume_file, "rb") as f:
@@ -222,8 +232,8 @@ class UnsafeRunner:
     ):
         host_fqdn = f"{hostname}{self.fqdn_postfix}"
         # TODO: ensure command has SR_HOST variable in it
-        if "SR_HOST" not in command:
-            raise Exception("command doesn't have SR_HOST in it!")
+        if "SR_HOST" not in command and "SR_FQDN" not in command:
+            raise Exception("command doesn't have SR_HOST or SR_FQDN in it!")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
@@ -260,8 +270,10 @@ class UnsafeRunner:
             stdout=subprocess.DEVNULL,
         )
 
+        # do substitutions
+        custom_cmd_temp = command.replace("SR_HOST", hostname)
+        custom_cmd = custom_cmd_temp.replace("SR_FQDN", host_fqdn)
         # run command
-        custom_cmd = command.replace("SR_HOST", hostname)
         if verbose:
             status_print(f"{hostname}: running command '{custom_cmd}'...")
             if talk:
