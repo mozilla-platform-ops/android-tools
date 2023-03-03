@@ -87,13 +87,13 @@ class UnsafeRunner:
     # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
         "config": {
-            "provisioner": "",
-            "worker_type": "",
-            "command": "",
+            "command": "ssh SR_HOST.SR_FQDN",
             "hosts_to_skip": [],
+            "fqdn_prefix": "",
         },
         "state": {
             "remaining_hosts": [],
+            "failed_hosts": [],
             "completed_hosts": [],
         },
     }
@@ -232,8 +232,8 @@ class UnsafeRunner:
     ):
         host_fqdn = f"{hostname}{self.fqdn_postfix}"
         # TODO: ensure command has SR_HOST variable in it
-        if "SR_HOST" not in command:
-            raise Exception("command doesn't have SR_HOST in it!")
+        if "SR_HOST" not in command and "SR_FQDN" not in command:
+            raise Exception("command doesn't have SR_HOST or SR_FQDN in it!")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
@@ -270,8 +270,10 @@ class UnsafeRunner:
             stdout=subprocess.DEVNULL,
         )
 
+        # do substitutions
+        custom_cmd_temp = command.replace("SR_HOST", hostname)
+        custom_cmd = custom_cmd_temp.replace("SR_FQDN", host_fqdn)
         # run command
-        custom_cmd = command.replace("SR_HOST", hostname)
         if verbose:
             status_print(f"{hostname}: running command '{custom_cmd}'...")
             if talk:
