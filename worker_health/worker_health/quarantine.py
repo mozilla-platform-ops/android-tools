@@ -12,7 +12,6 @@ from worker_health import fitness
 
 
 class Quarantine:
-
     tc_queue = None
     root_url = "https://firefox-ci-tc.services.mozilla.com"
 
@@ -26,7 +25,13 @@ class Quarantine:
         )
 
     def quarantine(
-        self, provisioner_id, worker_type, host_arr, duration="10 years", verbose=True
+        self,
+        provisioner_id,
+        worker_type,
+        host_arr,
+        reason="worker-health api call",
+        duration="10 years",
+        verbose=True,
     ):
         # TODO: if host is already quarantined, short-circuit and return
 
@@ -36,7 +41,8 @@ class Quarantine:
         )
         if len(wgs) > 1:
             raise Exception(
-                "can't guess workerGroup, multiple present. support not implemented yet."
+                "can't guess workerGroup, multiple present. "
+                "support not implemented yet."
             )
         worker_group = wgs[0]
 
@@ -54,17 +60,32 @@ class Quarantine:
                     worker_type,
                     worker_group,
                     a_host,
-                    {"quarantineUntil": taskcluster.fromNow(duration)},
+                    {
+                        "quarantineUntil": taskcluster.fromNow(duration),
+                        "quarantineInfo": reason,
+                    },
                 )
             except taskcluster.exceptions.TaskclusterRestFailure as e:
                 # usually due to worker not being in pool...
                 # TODO: inspect message
                 raise e
 
-    def lift_quarantine(self, provisioner, worker_type, device_arr, verbose=True):
+    def lift_quarantine(
+        self,
+        provisioner,
+        worker_type,
+        device_arr,
+        reason="worker-health api call",
+        verbose=True,
+    ):
         # TODO: catch exception and wrap?
         self.quarantine(
-            provisioner, worker_type, device_arr, duration="-1 year", verbose=verbose
+            provisioner,
+            worker_type,
+            device_arr,
+            duration="-1 year",
+            reason=reason,
+            verbose=verbose,
         )
 
     # TODO: use the implementation in tc_helpers?

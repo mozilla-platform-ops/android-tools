@@ -12,6 +12,9 @@ def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-r", "--reason", help="reason why action was taken, stored by TC"
+    )
     parser.add_argument("provisioner")
     parser.add_argument("worker_type")
     parser.add_argument(
@@ -27,20 +30,14 @@ if __name__ == "__main__":
             parser.error("you must specify a comma-separated string of hosts")
         host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
-        q.quarantine(
-            args.provisioner,
-            args.worker_type,
-            host_arr,
-        )
+        q.quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
     elif args.action == "lift":
         if args.action_options is None:
             parser.error("you must specify a comma-separated string of hosts")
         host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
         q.lift_quarantine(
-            args.provisioner,
-            args.worker_type,
-            host_arr,
+            args.provisioner, args.worker_type, host_arr, reason=args.reason
         )
     elif args.action == "show":
         q = quarantine.Quarantine()
