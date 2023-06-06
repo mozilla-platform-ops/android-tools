@@ -25,6 +25,8 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
     - `rm -rf ./hu_*`
   - comment out builds we're not ready for (I usually do linux first, then mac, then windows)
   - `./build_DATE.sh`
+    - ensure that we're creating the version we expect (e.g. host-utils-116.0a1.en-US.mac.tar.gz)
+      - if not, ensure m-c client is updated and common.sh points at the correct client
     - linux: if it fails with an error about not being able to find the artifact, see the comment on line 69 in the script
     - if it fails after examining the binary architecture, tooltool may be messed up. try running manually. on OS X, it may fail due to needing python2 still (https://bugzilla.mozilla.org/show_bug.cgi?id=1716390, fix noted in bug).
 - compare new build to existing and sanity check
