@@ -5,11 +5,11 @@ description = ""
 authors = ["Andrew Erickson <aerickson@mozilla.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.6,<4.0"
+python = ">=3.7,<4.0"
 PyYAML = "^6.0"
 
-[tool.poetry.dev-dependencies]
-pytest = "^5.4.3"
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.3.1"
 pytest-watch = "^4.2.0"
 
 [build-system]
