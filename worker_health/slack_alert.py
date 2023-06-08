@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import pprint
 import random
 import time
 
@@ -19,6 +20,8 @@ class SlackAlert:
         self.alerting_enabled = False
         self.testing_mode = testing_mode_enabled
         self.bitbar_tz = "America/Los_Angeles"
+
+        self.minutes_between_failure_retry = 5
 
         # config file
         self.configuration_file = os.path.join(
@@ -65,6 +68,17 @@ currently_alerting = false
         report_data = wh.get_slack_report(
             show_all=False, time_limit=self.time_limit, verbosity=self.log_level
         )
+
+        if args.log_level:
+            pprint.pprint(report_data)
+
+        # if we find bad hosts, double check before continuing (and alerting)
+        if len(report_data["union"]) > 0:
+            time.sleep(self.minutes_between_failure_retry)
+            report_data = wh.get_slack_report(
+                show_all=False, time_limit=self.time_limit, verbosity=self.log_level
+            )
+
         if len(report_data["union"]) > 0:
             # update state indicating we're alerting
             self.set_toml_value("currently_alerting", True)
@@ -112,7 +126,8 @@ currently_alerting = false
     # TODO: if alerting is not enabled, just mention we'd send a message
     def send_slack_message(self, message):
         # cli example:
-        #   curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' WEBHOOK_URL
+        #   curl -X POST -H 'Content-type: application/json' \
+        #      --data '{"text":"Hello, World!"}' WEBHOOK_URL
         data = {"text": message}
         retries = 2
         while retries >= 0:
@@ -144,7 +159,8 @@ currently_alerting = false
         if args.testing_mode:
             testing_mode_start_delay = 10
             logger.warning(
-                "testing mode enabled! messages will still be sent if webhook_url configured."
+                "testing mode enabled!"
+                "messages will still be sent if webhook_url configured."
             )
             if testing_mode_start_delay:
                 logger.warning("starting in %s seconds..." % testing_mode_start_delay)
@@ -185,7 +201,10 @@ if __name__ == "__main__":
         "--time-limit",
         type=int,
         default=95,
-        help="for tc, devices are missing if not reporting for longer than this many minutes. defaults to 95.",
+        help=(
+            "for tc, devices are missing if not reporting for "
+            "longer than this many minutes. defaults to 95."
+        ),
     )
     parser.add_argument(
         "--testing-mode", action="store_true", default=False, help="enable testing mode"
