@@ -36,7 +36,7 @@ function set_info_string {
     info_string+="FFVER: $FFVER\n"
     info_string+="Current OS: $os\n"
     info_string+="Build used: $build_used\n"
-    info_string+="Bsuild ID input: $task_id\n"
+    info_string+="Build ID input: $task_id\n"
     info_string+="Arch input: $arch\n"
 }
 
