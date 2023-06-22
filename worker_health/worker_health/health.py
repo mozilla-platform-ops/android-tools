@@ -105,7 +105,18 @@ class Health:
             # reset
             cmd = "git reset --hard"
             args = cmd.split(" ")
-            subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+            try:
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError:
+                print(f"repo ({repo_path}) seeems bad, removing and recloning...")
+                # remove existing
+                cmd = f"rm -rf {repo_path}"
+                args = cmd.split(" ")
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+                # clone
+                cmd = "git clone %s %s" % (repo_url, repo_path)
+                args = cmd.split(" ")
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
 
             # update
             cmd = "git pull --rebase"
