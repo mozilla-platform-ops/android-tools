@@ -80,9 +80,7 @@ class Health:
         if verbosity == 2:
             logger.setLevel(logging.DEBUG)
 
-        # clone or update repo
-        self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
-        # pick devicepool config file path
+        # pick devicepool config file path (and do clone/update of temp repo if needed)
         self.set_devicepool_configuration_path()
 
     def run_cmd(self, cmd):
@@ -159,6 +157,8 @@ class Health:
         else:
             logger.debug("Did NOT find devicepool config in production location. Using repo checkout.")
             self.devicepool_config_yaml_path = checkout_yaml_file_path
+            # clone or update repo
+            self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
 
     def set_configured_worker_counts(self):
         yaml_file_path = self.devicepool_config_yaml_path
