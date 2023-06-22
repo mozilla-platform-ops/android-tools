@@ -24,7 +24,8 @@ class Fitness:
     def __init__(
         self,
         log_level=0,
-        provisioner=DEFAULT_PROVISIONER,  # TODO: don't default this here, but set if not given?
+        # TODO: don't default this here, but set if not given?
+        provisioner=DEFAULT_PROVISIONER,
         alert_percent=ALERT_PERCENT,
         alert_time=ALERT_TIME,
         testing_mode=False,
@@ -39,21 +40,15 @@ class Fitness:
         self.worker_id_maxlen = 0
         self.quarantine = quarantine.Quarantine()
         self.quarantine_data = {}
+        self.tc_url_root = "https://firefox-ci-tc.services.mozilla.com/api/queue/v1"
 
     def get_worker_jobs(self, queue, worker_type, worker):
         # TODO: need to get worker-group...
-        url = (
-            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers/%s/%s"
-            % (self.provisioner, queue, worker_type, worker)
-        )
+        url = f"{self.tc_url_root}/provisioners/{self.provisioner}/worker-types/{queue}/workers/{worker_type}/{worker}"
         return utils.get_jsonc(url, self.verbosity)
 
     def get_task_status(self, taskid):
-        _url, output, exception = utils.get_jsonc2(
-            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/%s/status"
-            % taskid
-            # "https://queue.taskcluster.net/v1/task/%s/status" % taskid
-        )
+        _url, output, exception = utils.get_jsonc2(f"{self.tc_url_root}/task/{taskid}/status")
         return taskid, output, exception
 
     def format_workertype_fitness_report_result(self, res):
@@ -68,9 +63,7 @@ class Fitness:
             # possible solution: hash the entire name... best solution anyways.
             h_sanitized = worker_id.split("-")[1]
             hh = humanhash.humanize(h_sanitized, words=3)
-            return_string += ("%s (%s)" % (worker_id, hh)).ljust(
-                self.worker_id_maxlen + 36
-            )
+            return_string += ("%s (%s)" % (worker_id, hh)).ljust(self.worker_id_maxlen + 36)
         else:
             return_string += worker_id.ljust(self.worker_id_maxlen + 2)
         return_string += self.sr_dict_format(res)
@@ -86,16 +79,15 @@ class Fitness:
         # TODO: for this calculation, should we use a count of hosts that are reporting (vs all)?
         sr_total = 0
 
-        ## host mode
-        # TODO: rewrite/eliminate this block... can't code in else below be smarter about queries (so we don't need this)?
+        # host mode
+        # TODO: rewrite/eliminate this block...
+        #   - can't code in else below be smarter about queries (so we don't need this)?
         if worker_type and worker_id:
-            # print('yoyo')
             worker_count = 1
             self.get_pending_tasks_multi([worker_type])
             url = (
-                "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=5"
+                f"{self.tc_url_root}/provisioners/{self.provisioner}/worker-types/{worker_type}/workers?limit=5"
                 # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
-                % (self.provisioner, worker_type)
             )
             # print(url)
             worker_group_result = utils.get_jsonc(url, self.verbosity)
@@ -107,23 +99,16 @@ class Fitness:
                 print("%s.%s: %s" % (worker_type, worker_id, "no data"))
                 return
             worker_group = worker_group_result["workers"][0]["workerGroup"]
-            self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(
-                self.provisioner, worker_type
-            )
-            _worker, res_obj, _e = self.device_fitness_report(
-                worker_type, worker_group, worker_id
-            )
+            self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
+            _worker, res_obj, _e = self.device_fitness_report(worker_type, worker_group, worker_id)
             res_obj["worker_id"] = worker_id
             sr_total += res_obj["sr"]
-            print(
-                "%s.%s"
-                % (worker_type, self.format_workertype_fitness_report_result(res_obj))
-            )
+            print("%s.%s" % (worker_type, self.format_workertype_fitness_report_result(res_obj)))
         else:
-            ### queue mode
+            # queue mode
             if worker_type:
                 worker_types = [worker_type]
-            ### provisioner mode
+            # provisioner mode
             else:
                 worker_types_result = self.get_worker_types(provisioner)
                 worker_types = []
@@ -133,13 +118,12 @@ class Fitness:
                         worker_types.append(worker_type)
                     # print(worker_types)
                 else:
-                    logger.warning(
-                        "error fetching workerTypes, results are incomplete!"
-                    )
+                    logger.warning("error fetching workerTypes, results are incomplete!")
             self.get_pending_tasks_multi(worker_types)
 
             # TODO: process and then display? padding of worker_id is not consistent for whole provisioner report
-            # - because we haven't scanned the potentially longest worker_ids when we display the first worker_group's data
+            # - because we haven't scanned the potentially longest worker_ids when we display
+            #   the first worker_group's data
             for a_worker_type in worker_types:
                 wt, res_obj, _e = self.workertype_fitness_report(a_worker_type)
                 for item in res_obj:
@@ -157,10 +141,7 @@ class Fitness:
                                 )
                             )
                     else:
-                        print(
-                            "%s.%s"
-                            % (wt, self.format_workertype_fitness_report_result(item))
-                        )
+                        print("%s.%s" % (wt, self.format_workertype_fitness_report_result(item)))
         # if to protect from divide by 0 (happens on request failures)
         if worker_count:
             # TODO: show alerting count
@@ -184,9 +165,7 @@ class Fitness:
 
     def get_pending_tasks_multi(self, queues):
         try:
-            results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(
-                self.get_pending_tasks, queues
-            )
+            results = ThreadPool(TASK_THREAD_COUNT).imap_unordered(self.get_pending_tasks, queues)
         except Exception as e:
             print(e)
         for queue, result, _error in results:
@@ -204,7 +183,6 @@ class Fitness:
 
     # TODO: rename linux_moonshot_worker_report?
     def moonshot_worker_report(self, worker_type, args=None, exclude_dict={}):
-
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=200"
             % (self.provisioner, worker_type)
@@ -237,9 +215,7 @@ class Fitness:
             for item in workers_result["workers"]:
                 seen_workers.append(item["workerId"])
 
-        quarantined_workers = self.quarantine.get_quarantined_workers(
-            self.provisioner, worker_type
-        )
+        quarantined_workers = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
 
         s_w = set(seen_workers)
         e_w = set(generated_workers) - set(exclude_dict)
@@ -249,17 +225,11 @@ class Fitness:
         s_count = len(s_w)
 
         print("pool size: %s" % (len(generated_workers)))
-        print(
-            "- excluded workers (%s): %s"
-            % (len(exclude_dict), pprint.pformat(exclude_dict))
-        )
+        print("- excluded workers (%s): %s" % (len(exclude_dict), pprint.pformat(exclude_dict)))
 
         print("actual pool size: %s" % e_count)
 
-        print(
-            "quarantined workers (%s): %s"
-            % (len(quarantined_workers), quarantined_workers)
-        )
+        print("quarantined workers (%s): %s" % (len(quarantined_workers), quarantined_workers))
         print(
             "missing workers (%s/%s): %s"
             % (
@@ -277,9 +247,7 @@ class Fitness:
             print()
 
     # used for packet.net
-    def simple_worker_report(
-        self, worker_type, worker_prefix="packet-", worker_count=60
-    ):
+    def simple_worker_report(self, worker_type, worker_prefix="packet-", worker_count=60):
         url = (
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=100"
             % (self.provisioner, worker_type)
@@ -332,9 +300,7 @@ class Fitness:
     # returns str:worker_type, dict/list?:worker_results, error
     def workertype_fitness_report(self, worker_type):
         # load quarantine data
-        self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(
-            self.provisioner, worker_type
-        )
+        self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
 
         outcome = self.get_workers(worker_type)
 
@@ -351,9 +317,7 @@ class Fitness:
 
         results = []
         try:
-            results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(
-                self.device_fitness_report, worker_ids
-            )
+            results = ThreadPool(WORKERTYPE_THREAD_COUNT).starmap(self.device_fitness_report, worker_ids)
         except Exception as e:
             raise (e)
         worker_results = []
@@ -537,9 +501,7 @@ class Fitness:
                     self.args.ping_host,
                     "ping -c 1 -i 0.3 -w 1 %s.%s" % (device, self.args.ping_domain),
                 ]
-                res = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-                )
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 if res.returncode != 0:
                     if "alerts" not in results_obj:
                         results_obj["alerts"] = []
@@ -553,9 +515,7 @@ class Fitness:
                     self.args.ping_domain,
                 )
                 cmd = cmd_str.split(" ")
-                res = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-                )
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 if res.returncode != 0:
                     if "alerts" not in results_obj:
                         results_obj["alerts"] = []
@@ -572,9 +532,7 @@ class Fitness:
                 )
 
         # alert if most recent tests have consecutively failed
-        total_consecutive_failures_from_end = utils.consecutive_non_ones_from_end(
-            task_history_success_array
-        )
+        total_consecutive_failures_from_end = utils.consecutive_non_ones_from_end(task_history_success_array)
         if total_consecutive_failures_from_end >= 2:
             results_obj.setdefault("alerts", []).append(
                 "Consecutive failures (%s)!" % total_consecutive_failures_from_end
@@ -587,9 +545,7 @@ class Fitness:
             # seems to always to occur also when below condition is also met?!?
             results_obj.setdefault("alerts", []).append("No work!")
         elif jobs_present and task_last_started_timestamp < comparison_dt:
-            results_obj.setdefault("alerts", []).append(
-                "No work in %sm!" % self.alert_time
-            )
+            results_obj.setdefault("alerts", []).append("No work in %sm!" % self.alert_time)
         else:
             results_obj.setdefault("state", []).append("working")
 
