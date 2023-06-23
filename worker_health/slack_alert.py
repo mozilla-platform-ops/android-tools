@@ -24,9 +24,7 @@ class SlackAlert:
         self.minutes_between_failure_retry = 5
 
         # config file
-        self.configuration_file = os.path.join(
-            os.path.expanduser("~"), ".bitbar_slack_alert.toml"
-        )
+        self.configuration_file = os.path.join(os.path.expanduser("~"), ".bitbar_slack_alert.toml")
         self.toml = self.read_toml()
 
         # webhook url
@@ -65,19 +63,16 @@ currently_alerting = false
         wh = Health(self.log_level)
         # for slack alerts, don't mention tc quarantined hosts
         # - will still appear if offline in devicepool
-        report_data = wh.get_slack_report(
-            show_all=False, time_limit=self.time_limit, verbosity=self.log_level
-        )
+        report_data = wh.get_slack_report(show_all=False, time_limit=self.time_limit, verbosity=self.log_level)
 
         if args.log_level:
             pprint.pprint(report_data)
 
         # if we find bad hosts, double check before continuing (and alerting)
         if len(report_data["union"]) > 0:
-            time.sleep(self.minutes_between_failure_retry)
-            report_data = wh.get_slack_report(
-                show_all=False, time_limit=self.time_limit, verbosity=self.log_level
-            )
+            print(f"found bad hosts, rechecking in {self.minutes_between_failure_retry} minutes...")
+            time.sleep(self.minutes_between_failure_retry * 60)
+            report_data = wh.get_slack_report(show_all=False, time_limit=self.time_limit, verbosity=self.log_level)
 
         if len(report_data["union"]) > 0:
             # update state indicating we're alerting
@@ -113,9 +108,7 @@ currently_alerting = false
                     ":smile:",
                     ":smiley:",
                 ]
-                message = "all device issues resolved %s" % (
-                    random.choice(emoji_options)
-                )
+                message = "all device issues resolved %s" % (random.choice(emoji_options))
                 if self.alerting_enabled:
                     self.send_slack_message(message)
                 else:
@@ -148,20 +141,14 @@ currently_alerting = false
         if self.alerting_enabled:
             logger.info("alerting enabled!")
         else:
-            logger.warning(
-                "alerting _not_ enabled. please edit '%s' and rerun."
-                % self.configuration_file
-            )
+            logger.warning("alerting _not_ enabled. please edit '%s' and rerun." % self.configuration_file)
 
         # warn the user that all possible data is not available
         utils.bitbar_systemd_service_present(warn=True)
 
         if args.testing_mode:
             testing_mode_start_delay = 10
-            logger.warning(
-                "testing mode enabled!"
-                "messages will still be sent if webhook_url configured."
-            )
+            logger.warning("testing mode enabled!" "messages will still be sent if webhook_url configured.")
             if testing_mode_start_delay:
                 logger.warning("starting in %s seconds..." % testing_mode_start_delay)
                 time.sleep(testing_mode_start_delay)
@@ -201,14 +188,9 @@ if __name__ == "__main__":
         "--time-limit",
         type=int,
         default=95,
-        help=(
-            "for tc, devices are missing if not reporting for "
-            "longer than this many minutes. defaults to 95."
-        ),
+        help=("for tc, devices are missing if not reporting for " "longer than this many minutes. defaults to 95."),
     )
-    parser.add_argument(
-        "--testing-mode", action="store_true", default=False, help="enable testing mode"
-    )
+    parser.add_argument("--testing-mode", action="store_true", default=False, help="enable testing mode")
     args = parser.parse_args()
 
     sa = SlackAlert(args.log_level, args.time_limit, args.testing_mode)
