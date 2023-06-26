@@ -66,7 +66,7 @@ currently_alerting = false
         report_data = wh.get_slack_report(show_all=False, time_limit=self.time_limit, verbosity=self.log_level)
 
         if args.log_level:
-            pprint.pprint(report_data)
+            logger.debug(pprint.pformat(report_data))
 
         # if we find bad hosts, double check before continuing (and alerting)
         if len(report_data["union"]) > 0:
