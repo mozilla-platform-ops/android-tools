@@ -77,7 +77,11 @@ class Status:
                 pprint.pprint(task_id)
                 _tid, status_blob, _exc = self.tc_h.get_task_status(task_id)
                 pprint.pprint(status_blob)
-                t_status = status_blob["status"]["state"]
+                try:
+                    t_status = status_blob["status"]["state"]
+                except KeyError:
+                    print(f"{task_id}: no task[status][state] assuming task is not running.")
+                    continue
                 if t_status != "completed" and t_status != "failed" and t_status != "exception":
                     # TODO: show task id and state if in verbose?
                     pprint.pprint(status_blob["status"]["state"])
@@ -93,7 +97,7 @@ class Status:
         #   - less useful now that it's just a len call vs the internal value from above?
         print(f"hosts checked ({len(hosts_checked)}): {hosts_checked}")
         print(
-            f"hosts_with_non_completed_or_failed_jobs ({len(hosts_with_non_completed_or_failed_jobs)}):"
+            f"hosts_with_non_completed_or_failed_jobs ({len(hosts_with_non_completed_or_failed_jobs)}): "
             f"{hosts_with_non_completed_or_failed_jobs}"
         )
 
