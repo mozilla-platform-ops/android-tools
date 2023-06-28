@@ -80,6 +80,25 @@ class Status:
                 try:
                     t_status = status_blob["status"]["state"]
                 except KeyError:
+                    # TODO: do additional checking if problems occur with this...
+                    #   example response that we are catching here:
+                    #
+                    #      {'code': 'ResourceNotFound',
+                    #       'message': '`NpY_UNDIRAW8Jaix-kc-SA` does not correspond to a task that '
+                    #                  'exists.\n'
+                    #                  'Are you sure this task exists?\n'
+                    #                  '\n'
+                    #                  '---\n'
+                    #                  '\n'
+                    #                  '* method:     status\n'
+                    #                  '* errorCode:  ResourceNotFound\n'
+                    #                  '* statusCode: 404\n'
+                    #                  '* time:       2023-06-28T19:39:09.337Z',
+                    #       'requestInfo': {'method': 'status',
+                    #                       'params': {'taskId': 'NpY_UNDIRAW8Jaix-kc-SA'},
+                    #                       'payload': {},
+                    #                       'time': '2023-06-28T19:39:09.337Z'}}
+
                     # print(f"{task_id}: no task[status][state] assuming task is not running.")
                     continue
                 if t_status != "completed" and t_status != "failed" and t_status != "exception":
