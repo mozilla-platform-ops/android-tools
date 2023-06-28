@@ -71,20 +71,20 @@ class Status:
         for host in hosts:
             hosts_checked.append(host)
             results = self.tc_h.get_worker_jobs(self.worker_type, worker_group, host)
-            pprint.pprint(results)
+            # pprint.pprint(results)
             for result in results["recentTasks"]:
                 task_id = result["taskId"]
-                pprint.pprint(task_id)
+                # pprint.pprint(task_id)
                 _tid, status_blob, _exc = self.tc_h.get_task_status(task_id)
-                pprint.pprint(status_blob)
+                # pprint.pprint(status_blob)
                 try:
                     t_status = status_blob["status"]["state"]
                 except KeyError:
-                    print(f"{task_id}: no task[status][state] assuming task is not running.")
+                    # print(f"{task_id}: no task[status][state] assuming task is not running.")
                     continue
                 if t_status != "completed" and t_status != "failed" and t_status != "exception":
                     # TODO: show task id and state if in verbose?
-                    pprint.pprint(status_blob["status"]["state"])
+                    # pprint.pprint(status_blob["status"]["state"])
                     hosts_with_non_completed_or_failed_jobs.append(host)
         return hosts_with_non_completed_or_failed_jobs
 
