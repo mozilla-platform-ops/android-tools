@@ -14,12 +14,12 @@ import yaml
 from worker_health import utils
 
 #
-# DEPRECATED: see fitnenss.moonshot_worker_report
+# DEPRECATED: see fitness.moonshot_worker_report
 #
 
 # log_format = '%(asctime)s %(levelname)-10s %(funcName)s: %(message)s'
-log_format = "%(levelname)-10s %(funcName)s: %(message)s"
-logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO)
+log_format = "%(asctime)s %(levelname)-10s %(funcName)s: %(message)s"
+logging.basicConfig(format=log_format, stream=sys.stdout, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger()
 
 
@@ -48,9 +48,8 @@ class Health:
         self.devicepool_client_dir = os.path.join(
             "/", "tmp", ("worker_health.%s" % username), "mozilla-bitbar-devicepool"
         )
-        self.devicepool_git_clone_url = (
-            "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
-        )
+        self.devicepool_git_clone_url = "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
+        self.tc_url_root = "https://firefox-ci-tc.services.mozilla.com/api/queue/v1"
         # self.pp = pprint.PrettyPrinter(indent=4)
         self.verbosity = verbosity
         #
@@ -81,23 +80,15 @@ class Health:
         if verbosity == 2:
             logger.setLevel(logging.DEBUG)
 
-        # clone or update repo
-        self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
-        # pick devicepool config file path
+        # pick devicepool config file path (and do clone/update of temp repo if needed)
         self.set_devicepool_configuration_path()
 
     def run_cmd(self, cmd):
-        return (
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-            .strip()
-            .decode()
-        )
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).strip().decode()
 
     def clone_or_update(self, repo_url, repo_path, force_update=False):
         devnull_fh = open(os.devnull, "w")
-        last_updated_file = os.path.join(
-            repo_path, ".git", "missing_workers_last_updated"
-        )
+        last_updated_file = os.path.join(repo_path, ".git", "missing_workers_last_updated")
 
         if os.path.exists(repo_path):
             # return if it hasn't been long enough and force_update is false
@@ -112,7 +103,18 @@ class Health:
             # reset
             cmd = "git reset --hard"
             args = cmd.split(" ")
-            subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+            try:
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError:
+                print(f"repo ({repo_path}) seeems bad, removing and recloning...")
+                # remove existing
+                cmd = f"rm -rf {repo_path}"
+                args = cmd.split(" ")
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
+                # clone
+                cmd = "git clone %s %s" % (repo_url, repo_path)
+                args = cmd.split(" ")
+                subprocess.check_call(args, stdout=devnull_fh, stderr=subprocess.STDOUT)
 
             # update
             cmd = "git pull --rebase"
@@ -141,32 +143,22 @@ class Health:
 
     def set_devicepool_configuration_path(self):
         # the path to the config in the devicepool repo checkout we make
-        checkout_yaml_file_path = os.path.join(
-            self.devicepool_client_dir, "config", "config.yml"
-        )
+        checkout_yaml_file_path = os.path.join(self.devicepool_client_dir, "config", "config.yml")
         # this is that path that we expect the config file to be
         # at on a devicepool production host
-        devicepool_host_yaml_file_path = (
-            "/home/bitbar/mozilla-bitbar-devicepool/config/config.yml"
-        )
-        local_dev_path = os.path.join(
-            os.path.expanduser("~"), "git/mozilla-bitbar-devicepool/config/config.yml"
-        )
+        devicepool_host_yaml_file_path = "/home/bitbar/mozilla-bitbar-devicepool/config/config.yml"
+        local_dev_path = os.path.join(os.path.expanduser("~"), "git/mozilla-bitbar-devicepool/config/config.yml")
         if os.path.exists(local_dev_path):
-            logger.warning(
-                "Found devicepool config in local development location (not using repo checkout)!"
-            )
+            logger.warning("Found devicepool config in local development location (not using repo checkout)!")
             self.devicepool_config_yaml_path = local_dev_path
         elif os.path.exists(devicepool_host_yaml_file_path):
-            logger.info(
-                "Found devicepool config in production location (not using repo checkout)!"
-            )
+            logger.info("Found devicepool config in production location (not using repo checkout)!")
             self.devicepool_config_yaml_path = devicepool_host_yaml_file_path
         else:
-            logger.debug(
-                "Did NOT find devicepool config in production location. Using repo checkout."
-            )
+            logger.debug("Did NOT find devicepool config in production location. Using repo checkout.")
             self.devicepool_config_yaml_path = checkout_yaml_file_path
+            # clone or update repo
+            self.clone_or_update(self.devicepool_git_clone_url, self.devicepool_client_dir)
 
     def set_configured_worker_counts(self):
         yaml_file_path = self.devicepool_config_yaml_path
@@ -202,13 +194,9 @@ class Health:
                 try:
                     # set the workers for a queue
                     self.devicepool_queues_and_workers[
-                        self.devicepool_config_yaml["projects"][project][
-                            "additional_parameters"
-                        ]["TC_WORKER_TYPE"]
+                        self.devicepool_config_yaml["projects"][project]["additional_parameters"]["TC_WORKER_TYPE"]
                     ] = self.devicepool_bitbar_device_groups[
-                        self.devicepool_config_yaml["projects"][project][
-                            "device_group_name"
-                        ]
+                        self.devicepool_config_yaml["projects"][project]["device_group_name"]
                     ]
                 except KeyError:
                     # happens when no devicepool data for a queue
@@ -216,13 +204,9 @@ class Health:
                     #     - like mozilla-gw-unittest-g5
                     pass
                 # for linking dp project to tc worker type
-                self.devicepool_project_to_tc_worker_type[
-                    project
-                ] = self.devicepool_config_yaml["projects"][project][
+                self.devicepool_project_to_tc_worker_type[project] = self.devicepool_config_yaml["projects"][project][
                     "additional_parameters"
-                ][
-                    "TC_WORKER_TYPE"
-                ]
+                ]["TC_WORKER_TYPE"]
 
     # gets and sets the queues under proj-autophone
     def set_current_worker_types(self):
@@ -243,9 +227,8 @@ class Health:
         # https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=15
         for item in self.tc_current_worker_types:
             url = (
-                "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=%s"
+                f"{self.tc_url_root}/provisioners/proj-autophone/worker-types/{item}/workers?limit={MAX_WORKER_COUNT}"
                 # "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/%s/workers?limit=%s"
-                % ("proj-autophone", item, MAX_WORKER_COUNT)
             )
             json_result = utils.get_jsonc(url, self.verbosity)
             if self.verbosity > 2:
@@ -306,35 +289,18 @@ class Health:
                             # normal workers
                             # - set started_time if data
                             if "started" in json_result2["status"]["runs"][-1]:
-                                started_time = json_result2["status"]["runs"][-1][
-                                    "started"
-                                ]
-                                if (
-                                    worker["workerId"]
-                                    in self.tc_current_worker_last_started
-                                ):
-                                    if (
-                                        self.tc_current_worker_last_started[
-                                            worker["workerId"]
-                                        ]
-                                        < started_time
-                                    ):
-                                        self.tc_current_worker_last_started[
-                                            worker["workerId"]
-                                        ] = started_time
+                                started_time = json_result2["status"]["runs"][-1]["started"]
+                                if worker["workerId"] in self.tc_current_worker_last_started:
+                                    if self.tc_current_worker_last_started[worker["workerId"]] < started_time:
+                                        self.tc_current_worker_last_started[worker["workerId"]] = started_time
                                 else:
-                                    self.tc_current_worker_last_started[
-                                        worker["workerId"]
-                                    ] = started_time
+                                    self.tc_current_worker_last_started[worker["workerId"]] = started_time
                 except KeyError:
                     # pass, because we mention the strange result below
                     pass
 
                 if strange_result:
-                    logger.warning(
-                        "strange json_result2 for worker %s: %s"
-                        % (worker["workerId"], json_result2)
-                    )
+                    logger.warning("strange json_result2 for worker %s: %s" % (worker["workerId"], json_result2))
 
     def show_last_started_report(self, limit=95, show_all=False, verbosity=0):
         # TODO: show all queues, not just the ones with data
@@ -347,9 +313,7 @@ class Health:
             print("%s, showing all workers" % base_string)
 
         if verbosity > 1:
-            print(
-                "  - from https://firefox-ci-tc.services.mozilla.com/provisioners/proj-autophone"
-            )
+            print("  - from https://firefox-ci-tc.services.mozilla.com/provisioners/proj-autophone")
             # print(
             #     "  - config has %s projects/queues"
             #     % (len(self.devicepool_queues_and_workers))
@@ -378,9 +342,7 @@ class Health:
                             print("    %s: present, no task start time!" % worker)
                             continue
                         now_dt = pendulum.now(tz="UTC")
-                        last_started_dt = pendulum.parse(
-                            self.tc_current_worker_last_started[worker]
-                        )
+                        last_started_dt = pendulum.parse(self.tc_current_worker_last_started[worker])
                         difference = now_dt.diff(last_started_dt).in_minutes()
 
                         # display logic
@@ -410,9 +372,7 @@ class Health:
                 if verbosity > 1 or show_all:
                     print("    WARNING: results unreliable as jobs <= workers!")
                 else:
-                    print(
-                        "    results not displayed (unreliable as jobs <= workers, -vv to show)"
-                    )
+                    print("    results not displayed (unreliable as jobs <= workers, -vv to show)")
                     show_details = False
 
     # calculate_missing_workers_from_tc doesn't care about time limits
@@ -421,7 +381,6 @@ class Health:
     #
     # new simpler function that doesn't worry about tardy
     def get_tc_missing_workers(self, verbose=False):
-
         missing_workers = set()
         expected_workers = self.get_devicepool_config_workers()
         for worker in expected_workers:
@@ -443,9 +402,7 @@ class Health:
             else:
                 if verbose:
                     print("removing workers from queue %s, as its not listed" % queue)
-                missing_workers = set(missing_workers) - set(
-                    self.devicepool_queues_and_workers[queue]
-                )
+                missing_workers = set(missing_workers) - set(self.devicepool_queues_and_workers[queue])
                 continue
 
             for worker in self.devicepool_queues_and_workers[queue]:
@@ -482,9 +439,7 @@ class Health:
             #   - ensure # of jobs > # of workers
             #     - only case we're sure the device is having issues
             more_workers_than_jobs = False
-            if self.tc_queue_counts[queue] < len(
-                self.devicepool_queues_and_workers[queue]
-            ):
+            if self.tc_queue_counts[queue] < len(self.devicepool_queues_and_workers[queue]):
                 more_workers_than_jobs = True
 
             for worker in self.devicepool_queues_and_workers[queue]:
@@ -505,9 +460,7 @@ class Health:
                         continue
                     # tardy workers
                     now_dt = pendulum.now(tz="UTC")
-                    last_started_dt = pendulum.parse(
-                        self.tc_current_worker_last_started[worker]
-                    )
+                    last_started_dt = pendulum.parse(self.tc_current_worker_last_started[worker])
                     difference = now_dt.diff(last_started_dt).in_minutes()
                     if difference >= limit:
                         if exclude_quarantined and worker in self.quarantined_workers:
@@ -526,18 +479,14 @@ class Health:
         lines = []
         for queue in queue_to_worker_map:
             worker_count = len(queue_to_worker_map[queue])
-            lines.append(
-                "bitbar_workers,provisioner=%s,queue=%s problem=%s"
-                % (provisioner, queue, worker_count)
-            )
+            lines.append("bitbar_workers,provisioner=%s,queue=%s problem=%s" % (provisioner, queue, worker_count))
         return lines
 
     def gen_influx_cw_lines(self, missing, provisioner="proj-autophone"):
         lines = []
         for queue in missing:
             lines.append(
-                "bitbar_workers,provisioner=%s,queue=%s configured=%s"
-                % (provisioner, queue, len(missing[queue]))
+                "bitbar_workers,provisioner=%s,queue=%s configured=%s" % (provisioner, queue, len(missing[queue]))
             )
         return lines
 
@@ -604,9 +553,7 @@ class Health:
         MINUTES_OF_LOGS_TO_INSPECT = 5
 
         # NOTE: user running needs to be in adm group to not need sudo
-        cmd = (
-            "journalctl -u bitbar --since '%s minutes ago'" % MINUTES_OF_LOGS_TO_INSPECT
-        )
+        cmd = "journalctl -u bitbar --since '%s minutes ago'" % MINUTES_OF_LOGS_TO_INSPECT
         try:
             res = self.run_cmd(cmd)
         except subprocess.TimeoutExpired:
@@ -690,16 +637,12 @@ class Health:
         return set(return_arr)
 
     # returns a dict
-    def get_problem_workers2(
-        self, time_limit=None, verbosity=0, exclude_quarantined=False
-    ):
+    def get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
         # TODO: stop calling gather_data in processing/calculation code
         # - only call when necessary, push up to higher level
         self.gather_data()
 
-        missing_workers = self.calculate_missing_workers_from_tc(
-            time_limit, exclude_quarantined=exclude_quarantined
-        )
+        missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=exclude_quarantined)
         offline_workers = self.get_offline_workers_from_journalctl()
 
         merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
@@ -717,9 +660,7 @@ class Health:
         self.gather_data()
 
         if verbosity:
-            self.show_last_started_report(
-                limit=time_limit, show_all=show_all, verbosity=verbosity
-            )
+            self.show_last_started_report(limit=time_limit, show_all=show_all, verbosity=verbosity)
             print("")
 
         missing_workers = {}
@@ -731,9 +672,7 @@ class Health:
             output_format = "%-16s %s"
 
             # exclude quarantined as we mention them specifically later
-            missing_workers = self.calculate_missing_workers_from_tc(
-                time_limit, exclude_quarantined=True
-            )
+            missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             print(
                 output_format
@@ -772,20 +711,13 @@ class Health:
                     )
                 )
 
-                merged = self.make_list_unique(
-                    offline_workers_flattened + missing_workers_flattened
-                )
+                merged = self.make_list_unique(offline_workers_flattened + missing_workers_flattened)
 
                 print(output_format % ("union (%s)" % len(merged), merged))
 
-                intersection_list = utils.list_intersection(
-                    offline_workers_flattened, missing_workers_flattened
-                )
+                intersection_list = utils.list_intersection(offline_workers_flattened, missing_workers_flattened)
 
-                print(
-                    output_format
-                    % ("intersection (%s)" % len(intersection_list), intersection_list)
-                )
+                print(output_format % ("intersection (%s)" % len(intersection_list), intersection_list))
 
     # devicepool specific
     def get_slack_report(self, show_all=False, time_limit=None, verbosity=0):
@@ -800,9 +732,7 @@ class Health:
 
         if time_limit:
             # exclude quarantined as we mention them specifically later
-            missing_workers = self.calculate_missing_workers_from_tc(
-                time_limit, exclude_quarantined=True
-            )
+            missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
             result_dict["tc"] = missing_workers_flattened
 
@@ -821,28 +751,20 @@ class Health:
                 offline_workers_flattened = self.flatten_list(offline_workers.values())
                 result_dict["devicepool"] = offline_workers_flattened
 
-            result_dict["union"] = self.make_list_unique(
-                offline_workers_flattened + missing_workers_flattened
-            )
+            result_dict["union"] = self.make_list_unique(offline_workers_flattened + missing_workers_flattened)
 
-            result_dict["intersection"] = utils.list_intersection(
-                offline_workers_flattened, missing_workers_flattened
-            )
+            result_dict["intersection"] = utils.list_intersection(offline_workers_flattened, missing_workers_flattened)
 
             return result_dict
 
     def influx_report(self, time_limit=None, verbosity=0):
-        problem_workers = self.get_problem_workers2(
-            time_limit=time_limit, exclude_quarantined=False
-        )
+        problem_workers = self.get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
 
         logger.info("generating influx log lines for problem workers...")
         self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))
 
         logger.info("generating influx log lines for configured workers...")
-        self.influx_log_lines_to_send.extend(
-            self.gen_influx_cw_lines(self.devicepool_queues_and_workers)
-        )
+        self.influx_log_lines_to_send.extend(self.gen_influx_cw_lines(self.devicepool_queues_and_workers))
 
         # return so caller can display
         return problem_workers
