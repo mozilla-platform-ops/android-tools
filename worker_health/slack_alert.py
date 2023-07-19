@@ -27,6 +27,9 @@ class SlackAlert:
         self.configuration_file = os.path.join(os.path.expanduser("~"), ".bitbar_slack_alert.toml")
         self.toml = self.read_toml()
 
+        # wh instance
+        self.wh = Health(self.log_level)
+
         # webhook url
         if self.get_toml_value("webhook_url"):
             self.webhook_url = self.toml["main"]["webhook_url"]
@@ -60,7 +63,7 @@ currently_alerting = false
             return return_dict
 
     def slack_alert(self):
-        wh = Health(self.log_level)
+        wh = self.wh
         # for slack alerts, don't mention tc quarantined hosts
         # - will still appear if offline in devicepool
         report_data = wh.get_slack_report(show_all=False, time_limit=self.time_limit, verbosity=self.log_level)
