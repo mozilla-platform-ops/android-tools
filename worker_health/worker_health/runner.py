@@ -146,7 +146,12 @@ class Runner:
 
         # load file
         with open(resume_file, "rb") as f:
-            data = tomlkit.load(f)
+            try:
+                data = tomlkit.load(f)
+            except tomlkit.exceptions.UnexpectedCharError as e:
+                print(f"FATAL: invalid format in state file ({resume_file})")
+                print(f"  {e}")
+                sys.exit(1)
 
         # sanity check
         try:
