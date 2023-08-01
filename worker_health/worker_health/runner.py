@@ -460,17 +460,25 @@ def main(args, safe_mode=False):
         sr = Runner.from_resume(args.resume_dir)
     # TODO: print the resume dir being used
 
+    # TODO: config check
+    #   - catch missing data before try/catch below
+
     # get user to ack what we're about to do
     # TODO: mention skipped hosts?
-    print("Run options:")
-    print(f"  command: {sr.command}")
-    print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
-    print(f"  fqdn_postfix: {sr.fqdn_postfix}")
-    # TODO: mention talk, reboot, pre-quarantine count
-    if safe_mode:
-        print(f"  provisioner: {sr.provisioner}")
-        print(f"  worker_type: {sr.worker_type}")
-    print("")
+    try:
+        print("Run options:")
+        print(f"  command: {sr.command}")
+        print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
+        print(f"  fqdn_postfix: {sr.fqdn_postfix}")
+        # TODO: mention talk, reboot, pre-quarantine count
+        if safe_mode:
+            print(f"  provisioner: {sr.provisioner}")
+            print(f"  worker_type: {sr.worker_type}")
+        print("")
+    except AttributeError as e:
+        print("FATAL: missing config value!?!")
+        print(f"  {e}")
+        sys.exit(1)
     print("Does this look correct? Type 'yes' to proceed: ", end="")
     user_input = input()
     if user_input != "yes":
