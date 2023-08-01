@@ -502,7 +502,7 @@ def main(args, safe_mode=False):
     # get user to ack what we're about to do
     # TODO: mention skipped hosts?
     try:
-        print("Run options:")
+        print("run options:")
         print(f"  command: {sr.command}")
         print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
         print(f"  fqdn_postfix: {sr.fqdn_postfix}")
