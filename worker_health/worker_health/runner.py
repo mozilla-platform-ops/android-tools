@@ -299,11 +299,8 @@ class Runner:
         )
 
         # do substitutions
-        print(f"o command: {command}")
         custom_cmd_temp = command.replace("SR_HOST", hostname)
-        print(f"custom_cmd_temp: {custom_cmd_temp}")
         custom_cmd = custom_cmd_temp.replace("SR_FQDN", self.fqdn_postfix)
-        print(f"custom_cmd: {custom_cmd}")
         # run command
         if verbose:
             status_print(f"{hostname}: running command '{custom_cmd}'...")
