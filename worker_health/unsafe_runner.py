@@ -48,5 +48,6 @@ if __name__ == "__main__":
     args.hosts = args.host_csv
     # TODO: add as an exposed option?
     args.verbose = True
+    args.dont_lift_quarantine = True
 
     runner.main(args)

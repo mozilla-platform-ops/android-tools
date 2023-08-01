@@ -227,6 +227,7 @@ class Runner:
         verbose=True,
         talk=False,
         reboot_host=False,
+        dont_lift_quarantine=False,
         continue_on_failure=False,
     ):
         host_fqdn = f"{hostname}{self.fqdn_postfix}"
@@ -341,6 +342,20 @@ class Runner:
                 if talk:
                     say("rebooted")
 
+        # lift quarantine
+        if not dont_lift_quarantine:
+            if verbose:
+                status_print(f"{hostname}: lifting quarantine...", end="")
+            self.q.lift_quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
+            # TODO: verify?
+            if verbose:
+                print(" lifted.")
+                if talk:
+                    say("quarantine lifted")
+        else:
+            if verbose:
+                status_print(f"{hostname}: NOT lifting quarantine (per option).")
+
 
 # from stack overflow
 def remove_argument(a_parser, arg):
@@ -449,11 +464,12 @@ def main(args, safe_mode=False):
     # TODO: mention skipped hosts?
     print("Run options:")
     print(f"  command: {sr.command}")
+    print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
+    print(f"  fqdn_postfix: {sr.fqdn_postfix}")
     # TODO: mention talk, reboot, pre-quarantine count
     if safe_mode:
         print(f"  provisioner: {sr.provisioner}")
         print(f"  worker_type: {sr.worker_type}")
-    print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
     print("")
     print("Does this look correct? Type 'yes' to proceed: ", end="")
     user_input = input()
