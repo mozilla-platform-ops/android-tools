@@ -491,10 +491,10 @@ def main(args, safe_mode=False):
 
     if not args.resume_dir:
         sr = Runner(hosts=args.hosts, command=args.command, fqdn_prefix=args.fqdn_prefix)
+        print(f"state file (new): {sr.state_file}")
     else:
         sr = Runner.from_resume(args.resume_dir)
-    # TODO: print the resume dir being used
-    print(f"state file: {sr.state_file}")
+        print(f"state file (resumed): {sr.state_file}")
 
     # TODO: config check
     #   - catch missing data before try/catch below
