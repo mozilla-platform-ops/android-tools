@@ -261,7 +261,7 @@ class Runner:
                     if talk:
                         say("quarantined")
             except taskcluster.exceptions.TaskclusterRestFailure:
-                status_print(f"safe_run_single_host: no TC record of {hostname}, skipping quarantine...")
+                status_print(f"INFO: safe_run_single_host: no TC record of {hostname}, skipping quarantine...")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
@@ -568,7 +568,7 @@ def main(args, safe_mode=False):
                 if safe_mode:
                     status_print("WARNING: pre-quarantine not supported yet")
 
-                    print(sr.remaining_hosts)
+                    # print(sr.remaining_hosts)
                     tl = list(sr.remaining_hosts)
                     pre_quarantine_hosts = tl[0 : (args.pre_quarantine_additional_host_count + 1)]
                     idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
