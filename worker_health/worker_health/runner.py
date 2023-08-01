@@ -16,6 +16,7 @@ import time
 
 import alive_progress
 import colorama
+import taskcluster
 import tomlkit
 
 from worker_health import quarantine, status, utils
@@ -37,6 +38,10 @@ from worker_health import quarantine, status, utils
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
     return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]
+
+
+def get_fully_qualified_hostname(host, postfix):
+    return f"{host}.{postfix}"
 
 
 def csv_strs(vstr, sep=","):
@@ -239,7 +244,7 @@ class Runner:
         dont_lift_quarantine=False,
         continue_on_failure=False,
     ):
-        host_fqdn = f"{hostname}{self.fqdn_postfix}"
+        host_fqdn = get_fully_qualified_hostname(hostname, self.fqdn_postfix)
         # TODO: ensure command has SR_HOST variable in it
         if "SR_HOST" not in command and "SR_FQDN" not in command:
             raise Exception("command doesn't have SR_HOST or SR_FQDN in it!")
@@ -249,12 +254,15 @@ class Runner:
         if quarantine_mode:
             if verbose:
                 status_print(f"{hostname}: adding to quarantine... ", end="")
-            self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
-            # TODO: verify?
-            if verbose:
-                print("quarantined.")
-                if talk:
-                    say("quarantined")
+            try:
+                self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
+                # TODO: verify?
+                if verbose:
+                    print("quarantined.")
+                    if talk:
+                        say("quarantined")
+            except taskcluster.exceptions.TaskclusterRestFailure:
+                status_print(f"safe_run_single_host: no TC record of {hostname}, skipping quarantine...")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
@@ -292,8 +300,11 @@ class Runner:
         )
 
         # do substitutions
+        print(f"o command: {command}")
         custom_cmd_temp = command.replace("SR_HOST", hostname)
-        custom_cmd = custom_cmd_temp.replace("SR_FQDN", host_fqdn)
+        print(f"custom_cmd_temp: {custom_cmd_temp}")
+        custom_cmd = custom_cmd_temp.replace("SR_FQDN", self.fqdn_postfix)
+        print(f"custom_cmd: {custom_cmd}")
         # run command
         if verbose:
             status_print(f"{hostname}: running command '{custom_cmd}'...")
@@ -557,7 +568,7 @@ def main(args, safe_mode=False):
                     print(sr.remaining_hosts)
                     tl = list(sr.remaining_hosts)
                     pre_quarantine_hosts = tl[0 : (args.pre_quarantine_additional_host_count + 1)]
-                    idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=True)
+                    idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
                     status_print(f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}.")
 
                 # randomize host list
@@ -571,7 +582,7 @@ def main(args, safe_mode=False):
                 status_print("waiting for ssh-able hosts... ")
                 for i_host in remaining_hosts:
                     # print(".", end="", flush=True)
-                    i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
+                    i_host_fqdn = get_fully_qualified_hostname(i_host, sr.fqdn_postfix)
                     status_print(f"checking for ssh: {i_host_fqdn}...")
                     if host_is_sshable(i_host_fqdn):
                         host = i_host

@@ -74,6 +74,7 @@ class Status:
             # pprint.pprint(results)
             if "recentTasks" not in results:
                 # if no recent tasks, host is not running jobs
+                print(f"get_hosts_running_jobs: {host}: no recentTasks")
                 continue
 
             for result in results["recentTasks"]:
