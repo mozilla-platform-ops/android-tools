@@ -49,9 +49,7 @@ def csv_strs(vstr, sep=","):
             v = str(v0)
             values.append(v)
         except ValueError as err:
-            raise Exception(
-                "Invalid value %s, values must be a number (%s)" % (vstr, err)
-            )
+            raise Exception("Invalid value %s, values must be a number (%s)" % (vstr, err))
     return values
 
 
@@ -81,7 +79,6 @@ class CommandFailedException(Exception):
 
 
 class UnsafeRunner:
-    # default_pre_quarantine_additional_host_count = 5
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "ur_state.toml"
     # TODO: use tomlkit tables so formatting is nice for empty lists?
@@ -133,9 +130,7 @@ class UnsafeRunner:
         if not os.path.exists(resume_file):
             # write emtpy file
             # TODO: verify user wants this
-            print(
-                "no state file found in directory, creating empty file and exiting..."
-            )
+            print("no state file found in directory, creating empty file and exiting...")
             with open(resume_file, "w") as f:
                 tomlkit.dump(cls.empty_config_dict, f)
             sys.exit(0)
@@ -379,18 +374,13 @@ def handler(_signum, _frame):
     if terminate >= 2:
         print("*** double ctrl-c detected. exiting immediately!")
         sys.exit(0)
-    print(
-        "*** ctrl-c detected. will exit after current host "
-        "(one more to exit immediately)."
-    )
+    print("*** ctrl-c detected. will exit after current host " "(one more to exit immediately).")
 
 
 # given a string hostname, returns True if sshable, else False.
 def host_is_sshable(hostname):
     up_check_cmd = f"nc -w 2 -G 3 -z {hostname} 22 2>&1"
-    spr = subprocess.run(
-        up_check_cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True
-    )
+    spr = subprocess.run(up_check_cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
     rc = spr.returncode
     if rc == 0:
         return True
@@ -421,9 +411,7 @@ d888b     `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' d888b
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=("runs a command against a set of hosts")
-    )
+    parser = argparse.ArgumentParser(description=("runs a command against a set of hosts"))
     parser.add_argument(
         "--resume_dir",
         "-r",
@@ -454,10 +442,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fqdn-postfix",
         "-F",
-        help=(
-            "string to append to host (used for ssh check). "
-            f"defaults to '{UnsafeRunner.default_fqdn_postfix}'."
-        ),
+        help=("string to append to host (used for ssh check). " f"defaults to '{UnsafeRunner.default_fqdn_postfix}'."),
     )
     # positional args
     parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
@@ -525,9 +510,7 @@ if __name__ == "__main__":
     )
 
     # TODO: should bar length be total hosts or remaining hosts?
-    with alive_progress.alive_bar(
-        total=total_hosts, enrich_print=False, stats=False
-    ) as bar:
+    with alive_progress.alive_bar(total=total_hosts, enrich_print=False, stats=False) as bar:
         # init bar count
         bar(len(completed_hosts) + len(failed_hosts))
 
@@ -548,7 +531,7 @@ if __name__ == "__main__":
                 #     f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}."
                 # )
 
-                # # randomize host list
+                # randomize host list
                 if not args.do_not_randomize:
                     random.shuffle(remaining_hosts)
 
@@ -601,8 +584,7 @@ if __name__ == "__main__":
             remaining_hosts = list(sr.remaining_hosts)
             status_print(f"{host}: complete")
             status_print(
-                f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): "
-                f"{', '.join(sr.remaining_hosts)}"
+                f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): " f"{', '.join(sr.remaining_hosts)}"
             )
             if args.talk:
                 # say(f"completed {host}.")
