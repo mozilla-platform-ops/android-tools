@@ -62,7 +62,7 @@ class Status:
                 print("z", end="", flush=True)
             time.sleep(sleep_time)
 
-    def get_hosts_running_jobs(self, hosts):
+    def get_hosts_running_jobs(self, hosts, verbose=False):
         worker_groups = self.tc_h.get_worker_groups(self.worker_type)
         worker_group = worker_groups[0]
 
@@ -74,7 +74,8 @@ class Status:
             # pprint.pprint(results)
             if "recentTasks" not in results:
                 # if no recent tasks, host is not running jobs
-                print(f"get_hosts_running_jobs: {host}: no recentTasks")
+                if verbose:
+                    print(f"get_hosts_running_jobs: {host}: no recentTasks")
                 continue
 
             for result in results["recentTasks"]:
