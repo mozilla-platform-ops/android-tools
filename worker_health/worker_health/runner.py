@@ -79,6 +79,7 @@ class CommandFailedException(Exception):
 
 
 class Runner:
+    default_pre_quarantine_additional_host_count = 5
     default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
     state_file_name = "runner_state.toml"
     # TODO: use tomlkit tables so formatting is nice for empty lists?
@@ -411,6 +412,189 @@ d888b     `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' d888b
 """  # noqa: W605
         + colorama.Style.RESET_ALL
     )
+
+
+def sr_print_banner():
+    # from `figlet -f smslant safe runner`
+    # looks strange as first line is indented
+    print(
+        colorama.Style.BRIGHT
+        + """            ___
+  ___ ___ _/ _/__   ______ _____  ___  ___ ____
+ (_-</ _ `/ _/ -_) / __/ // / _ \/ _ \/ -_) __/
+/___/\_,_/_/ \__/ /_/  \_,_/_//_/_//_/\__/_/
+"""  # noqa: W605
+        + colorama.Style.RESET_ALL
+    )
+
+
+def sr_main():
+    parser = argparse.ArgumentParser(
+        description=("runs a command against a set of hosts once " "they are quarantined and not working")
+    )
+    parser.add_argument(
+        "--resume_dir",
+        "-r",
+        metavar="RUN_DIR",
+        # custom action that removes the positional args
+        action=ResumeAction,
+        help="'sr_' run directory. causes positional arguments to be ignored.",
+    )
+    parser.add_argument(
+        "--talk",
+        "-t",
+        action="store_true",
+        help="use OS X's speech API to give updates",
+    )
+    parser.add_argument(
+        "--reboot-host",
+        "-R",
+        action="store_true",
+        help="reboot the host after command runs successfully.",
+    )
+    parser.add_argument(
+        "--dont-lift_quarantine",
+        "-D",
+        action="store_true",
+        help=("don't lift the quarantine after successfully running. " "useful for pre-quarantined bad hosts."),
+    )
+    # TODO: add argument to do a reboot if run is successful?
+    parser.add_argument(
+        "--fqdn-postfix",
+        "-F",
+        help=("string to append to host (used for ssh check). " f"defaults to '{Runner.default_fqdn_postfix}'."),
+    )
+    parser.add_argument(
+        "--pre_quarantine_additional_host_count",
+        "-P",
+        help=(
+            "quarantine the specified number of following hosts. "
+            f"defaults to {Runner.default_pre_quarantine_additional_host_count}. "
+            "specify 0 to disable pre-quarantine."
+        ),
+        metavar="COUNT",
+        type=int,
+        default=Runner.default_pre_quarantine_additional_host_count,
+    )
+    # positional args
+    parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
+    parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
+    parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
+    parser.add_argument("command", help="command to run locally")
+    args = parser.parse_args()
+    args.hosts = args.host_csv
+    # TODO: add as an exposed option?
+    args.verbose = True
+
+    sr_print_banner()
+
+    # print(args)
+    # sys.exit(0)
+
+    if args.talk:
+        say("safe runner: talk enabled", background_mode=True)
+
+    if not args.resume_dir:
+        sr = Runner(args.provisioner, args.worker_type, args.hosts, args.command)
+    else:
+        sr = Runner.from_resume(args.resume_dir)
+
+    # get user to ack what we're about to do
+    # TODO: mention skipped hosts?
+    print("Run options:")
+    print(f"  command: {sr.command}")
+    # TODO: mention talk, reboot, pre-quarantine count
+    print(f"  provisioner: {sr.provisioner}")
+    print(f"  worker_type: {sr.worker_type}")
+    print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
+    print("")
+    print("Does this look correct? Type 'yes' to proceed: ", end="")
+    user_input = input()
+    if user_input != "yes":
+        print("user chose to exit")
+        sys.exit(0)
+    print("")
+
+    # TODO: ideally this would just be when we're converging until done
+    signal.signal(signal.SIGINT, handler)
+
+    # for fresh runs, write toml
+    if not args.resume_dir:
+        sr.write_initial_toml()
+
+    # TODO: eventually use this as outer code for safe_run_multi_host
+    # TODO: make a more-intelligent multi-host version...
+    #   - this will wait on current host if not drained
+    #       (when other hosts in pre-quarantine group are ready)
+    host_total = len(sr.remaining_hosts)
+    global terminate
+    terminate = 0
+    while sr.remaining_hosts:
+        # pre-quarantine code
+        #   - gets a few workers ready (quarantined) before we're working on them
+        pre_quarantine_hosts = sr.remaining_hosts[0 : (args.pre_quarantine_additional_host_count + 1)]
+        if args.pre_quarantine_additional_host_count:
+            status_print(f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}")
+            sr.q.quarantine(sr.provisioner, sr.worker_type, pre_quarantine_hosts, verbose=False)
+            status_print(f"pre-quarantine: quarantined {len(pre_quarantine_hosts)} hosts")
+            if args.talk:
+                say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+
+            # waits for a host that isn't running jobs
+            # status_print("waiting for idle pre-quarantined host...")
+            # host = sr.si.wait_for_idle_host(pre_quarantine_hosts)
+            #
+            # waits for a host that isn't running jobs and ssh-able
+            exit_while = False
+            while True:
+                # print("0", end="", flush=True)
+                status_print("waiting for idle hosts among pre-quarantined... ", end="")
+                idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=True)
+                status_print(f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}.")
+                for i_host in idle_hosts:
+                    # print(".", end="", flush=True)
+                    i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
+                    status_print(f"checking for ssh: {i_host_fqdn}...")
+                    if host_is_sshable(i_host_fqdn):
+                        host = i_host
+                        exit_while = True
+                        break
+                if exit_while:
+                    break
+                # print("Z", end="", flush=True)
+            sleep_time = 60
+            status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
+            time.sleep(sleep_time)
+            # print(" found.", flush=True)
+        else:
+            host = sr.remaining_hosts[0]
+
+        # safe_run_single_host
+        status_print(f"{host}: starting")
+        if args.talk:
+            say(f"starting {host}")
+        sr.safe_run_single_host(
+            host,
+            sr.command,
+            talk=args.talk,
+            dont_lift_quarantine=args.dont_lift_quarantine,
+            reboot_host=args.reboot_host,
+        )
+        sr.remaining_hosts.remove(host)
+        status_print(f"{host}: complete")
+        status_print(f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): " f"{', '.join(sr.remaining_hosts)}")
+        if args.talk:
+            say(f"completed {host}.")
+            say(f"{len(sr.remaining_hosts)} hosts remaining.")
+        sr.completed_hosts.append(host)
+        sr.checkpoint_toml()
+        if terminate > 0:
+            status_print("graceful exiting...")
+            # TODO: show quarantined hosts?
+            break
+    # TODO: play success sound
+    # TODO: can we show any stats?
+    status_print("all hosts complete!")
 
 
 def ur_main():
