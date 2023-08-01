@@ -194,7 +194,7 @@ class Runner:
     def default_rundir_path(self):
         datetime_format_for_directory = "%Y%m%d-%H%M%S"
         datetime_part = self.start_datetime.strftime(datetime_format_for_directory)
-        return f"sr_{datetime_part}"
+        return f"runner_run_{datetime_part}"
 
     @property
     def default_state_file_path(self):
