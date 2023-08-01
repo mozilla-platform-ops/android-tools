@@ -98,17 +98,19 @@ class Runner:
 
     def __init__(
         self,
-        hosts,
-        command,
+        hosts=[],
+        command="ssh SR_HOST.SR_FQDN",
         fqdn_prefix=default_fqdn_postfix,
         safe_mode=False,
         provisioner=None,
-        workerType=None,
+        worker_type=None,
     ):
         # required args
         self.command = command
-        # optional args
         self.fqdn_postfix = fqdn_prefix
+        # optional args
+        self.provisioner = provisioner
+        self.worker_type = worker_type
 
         # TODO: should we store this? so write will preserve comments?
         # self._config_toml = {}
@@ -162,9 +164,11 @@ class Runner:
         # create class with minimum params
         try:
             i = cls(
-                data["state"]["remaining_hosts"],
-                data["config"]["command"],
-                data["config"]["fqdn_prefix"],
+                provisioner=data["config"]["provisioner"],
+                worker_type=data["config"]["worker_type"],
+                hosts=data["state"]["remaining_hosts"],
+                command=data["config"]["command"],
+                fqdn_prefix=data["config"]["fqdn_prefix"],
             )
         except tomlkit.exceptions.NonExistentKey as e:
             print(f"Missing required config file param: {str(e)}")
@@ -455,10 +459,11 @@ def main(args, safe_mode=False):
         say(f"{name_string}: talk enabled", background_mode=True)
 
     if not args.resume_dir:
-        sr = Runner(args.hosts, args.command, args.fqdn_prefix)
+        sr = Runner(hosts=args.hosts, command=args.command, fqdn_prefix=args.fqdn_prefix)
     else:
         sr = Runner.from_resume(args.resume_dir)
     # TODO: print the resume dir being used
+    print(f"state file: {sr.state_file}")
 
     # TODO: config check
     #   - catch missing data before try/catch below
