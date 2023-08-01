@@ -571,13 +571,12 @@ def main(args, safe_mode=False):
                     idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
                     status_print(f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}.")
 
+                    remaining_hosts = idle_hosts
+                    status_print("TODO: support safe mode: wait for idle hosts (vs remaining)")
+
                 # randomize host list
                 if not args.do_not_randomize:
                     random.shuffle(remaining_hosts)
-
-                if safe_mode:
-                    remaining_hosts = idle_hosts
-                    print("TODO: support safe mode: wait for idle hosts (vs remaining)")
 
                 status_print("waiting for ssh-able hosts... ")
                 for i_host in remaining_hosts:
