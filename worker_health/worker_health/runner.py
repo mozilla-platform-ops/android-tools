@@ -474,6 +474,8 @@ def sr_print_banner():
     )
 
 
+# TODO: should exit immediately when waiting, requires two frequently
+# TODO: rework how alive progress bars work... off at times
 def main(args, safe_mode=False):
     if safe_mode:
         name_string = "safe runner"
