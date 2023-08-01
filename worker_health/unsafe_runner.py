@@ -49,4 +49,4 @@ if __name__ == "__main__":
     # TODO: add as an exposed option?
     args.verbose = True
 
-    runner.ur_main()
+    runner.ur_main(args)

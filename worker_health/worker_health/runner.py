@@ -428,13 +428,161 @@ def sr_print_banner():
     )
 
 
-def main(safe_mode=False):
-    # TODO: push arg handling into each bin script
-
+def main(args, safe_mode=False):
     if safe_mode:
         sr_print_banner()
     else:
         ur_print_banner()
+
+    if args.talk:
+        say("unsafe runner: talk enabled", background_mode=True)
+
+    if not args.resume_dir:
+        sr = Runner(args.hosts, args.command, args.fqdn_prefix)
+    else:
+        sr = Runner.from_resume(args.resume_dir)
+
+    # get user to ack what we're about to do
+    # TODO: mention skipped hosts?
+    print("Run options:")
+    print(f"  command: {sr.command}")
+    # TODO: mention talk, reboot, pre-quarantine count
+    if safe_mode:
+        print(f"  provisioner: {sr.provisioner}")
+        print(f"  worker_type: {sr.worker_type}")
+    print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
+    print("")
+    print("Does this look correct? Type 'yes' to proceed: ", end="")
+    user_input = input()
+    if user_input != "yes":
+        print("user chose to exit")
+        sys.exit(0)
+    print("")
+
+    # TODO: ideally this would just be when we're converging until done
+    signal.signal(signal.SIGINT, handler)
+
+    # for fresh runs, write toml
+    if not args.resume_dir:
+        sr.write_initial_toml()
+
+    # TODO: eventually use this as outer code for safe_run_multi_host
+    # TODO: make a more-intelligent multi-host version...
+    #   - this will wait on current host if not drained
+    #       (when other hosts in pre-quarantine group are ready)
+    host_total = len(sr.remaining_hosts)
+    global terminate
+    terminate = 0
+    # print(list(sr.remaining_hosts))
+
+    # TODO: stop doing this, just cast to list where needed?
+    #   - can't because we need to persist the non-list
+    remaining_hosts = list(sr.remaining_hosts)
+    completed_hosts = list(sr.completed_hosts)
+    failed_hosts = list(sr.failed_hosts)
+    skipped_hosts = list(sr.hosts_to_skip)
+    total_hosts = len(
+        # TODO: need to add failed for correct counts
+        set(remaining_hosts)
+        .union(set(completed_hosts))
+        .union(set(skipped_hosts))
+        .union(set(failed_hosts))
+    )
+
+    # TODO: should bar length be total hosts or remaining hosts?
+    with alive_progress.alive_bar(total=total_hosts, enrich_print=False, stats=False) as bar:
+        # init bar count
+        bar(len(completed_hosts) + len(failed_hosts))
+
+        while remaining_hosts:
+            remaining_hosts = list(sr.remaining_hosts)
+            completed_hosts = list(sr.completed_hosts)
+            failed_hosts = list(sr.failed_hosts)
+
+            exit_while = False
+            # bar.pause()
+            while True:
+                # print("0", end="", flush=True)
+                if safe_mode:
+                    print("TODO: support safe mode: pre-quarantine")
+                    pre_quarantine_hosts = sr.remaining_hosts[0 : (args.pre_quarantine_additional_host_count + 1)]
+                    idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=True)
+                    status_print(f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}.")
+
+                # randomize host list
+                if not args.do_not_randomize:
+                    random.shuffle(remaining_hosts)
+
+                if safe_mode:
+                    remaining_hosts = idle_hosts
+                    print("TODO: support safe mode: wait for idle hosts (vs remaining)")
+
+                status_print("waiting for ssh-able hosts... ")
+                for i_host in remaining_hosts:
+                    # print(".", end="", flush=True)
+                    i_host_fqdn = f"{i_host}{sr.fqdn_postfix}"
+                    status_print(f"checking for ssh: {i_host_fqdn}...")
+                    if host_is_sshable(i_host_fqdn):
+                        host = i_host
+                        exit_while = True
+                        break
+                if exit_while:
+                    break
+                # print("Z", end="", flush=True)
+                sleep_time = 60
+                status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
+                time.sleep(sleep_time)
+            # print(" found.", flush=True)
+            # bar.unpause()
+
+            # safe_run_single_host
+            status_print(f"{host}: starting")
+            if args.talk:
+                say(f"starting {host}")
+            try:
+                sr.safe_run_single_host(
+                    host,
+                    sr.command,
+                    talk=args.talk,
+                    reboot_host=args.reboot_host,
+                    continue_on_failure=True,
+                )
+            except CommandFailedException:
+                # TODO: control decision to continue or exit via flag
+                print("command failed, continuing...")
+                sr.remaining_hosts.remove(host)
+                remaining_hosts = list(sr.remaining_hosts)
+                sr.failed_hosts.append(host)
+                bar()
+                sr.checkpoint_toml()
+                if terminate > 0:
+                    status_print("graceful exiting...")
+                    # TODO: show quarantined hosts?
+                    sys.exit(0)
+                    break
+                continue
+            sr.remaining_hosts.remove(host)
+            # update this so this exits
+            # TODO: remove need for remaining_hosts... feels gross
+            remaining_hosts = list(sr.remaining_hosts)
+            status_print(f"{host}: complete")
+            status_print(
+                f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): " f"{', '.join(sr.remaining_hosts)}"
+            )
+            if args.talk:
+                # say(f"completed {host}.")
+                say(f"{len(sr.remaining_hosts)} hosts remaining.")
+            sr.completed_hosts.append(host)
+            bar()
+            sr.checkpoint_toml()
+            if terminate > 0:
+                status_print("graceful exiting...")
+                sys.exit(0)
+                # TODO: show quarantined hosts?
+                break
+        # TODO: play success sound
+        # TODO: can we show any stats?
+        status_print("all hosts complete!")
 
 
 def sr_main(args):
@@ -549,48 +697,7 @@ def sr_main(args):
     status_print("all hosts complete!")
 
 
-def ur_main():
-    parser = argparse.ArgumentParser(description=("runs a command against a set of hosts"))
-    parser.add_argument(
-        "--resume_dir",
-        "-r",
-        metavar="RUN_DIR",
-        # custom action that removes the positional args
-        action=ResumeAction,
-        help="'sr_' run directory. causes positional arguments to be ignored.",
-    )
-    parser.add_argument(
-        "--do-not-randomize",
-        "-N",
-        action="store_true",
-        help="don't randomize host list",
-    )
-    parser.add_argument(
-        "--talk",
-        "-t",
-        action="store_true",
-        help="use OS X's speech API to give updates",
-    )
-    parser.add_argument(
-        "--reboot-host",
-        "-R",
-        action="store_true",
-        help="reboot the host after command runs successfully.",
-    )
-    # TODO: add argument to do a reboot if run is successful?
-    parser.add_argument(
-        "--fqdn-postfix",
-        "-F",
-        help=("string to append to host (used for ssh check). " f"defaults to '{Runner.default_fqdn_postfix}'."),
-    )
-    # positional args
-    parser.add_argument("host_csv", type=csv_strs, help="e.g. 'host1,host2'")
-    parser.add_argument("command", help="command to run locally")
-    args = parser.parse_args()
-    args.hosts = args.host_csv
-    # TODO: add as an exposed option?
-    args.verbose = True
-
+def ur_main(args):
     ur_print_banner()
 
     # print(args)
