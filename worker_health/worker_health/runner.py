@@ -456,7 +456,7 @@ oooo d8b oooo  oooo  ooo. .oo.   ooo. .oo.    .ooooo.  oooo d8b
  888      888   888   888   888   888   888  888    .o  888
 d888b     `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' d888b
 """  # noqa: W605
-        + colorama.Style.RESET_ALL
+        + colorama.Style.RESET_ALL,
     )
 
 
@@ -470,7 +470,7 @@ def sr_print_banner():
  (_-</ _ `/ _/ -_) / __/ // / _ \/ _ \/ -_) __/
 /___/\_,_/_/ \__/ /_/  \_,_/_//_/_//_/\__/_/
 """  # noqa: W605
-        + colorama.Style.RESET_ALL
+        + colorama.Style.RESET_ALL,
     )
 
 
@@ -545,7 +545,7 @@ def main(args, safe_mode=False):
         set(remaining_hosts)
         .union(set(completed_hosts))
         .union(set(skipped_hosts))
-        .union(set(failed_hosts))
+        .union(set(failed_hosts)),
     )
 
     # TODO: should bar length be total hosts or remaining hosts?
@@ -630,7 +630,7 @@ def main(args, safe_mode=False):
             remaining_hosts = list(sr.remaining_hosts)
             status_print(f"{host}: complete")
             status_print(
-                f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): " f"{', '.join(sr.remaining_hosts)}"
+                f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): " f"{', '.join(sr.remaining_hosts)}",
             )
             if args.talk:
                 # say(f"completed {host}.")
