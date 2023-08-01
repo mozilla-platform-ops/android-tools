@@ -378,7 +378,10 @@ class Runner:
         if quarantine_mode and not dont_lift_quarantine:
             if verbose:
                 status_print(f"{hostname}: lifting quarantine...", end="")
-            self.q.lift_quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
+            try:
+                self.q.lift_quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
+            except taskcluster.exceptions.TaskclusterRestFailure:
+                status_print(f"safe_run_single_host: no TC record of {hostname}, skipping lifting of quarantine...")
             # TODO: verify?
             if verbose:
                 print(" lifted.")
