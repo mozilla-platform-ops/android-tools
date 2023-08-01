@@ -545,6 +545,7 @@ def main(args, safe_mode=False):
                     sr.command,
                     talk=args.talk,
                     reboot_host=args.reboot_host,
+                    dont_lift_quarantine=args.dont_lift_quarantine,
                     continue_on_failure=True,
                 )
             except CommandFailedException:
