@@ -252,12 +252,12 @@ class Runner:
         # TODO: check if already quarantined and skip if so
         if quarantine_mode:
             if verbose:
-                status_print(f"{hostname}: adding to quarantine... ", end="")
+                status_print(f"{hostname}: adding to quarantine...")
             try:
                 self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
                 # TODO: verify?
                 if verbose:
-                    print("quarantined.")
+                    status_print(f"{hostname}: quarantined.")
                     if talk:
                         say("quarantined")
             except taskcluster.exceptions.TaskclusterRestFailure:
@@ -268,7 +268,7 @@ class Runner:
         # wait for host to be back up, otherwise ssh will time out.
 
         if verbose:
-            status_print(f"{hostname}: waiting for ssh to be up... ", end="")
+            status_print(f"{hostname}: waiting for ssh to be up... ")
         #     if talk:
         #         say("waiting for ssh")
         while True:
@@ -276,7 +276,7 @@ class Runner:
                 break
             time.sleep(5)
         if verbose:
-            print("ready.")
+            status_print(f"{hostname}: ssh is up.")
 
         # run `ssh-keygen -R` and `ssh-keyscan -t rsa` and update our known_hosts
         # TODO: put behind flag?
@@ -373,14 +373,15 @@ class Runner:
         # lift quarantine
         if quarantine_mode and not dont_lift_quarantine:
             if verbose:
-                status_print(f"{hostname}: lifting quarantine...", end="")
+                status_print(f"{hostname}: lifting quarantine...")
             try:
                 self.q.lift_quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
             except taskcluster.exceptions.TaskclusterRestFailure:
-                status_print(f"safe_run_single_host: no TC record of {hostname}, skipping lifting of quarantine...")
+                status_print(f"no TC record of {hostname}, can't lift quarantine.")
+                return
             # TODO: verify?
             if verbose:
-                print(" lifted.")
+                status_print(f"{hostname}: quarantine lifted.")
                 if talk:
                     say("quarantine lifted")
         else:
@@ -565,7 +566,7 @@ def main(args, safe_mode=False):
             while True:
                 # print("0", end="", flush=True)
                 if safe_mode:
-                    status_print("WARNING: pre-quarantine not supported yet")
+                    status_print("TODO: pre-quarantine not supported yet")
 
                     # print(sr.remaining_hosts)
                     tl = list(sr.remaining_hosts)
@@ -598,7 +599,7 @@ def main(args, safe_mode=False):
             # print(" found.", flush=True)
             # bar.unpause()
 
-            status_print(f"{host}: starting")
+            status_print(f"starting {host}...")
             if args.talk:
                 say(f"starting {host}")
             try:
