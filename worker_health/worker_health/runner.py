@@ -21,18 +21,12 @@ import tomlkit
 
 from worker_health import quarantine, status, utils
 
-# TODO: alive_progress bar
+# user todos
+# TODO: remove need for fqdn-postfix arg
+#   - where to get this data from?
 # TODO: command to dump an empty state file in restore dir
-# TODO: progress/state tracking
-#   - how to do?
-#     - just ignore that commands could change between commands initially...
-#     - let users handle
-#   - statefile name 'sr_state', TOML
-#      - will have all run details and state
-#   - contents: current host, completed hosts
-#   - where: place in sr_directory... to resume, pass in that directory
 
-
+# developer todos
 # TODO: move these non-class functions to utils?
 
 
@@ -85,7 +79,7 @@ class CommandFailedException(Exception):
 
 class Runner:
     default_pre_quarantine_additional_host_count = 5
-    default_fqdn_postfix = ".test.releng.mdc1.mozilla.com"
+    default_fqdn_postfix = "test.releng.mdc1.mozilla.com"
     state_file_name = "runner_state.toml"
     # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
@@ -503,13 +497,13 @@ def main(args, safe_mode=False):
     # TODO: mention skipped hosts?
     try:
         print("run options:")
-        print(f"  command: {sr.command}")
         print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
-        print(f"  fqdn_postfix: {sr.fqdn_postfix}")
+        print(f"    fqdn_postfix: {sr.fqdn_postfix}")
         # TODO: mention talk, reboot, pre-quarantine count
         if safe_mode:
-            print(f"  provisioner: {sr.provisioner}")
-            print(f"  worker_type: {sr.worker_type}")
+            print(f"    TC provisioner: {sr.provisioner}")
+            print(f"    TC workerType: {sr.worker_type}")
+        print(f"  command: {sr.command}")
         print("")
     except AttributeError as e:
         print("FATAL: missing config value!?!")
@@ -567,7 +561,8 @@ def main(args, safe_mode=False):
             while True:
                 # print("0", end="", flush=True)
                 if safe_mode:
-                    print("TODO: support safe mode: pre-quarantine")
+                    status_print("WARNING: pre-quarantine not supported yet")
+
                     print(sr.remaining_hosts)
                     tl = list(sr.remaining_hosts)
                     pre_quarantine_hosts = tl[0 : (args.pre_quarantine_additional_host_count + 1)]
