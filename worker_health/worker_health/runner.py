@@ -428,6 +428,15 @@ def sr_print_banner():
     )
 
 
+def main(safe_mode=False):
+    # TODO: push arg handling into each bin script
+
+    if safe_mode:
+        sr_print_banner()
+    else:
+        ur_print_banner()
+
+
 def sr_main():
     parser = argparse.ArgumentParser(
         description=("runs a command against a set of hosts once " "they are quarantined and not working")
@@ -439,6 +448,12 @@ def sr_main():
         # custom action that removes the positional args
         action=ResumeAction,
         help="'sr_' run directory. causes positional arguments to be ignored.",
+    )
+    parser.add_argument(
+        "--do-not-randomize",
+        "-N",
+        action="store_true",
+        help="don't randomize host list",
     )
     parser.add_argument(
         "--talk",
