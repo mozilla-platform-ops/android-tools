@@ -72,6 +72,10 @@ class Status:
             hosts_checked.append(host)
             results = self.tc_h.get_worker_jobs(self.worker_type, worker_group, host)
             # pprint.pprint(results)
+            if "recentTasks" not in results:
+                # if no recent tasks, host is not running jobs
+                continue
+
             for result in results["recentTasks"]:
                 task_id = result["taskId"]
                 # pprint.pprint(task_id)

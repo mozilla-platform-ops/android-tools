@@ -18,7 +18,7 @@ import alive_progress
 import colorama
 import tomlkit
 
-from worker_health import utils
+from worker_health import quarantine, status, utils
 
 # TODO: alive_progress bar
 # TODO: command to dump an empty state file in restore dir
@@ -121,6 +121,10 @@ class Runner:
 
         # TODO: init to something else?
         self.hosts_to_skip = []
+
+        # instances
+        self.si = status.Status(provisioner, worker_type)
+        self.q = quarantine.Quarantine()
 
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
@@ -231,6 +235,7 @@ class Runner:
         verbose=True,
         talk=False,
         reboot_host=False,
+        quarantine_mode=False,
         dont_lift_quarantine=False,
         continue_on_failure=False,
     ):
@@ -238,6 +243,18 @@ class Runner:
         # TODO: ensure command has SR_HOST variable in it
         if "SR_HOST" not in command and "SR_FQDN" not in command:
             raise Exception("command doesn't have SR_HOST or SR_FQDN in it!")
+
+        # quarantine
+        # TODO: check if already quarantined and skip if so
+        if quarantine_mode:
+            if verbose:
+                status_print(f"{hostname}: adding to quarantine... ", end="")
+            self.q.quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
+            # TODO: verify?
+            if verbose:
+                print("quarantined.")
+                if talk:
+                    say("quarantined")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
@@ -347,7 +364,7 @@ class Runner:
                     say("rebooted")
 
         # lift quarantine
-        if not dont_lift_quarantine:
+        if quarantine_mode and not dont_lift_quarantine:
             if verbose:
                 status_print(f"{hostname}: lifting quarantine...", end="")
             self.q.lift_quarantine(self.provisioner, self.worker_type, [hostname], verbose=False)
@@ -537,7 +554,9 @@ def main(args, safe_mode=False):
                 # print("0", end="", flush=True)
                 if safe_mode:
                     print("TODO: support safe mode: pre-quarantine")
-                    pre_quarantine_hosts = sr.remaining_hosts[0 : (args.pre_quarantine_additional_host_count + 1)]
+                    print(sr.remaining_hosts)
+                    tl = list(sr.remaining_hosts)
+                    pre_quarantine_hosts = tl[0 : (args.pre_quarantine_additional_host_count + 1)]
                     idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=True)
                     status_print(f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}.")
 
@@ -567,7 +586,6 @@ def main(args, safe_mode=False):
             # print(" found.", flush=True)
             # bar.unpause()
 
-            # safe_run_single_host
             status_print(f"{host}: starting")
             if args.talk:
                 say(f"starting {host}")
@@ -577,6 +595,7 @@ def main(args, safe_mode=False):
                     sr.command,
                     talk=args.talk,
                     reboot_host=args.reboot_host,
+                    quarantine_mode=safe_mode,
                     dont_lift_quarantine=args.dont_lift_quarantine,
                     continue_on_failure=True,
                 )
