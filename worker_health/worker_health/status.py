@@ -22,14 +22,9 @@ class Status:
         self.provisioner = provisioner
         self.worker_type = worker_type
 
-        token_file_path = os.path.expanduser("~/.tc_token")
-        if os.path.exists(token_file_path):
-            with open(token_file_path) as json_file:
-                data = json.load(json_file)
-            creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
-        else:
-            print(f"WARNING: no token file exists or problem reading ({token_file_path})")
-            # TODO: what else to do if no file... raise when user tries to run query?
+        with open(os.path.expanduser("~/.tc_token")) as json_file:
+            data = json.load(json_file)
+        creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
 
         self.tc_wm = taskcluster.WorkerManager({"rootUrl": self.root_url, "credentials": creds})
         self.tc_h = tc_helpers.TCHelper(provisioner=self.provisioner)
