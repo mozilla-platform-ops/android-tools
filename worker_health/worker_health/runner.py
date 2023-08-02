@@ -107,7 +107,9 @@ class Runner:
         safe_mode=False,
         provisioner=None,
         worker_type=None,
+        test_mode=False,
     ):
+        self.safe_mode = safe_mode
         # required args
         self.command = command
         self.fqdn_postfix = fqdn_prefix
@@ -126,18 +128,25 @@ class Runner:
         # TODO: init to something else?
         self.hosts_to_skip = []
 
-        # instances
-        self.si = status.Status(provisioner, worker_type)
-        self.q = quarantine.Quarantine()
+        # create utility instances
+        self.si = None
+        self.q = None
+        if not test_mode:
+            self.instantiate_utility_instances()
 
         # for writing logs to a consistent dated dir
         self.start_datetime = datetime.datetime.now()
         self.run_dir = self.default_rundir_path
         self.state_file = self.default_state_file_path
 
+    def instantiate_utility_instances(self):
+        # instances
+        self.si = status.Status(self.provisioner, self.worker_type)
+        self.q = quarantine.Quarantine()
+
     # alternate constructor
     @classmethod
-    def from_resume(cls, resume_dir):
+    def from_resume(cls, resume_dir, test_mode=False):
         # open file and read
         resume_file = f"{resume_dir}/{Runner.state_file_name}"
 
@@ -175,10 +184,12 @@ class Runner:
                 hosts=data["state"]["remaining_hosts"],
                 command=data["config"]["command"],
                 fqdn_prefix=data["config"]["fqdn_prefix"],
+                test_mode=test_mode,
             )
         except tomlkit.exceptions.NonExistentKey as e:
             print(f"Missing required config file param: {str(e)}")
             sys.exit(1)
+
         # populate rest
         i.completed_hosts = data["state"]["completed_hosts"]
         i.skipped_hosts = data["state"]["skipped_hosts"]
@@ -186,6 +197,9 @@ class Runner:
         i.hosts_to_skip = data["config"]["hosts_to_skip"]
         i.run_dir = resume_dir
         i.state_file = f"{resume_dir}/{Runner.state_file_name}"
+        # create utility instances
+        if not test_mode:
+            i.instantiate_utility_instances()
         return i
 
     @property
