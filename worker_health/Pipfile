@@ -29,4 +29,3 @@ humanhash3 = "*"
 colorama = "*"
 tomlkit = "*"
 alive-progress = "*"
-exceptiongroup = "*"  # needed temp for https://groups.google.com/g/linux.debian.bugs.dist/c/ZLC-6pzdNF0
