@@ -8,9 +8,10 @@ verify_ssl = true
 #python_version = "3.6"
 
 [dev-packages]
+pre-commit = "*"
 pyflakes = "*"
 pytest = "*"
-pre-commit = "*"
+pytest-mock = "*"
 pytest-watch = "*"
 relops-worker-tools = {editable = true, path = "."}
 pytest-cov = "*"
