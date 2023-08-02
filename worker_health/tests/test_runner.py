@@ -23,6 +23,12 @@ def datadir(tmpdir, request):
 
 
 def test_get_host_counts_general(datadir):
-    confdir_1 = datadir.join("general")
-    r = runner.Runner.from_resume(confdir_1)
-    assert r.get_host_counts() == {"completed": 3, "failed": 0, "remaining": 0, "total": 4, "to_skip": 1}
+    confdir = datadir.join("general")
+    r = runner.Runner.from_resume(confdir)
+    assert r.get_host_counts() == {"skipped": 0, "completed": 3, "failed": 0, "remaining": 0, "total": 3, "to_skip": 1}
+
+
+def test_get_host_counts_general2(datadir):
+    confdir = datadir.join("general2")
+    r = runner.Runner.from_resume(confdir)
+    assert r.get_host_counts() == {"skipped": 1, "completed": 1, "failed": 1, "remaining": 4, "total": 7, "to_skip": 1}

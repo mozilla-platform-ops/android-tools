@@ -95,6 +95,7 @@ class Runner:
             "remaining_hosts": [],
             "failed_hosts": [],
             "completed_hosts": [],
+            "skipped_hosts": [],
         },
     }
 
@@ -118,6 +119,7 @@ class Runner:
         # self._config_toml = {}
         # state
         self.completed_hosts = []
+        self.skipped_hosts = []
         self.failed_hosts = []
         self.remaining_hosts = hosts
 
@@ -165,15 +167,6 @@ class Runner:
         except tomlkit.exceptions.NonExistentKey:
             raise Exception(f"invalid file format in '{resume_file}'")
 
-        # filter out skipped hosts
-        # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from
-        #   remaining_hosts... mutate this because it's a special tomlkit
-        #   datastructure (preserves formatting)
-        for h in data["state"]["remaining_hosts"]:
-            if h in data["config"]["hosts_to_skip"]:
-                data["state"]["remaining_hosts"].remove(h)
-                # remaining_hosts_without_hosts_to_skip.append(h)
-
         # create class with minimum params
         try:
             i = cls(
@@ -188,6 +181,7 @@ class Runner:
             sys.exit(1)
         # populate rest
         i.completed_hosts = data["state"]["completed_hosts"]
+        i.skipped_hosts = data["state"]["skipped_hosts"]
         i.failed_hosts = data["state"]["failed_hosts"]
         i.hosts_to_skip = data["config"]["hosts_to_skip"]
         i.run_dir = resume_dir
@@ -204,8 +198,6 @@ class Runner:
     def default_state_file_path(self):
         return f"{self.default_rundir_path}/{Runner.state_file_name}"
 
-    # TODO: store a list of skipped hosts
-
     def get_host_counts(self):
         # lists
         remaining_hosts = list(self.remaining_hosts)
@@ -213,23 +205,21 @@ class Runner:
         #  (i.e. this should be true: completed = successful + failed)
         #   - code treats this as 'successful hosts', rename everywhere
         completed_hosts = list(self.completed_hosts)
+        skipped_hosts = list(self.skipped_hosts)
         failed_hosts = list(self.failed_hosts)
         to_skip_hosts = list(self.hosts_to_skip)
 
         # counts
-        total_host_count = len(
-            # TODO: need to add failed for correct counts
-            set(remaining_hosts)
-            .union(set(completed_hosts))
-            # TODO: QUESTION: should skipped be included in total?
-            #  - if it's an invalid host or not in remaining/completed/failed then count is wrong
-            .union(set(to_skip_hosts))
-            .union(set(failed_hosts)),
-        )
+        # TODO: QUESTION: should skipped be included in total?
+        #  - if it's an invalid host or not in remaining/completed/failed then count is wrong
+        #  - no, skipped is better...?
+        total_set = set(remaining_hosts).union(set(completed_hosts)).union(set(skipped_hosts)).union(set(failed_hosts))
+        total_host_count = len(total_set)
 
         # build result object
         result_obj = {}
         result_obj["total"] = total_host_count
+        result_obj["skipped"] = len(skipped_hosts)
         result_obj["to_skip"] = len(to_skip_hosts)
         result_obj["remaining"] = len(remaining_hosts)
         # TODO: BIG: rename 'completed hosts' to 'successful hosts'
@@ -265,6 +255,7 @@ class Runner:
         data["state"]["completed_hosts"] = self.completed_hosts
         data["state"]["failed_hosts"] = self.failed_hosts
         data["state"]["remaining_hosts"] = self.remaining_hosts
+        data["state"]["skipped_hosts"] = self.skipped_hosts
 
         # write
         with open(self.state_file, "w") as f:
@@ -558,8 +549,8 @@ def main(args, safe_mode=False):
     try:
         print("run options:")
         print(
-            f"  hosts: {total_host_count} total, {host_counts['to_skip']} skipping, "
-            f"{host_counts['completed']} successful, "
+            f"  hosts: {total_host_count} total, {host_counts['to_skip']} to skip, "
+            f"{host_counts['skipped']} skipped, {host_counts['completed']} successful, "
             f"{host_counts['failed']} failed, {len(remaining_hosts)} remaining",
         )
         if len(sr.hosts_to_skip) != 0:
@@ -602,10 +593,19 @@ def main(args, safe_mode=False):
     # TODO: make a more-intelligent multi-host version...
     #   - this will wait on current host if not drained
     #       (when other hosts in pre-quarantine group are ready)
-    host_total = len(sr.remaining_hosts)
     global terminate
     terminate = 0
     # print(list(sr.remaining_hosts))
+
+    # filter out skipped hosts
+    # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from
+    #   remaining_hosts... mutate this because it's a special tomlkit
+    #   datastructure (preserves formatting)
+    for h in sr.remaining_hosts:
+        if h in sr.hosts_to_skip:
+            sr.remaining_hosts.remove(h)
+            sr.skipped_hosts.append(h)
+    sr.checkpoint_toml()
 
     # TODO: stop doing this, just cast to list where needed?
     #   - can't because we need to persist the non-list
@@ -614,9 +614,9 @@ def main(args, safe_mode=False):
     # failed_hosts = list(sr.failed_hosts)
 
     host_counts = sr.get_host_counts()
-    total_host_count = host_counts["total"]
+    # host_total = host_counts["total"]
 
-    with alive_progress.alive_bar(total=total_host_count, enrich_print=False, stats=False) as bar:
+    with alive_progress.alive_bar(total=host_counts["remaining"], enrich_print=False, stats=False) as bar:
         while remaining_hosts:
             remaining_hosts = list(sr.remaining_hosts)
 
@@ -703,7 +703,8 @@ def main(args, safe_mode=False):
             remaining_hosts = list(sr.remaining_hosts)
             status_print(f"completed {host}")
             status_print(
-                f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): " f"{', '.join(sr.remaining_hosts)}",
+                f"hosts remaining ({len(sr.remaining_hosts)}/{host_counts['remaining']}): "
+                f"{', '.join(sr.remaining_hosts)}",
             )
             if args.talk:
                 # say(f"completed {host}.")
