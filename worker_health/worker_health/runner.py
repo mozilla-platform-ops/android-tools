@@ -87,6 +87,8 @@ class Runner:
             "command": "ssh SR_HOST.SR_FQDN",
             "hosts_to_skip": [],
             "fqdn_prefix": "",
+            "provisioner": "",
+            "worker_type": "",
         },
         "state": {
             "remaining_hosts": [],
@@ -137,7 +139,9 @@ class Runner:
         resume_file = f"{resume_dir}/{Runner.state_file_name}"
 
         if not os.path.exists(resume_file):
-            # write emtpy file
+            # create dir
+            utils.mkdir_p(resume_dir)
+            # write empty file
             # TODO: verify user wants this
             print("no state file found in directory, creating empty file and exiting...")
             with open(resume_file, "w") as f:
@@ -515,6 +519,13 @@ def main(args, safe_mode=False):
         print("FATAL: missing config value!?!")
         print(f"  {e}")
         sys.exit(1)
+
+    # TODO: sanity check
+    #  - check that there are hosts to work on
+    if len(sr.remaining_hosts) == 0:
+        print("No hosts to work on. Exiting...")
+        sys.exit(0)
+
     print("Does this look correct? Type 'yes' to proceed: ", end="")
     user_input = input()
     if user_input != "yes":
