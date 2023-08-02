@@ -565,22 +565,37 @@ def main(args, safe_mode=False):
             exit_while = False
             # bar.pause()
             while True:
-                # print("0", end="", flush=True)
-                if safe_mode:
-                    status_print("TODO: pre-quarantine not supported yet")
-
-                    # print(sr.remaining_hosts)
-                    tl = list(sr.remaining_hosts)
-                    pre_quarantine_hosts = tl[0 : (args.pre_quarantine_additional_host_count + 1)]
-                    idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
-                    status_print(f"idle pre-quarantined hosts found: {', '.join(idle_hosts)}.")
-
-                    remaining_hosts = idle_hosts
-                    status_print("TODO: support safe mode: wait for idle hosts (vs remaining)")
-
                 # randomize host list
                 if not args.do_not_randomize:
+                    # this modifies in place
                     random.shuffle(remaining_hosts)
+
+                if safe_mode:
+                    # TODO: pre quarantine hosts
+                    if args.pre_quarantine_additional_host_count:
+                        status_print("WARN: pre-quarantine is experimental still")
+
+                        # select list of hosts
+                        temp_list = remaining_hosts
+                        pre_quarantine_hosts = temp_list[0 : (args.pre_quarantine_additional_host_count + 1)]
+
+                        status_print(f"pre-quarantine: adding to quarantine: {pre_quarantine_hosts}")
+                        for pqh in pre_quarantine_hosts:
+                            try:
+                                sr.q.quarantine(sr.provisioner, sr.worker_type, [pqh], verbose=False)
+                            except taskcluster.exceptions.TaskclusterRestFailure:
+                                status_print(f"no TC record of {pqh}, skipping pre-quarantine...")
+                        status_print(f"pre-quarantine: quarantined {len(pre_quarantine_hosts)} hosts")
+                        if args.talk:
+                            say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+
+                    status_print("looking for hosts idle on TC...")
+                    idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
+                    status_print(f"TC idle hosts found: {', '.join(idle_hosts)}.")
+
+                    # override value of remaining hosts to be our pre-qualified hosts
+                    remaining_hosts = idle_hosts
+                    status_print("TODO: support safe mode: wait for idle hosts (vs remaining)")
 
                 status_print("waiting for ssh-able hosts... ")
                 for i_host in remaining_hosts:
