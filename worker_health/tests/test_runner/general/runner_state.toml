@@ -1,0 +1,22 @@
+[config]
+provisioner = "releng-hardware"
+worker_type = "gecko-t-osx-1015-r8"
+command = "ssh SR_HOST.SR_FQDN echo monkey"
+hosts_to_skip = [
+        'macmini-r8-9',
+]
+fqdn_prefix = "test.releng.mdc1.mozilla.com"
+
+
+[state]
+remaining_hosts = [
+]
+
+completed_hosts = [
+    'macmini-r8-7',
+    'macmini-r8-8',
+    'macmini-r8-4'
+]
+failed_hosts = [
+
+]

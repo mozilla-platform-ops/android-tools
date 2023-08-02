@@ -25,6 +25,7 @@ from worker_health import quarantine, status, utils
 # TODO: remove need for fqdn-postfix arg
 #   - where to get this data from?
 # TODO: command to dump an empty state file in restore dir
+#   - currrent mechanic of specifying dir without state file is... interesting
 
 # developer todos
 # TODO: move these non-class functions to utils?
@@ -202,6 +203,40 @@ class Runner:
     @property
     def default_state_file_path(self):
         return f"{self.default_rundir_path}/{Runner.state_file_name}"
+
+    # TODO: store a list of skipped hosts
+
+    def get_host_counts(self):
+        # lists
+        remaining_hosts = list(self.remaining_hosts)
+        # TODO: BIG: rename 'completed hosts' to 'successful hosts'
+        #  (i.e. this should be true: completed = successful + failed)
+        #   - code treats this as 'successful hosts', rename everywhere
+        completed_hosts = list(self.completed_hosts)
+        failed_hosts = list(self.failed_hosts)
+        to_skip_hosts = list(self.hosts_to_skip)
+
+        # counts
+        total_host_count = len(
+            # TODO: need to add failed for correct counts
+            set(remaining_hosts)
+            .union(set(completed_hosts))
+            # TODO: QUESTION: should skipped be included in total?
+            #  - if it's an invalid host or not in remaining/completed/failed then count is wrong
+            .union(set(to_skip_hosts))
+            .union(set(failed_hosts)),
+        )
+
+        # build result object
+        result_obj = {}
+        result_obj["total"] = total_host_count
+        result_obj["remaining"] = len(remaining_hosts)
+        # TODO: BIG: rename 'completed hosts' to 'successful hosts'
+        #  (i.e. this should be true: completed = successful + failed)
+        #   - code treats this as 'successful hosts', rename everywhere
+        result_obj["completed"] = len(completed_hosts)
+        result_obj["failed_hosts"] = len(failed_hosts)
+        return result_obj
 
     def write_initial_toml(self):
         # populate data
