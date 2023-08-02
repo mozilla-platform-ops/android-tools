@@ -631,7 +631,7 @@ def main(args, safe_mode=False):
             # update this so this exits
             # TODO: remove need for remaining_hosts... feels gross
             remaining_hosts = list(sr.remaining_hosts)
-            status_print(f"{host}: complete")
+            status_print(f"completed {host}")
             status_print(
                 f"hosts remaining ({len(sr.remaining_hosts)}/{host_total}): " f"{', '.join(sr.remaining_hosts)}",
             )
