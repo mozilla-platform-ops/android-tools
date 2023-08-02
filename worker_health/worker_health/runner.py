@@ -301,7 +301,7 @@ class Runner:
                     if talk:
                         say("quarantined")
             except taskcluster.exceptions.TaskclusterRestFailure:
-                status_print(f"no TC record of {hostname}, skipping quarantine...")
+                status_print(f"no TC record of {hostname}, can't quarantine.")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
@@ -656,7 +656,6 @@ def main(args, safe_mode=False):
 
                     # override value of remaining hosts to be our pre-qualified hosts
                     remaining_hosts = idle_hosts
-                    status_print("TODO: support safe mode: wait for idle hosts (vs remaining)")
 
                 status_print("waiting for ssh-able hosts... ")
                 for i_host in remaining_hosts:
