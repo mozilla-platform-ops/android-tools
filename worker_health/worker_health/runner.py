@@ -521,7 +521,6 @@ def sr_print_banner():
 
 # TODO: should exit immediately when waiting, requires two frequently
 #    - need more checks for exit state (vs just at end)
-# TODO: rework how alive progress bars work... off at times
 def main(args, safe_mode=False):
     if safe_mode:
         name_string = "safe runner"
@@ -611,17 +610,14 @@ def main(args, safe_mode=False):
     # TODO: stop doing this, just cast to list where needed?
     #   - can't because we need to persist the non-list
     remaining_hosts = list(sr.remaining_hosts)
-    completed_hosts = list(sr.completed_hosts)
-    failed_hosts = list(sr.failed_hosts)
+    # completed_hosts = list(sr.completed_hosts)
+    # failed_hosts = list(sr.failed_hosts)
 
     host_counts = sr.get_host_counts()
     total_host_count = host_counts["total"]
 
     # TODO: should bar length be total hosts or remaining hosts?
     with alive_progress.alive_bar(total=total_host_count, enrich_print=False, stats=False) as bar:
-        # init bar count
-        bar(len(completed_hosts) + len(failed_hosts))
-
         while remaining_hosts:
             remaining_hosts = list(sr.remaining_hosts)
 
