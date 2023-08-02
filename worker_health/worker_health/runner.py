@@ -261,7 +261,7 @@ class Runner:
                     if talk:
                         say("quarantined")
             except taskcluster.exceptions.TaskclusterRestFailure:
-                status_print(f"INFO: safe_run_single_host: no TC record of {hostname}, skipping quarantine...")
+                status_print(f"no TC record of {hostname}, skipping quarantine...")
 
         # TODO: check that nc is present first
         # if we waited, the host just finished a job and is probably rebooting, so
