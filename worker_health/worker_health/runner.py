@@ -601,10 +601,13 @@ def main(args, safe_mode=False):
     # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from
     #   remaining_hosts... mutate this because it's a special tomlkit
     #   datastructure (preserves formatting)
+    removal_count = 0
     for h in sr.remaining_hosts:
         if h in sr.hosts_to_skip:
+            removal_count += 1
             sr.remaining_hosts.remove(h)
             sr.skipped_hosts.append(h)
+    status_print(f"removed {removal_count} host(s) due to skip list")
     sr.checkpoint_toml()
 
     # TODO: stop doing this, just cast to list where needed?
