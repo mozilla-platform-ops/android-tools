@@ -591,7 +591,7 @@ def main(args, safe_mode=False):
 
                     status_print("looking for hosts idle on TC...")
                     idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
-                    status_print(f"TC idle hosts found: {', '.join(idle_hosts)}.")
+                    status_print(f"idle hosts: {', '.join(idle_hosts)}.")
 
                     # override value of remaining hosts to be our pre-qualified hosts
                     remaining_hosts = idle_hosts
