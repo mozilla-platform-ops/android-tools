@@ -616,7 +616,6 @@ def main(args, safe_mode=False):
     host_counts = sr.get_host_counts()
     total_host_count = host_counts["total"]
 
-    # TODO: should bar length be total hosts or remaining hosts?
     with alive_progress.alive_bar(total=total_host_count, enrich_print=False, stats=False) as bar:
         while remaining_hosts:
             remaining_hosts = list(sr.remaining_hosts)
