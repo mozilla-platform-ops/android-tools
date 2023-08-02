@@ -141,7 +141,12 @@ class Runner:
 
     def instantiate_utility_instances(self):
         # instances
-        self.si = status.Status(self.provisioner, self.worker_type)
+        try:
+            self.si = status.Status(self.provisioner, self.worker_type)
+        except FileNotFoundError as e:
+            print("FATAL: exception caught.")
+            print(f"  {e}")
+            sys.exit(1)
         self.q = quarantine.Quarantine()
 
     # alternate constructor
