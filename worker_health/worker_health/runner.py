@@ -582,10 +582,8 @@ def main(args, safe_mode=False):
                     random.shuffle(remaining_hosts)
 
                 if safe_mode:
-                    # TODO: pre quarantine hosts
+                    # pre quarantine hosts
                     if args.pre_quarantine_additional_host_count:
-                        status_print("WARN: pre-quarantine is experimental still")
-
                         # select list of hosts
                         temp_list = remaining_hosts
                         pre_quarantine_hosts = temp_list[0 : (args.pre_quarantine_additional_host_count + 1)]
