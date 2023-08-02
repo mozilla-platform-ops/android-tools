@@ -230,6 +230,7 @@ class Runner:
         # build result object
         result_obj = {}
         result_obj["total"] = total_host_count
+        result_obj["to_skip"] = len(to_skip_hosts)
         result_obj["remaining"] = len(remaining_hosts)
         # TODO: BIG: rename 'completed hosts' to 'successful hosts'
         #  (i.e. this should be true: completed = successful + failed)
