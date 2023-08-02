@@ -447,7 +447,8 @@ def ur_print_banner():
     # looks strange as first line is indented
     print(
         colorama.Style.BRIGHT
-        + """                                            .o88o.
+        + r"""
+                                            .o88o.
                                             888 `"
 oooo  oooo  ooo. .oo.    .oooo.o  .oooo.   o888oo   .ooooo.
 `888  `888  `888P"Y88b  d88(  "8 `P  )88b   888    d88' `88b
@@ -460,21 +461,24 @@ oooo d8b oooo  oooo  ooo. .oo.   ooo. .oo.    .ooooo.  oooo d8b
  888      888   888   888   888   888   888  888ooo888  888
  888      888   888   888   888   888   888  888    .o  888
 d888b     `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' d888b
-"""  # noqa: W605
+"""
         + colorama.Style.RESET_ALL,
     )
 
 
 def sr_print_banner():
     # from `figlet -f smslant safe runner`
-    # looks strange as first line is indented
+
     print(
         colorama.Style.BRIGHT
-        + """            ___
+        + r"""
+            ___
   ___ ___ _/ _/__   ______ _____  ___  ___ ____
  (_-</ _ `/ _/ -_) / __/ // / _ \/ _ \/ -_) __/
 /___/\_,_/_/ \__/ /_/  \_,_/_//_/_//_/\__/_/
-"""  # noqa: W605
+        """.lstrip(
+            "\n",
+        )
         + colorama.Style.RESET_ALL,
     )
 
