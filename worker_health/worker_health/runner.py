@@ -236,7 +236,7 @@ class Runner:
         #  (i.e. this should be true: completed = successful + failed)
         #   - code treats this as 'successful hosts', rename everywhere
         result_obj["completed"] = len(completed_hosts)
-        result_obj["failed_hosts"] = len(failed_hosts)
+        result_obj["failed"] = len(failed_hosts)
         return result_obj
 
     def write_initial_toml(self):
@@ -541,13 +541,32 @@ def main(args, safe_mode=False):
         print(f"state file (resumed): {sr.state_file}")
 
     # TODO: config check
-    #   - catch missing data before try/catch below
+    #   idea: catch missing data before try/catch below
+
+    remaining_hosts = list(sr.remaining_hosts)
+    # TODO: BIG: rename 'completed hosts' to 'successful hosts'
+    #  (i.e. this should be true: completed = successful + failed)
+    #   - code treats this as 'successful hosts', rename everywhere
+    # completed_hosts = list(sr.completed_hosts)
+    # failed_hosts = list(sr.failed_hosts)
+    # to_skip_hosts = list(sr.hosts_to_skip)
+
+    host_counts = sr.get_host_counts()
+    total_host_count = host_counts["total"]
 
     # get user to ack what we're about to do
     # TODO: mention skipped hosts?
     try:
         print("run options:")
-        print(f"  hosts ({len(sr.remaining_hosts)}): {', '.join(sr.remaining_hosts)}")
+        print(
+            f"  hosts: {total_host_count} total, {host_counts['to_skip']} skipping, "
+            f"{host_counts['completed']} successful, "
+            f"{host_counts['failed']} failed, {len(remaining_hosts)} remaining",
+        )
+        if len(sr.hosts_to_skip) != 0:
+            print(f"    skipping: {', '.join(sr.hosts_to_skip)}")
+        print(f"    remaining: {', '.join(sr.remaining_hosts)}")
+        # TODO: show more detail here (counts of each type)
         print(f"    fqdn_postfix: {sr.fqdn_postfix}")
         # TODO: mention talk, reboot, pre-quarantine count
         if safe_mode:
@@ -594,24 +613,17 @@ def main(args, safe_mode=False):
     remaining_hosts = list(sr.remaining_hosts)
     completed_hosts = list(sr.completed_hosts)
     failed_hosts = list(sr.failed_hosts)
-    skipped_hosts = list(sr.hosts_to_skip)
-    total_hosts = len(
-        # TODO: need to add failed for correct counts
-        set(remaining_hosts)
-        .union(set(completed_hosts))
-        .union(set(skipped_hosts))
-        .union(set(failed_hosts)),
-    )
+
+    host_counts = sr.get_host_counts()
+    total_host_count = host_counts["total"]
 
     # TODO: should bar length be total hosts or remaining hosts?
-    with alive_progress.alive_bar(total=total_hosts, enrich_print=False, stats=False) as bar:
+    with alive_progress.alive_bar(total=total_host_count, enrich_print=False, stats=False) as bar:
         # init bar count
         bar(len(completed_hosts) + len(failed_hosts))
 
         while remaining_hosts:
             remaining_hosts = list(sr.remaining_hosts)
-            completed_hosts = list(sr.completed_hosts)
-            failed_hosts = list(sr.failed_hosts)
 
             exit_while = False
             # bar.pause()
