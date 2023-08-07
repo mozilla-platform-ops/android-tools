@@ -442,14 +442,12 @@ class Runner:
 # from stack overflow
 def remove_argument(a_parser, arg):
     for action in a_parser._actions:
-        # print(action)
         opts = action.option_strings
         if (opts and opts[0] == arg) or action.dest == arg:
             a_parser._remove_action(action)
             break
 
     for action in a_parser._action_groups:
-        # print(action)
         for group_action in action._group_actions:
             if group_action.dest == arg:
                 action._group_actions.remove(group_action)
@@ -550,15 +548,12 @@ def main(args, safe_mode=False):
         print(f"state file (resumed): {sr.state_file}")
 
     # TODO: config check
-    #   idea: catch missing data before try/catch below
+    #   - idea: catch missing data before try/catch below
 
     remaining_hosts = list(sr.remaining_hosts)
     # TODO: BIG: rename 'completed hosts' to 'successful hosts'
     #  (i.e. this should be true: completed = successful + failed)
     #   - code treats this as 'successful hosts', rename everywhere
-    # completed_hosts = list(sr.completed_hosts)
-    # failed_hosts = list(sr.failed_hosts)
-    # to_skip_hosts = list(sr.hosts_to_skip)
 
     host_counts = sr.get_host_counts()
     total_host_count = host_counts["total"]
@@ -614,7 +609,6 @@ def main(args, safe_mode=False):
     #       (when other hosts in pre-quarantine group are ready)
     global terminate
     terminate = 0
-    # print(list(sr.remaining_hosts))
 
     # filter out skipped hosts
     # TODO: 'hosts_to_skip' is pretty silly, just removes hosts from
@@ -632,8 +626,6 @@ def main(args, safe_mode=False):
     # TODO: stop doing this, just cast to list where needed?
     #   - can't because we need to persist the non-list
     remaining_hosts = list(sr.remaining_hosts)
-    # completed_hosts = list(sr.completed_hosts)
-    # failed_hosts = list(sr.failed_hosts)
 
     host_counts = sr.get_host_counts()
     # host_total = host_counts["total"]
@@ -676,7 +668,6 @@ def main(args, safe_mode=False):
 
                 status_print("waiting for ssh-able hosts... ")
                 for i_host in remaining_hosts:
-                    # print(".", end="", flush=True)
                     i_host_fqdn = get_fully_qualified_hostname(i_host, sr.fqdn_postfix)
                     status_print(f"checking for ssh: {i_host_fqdn}...")
                     if host_is_sshable(i_host_fqdn):
@@ -685,7 +676,6 @@ def main(args, safe_mode=False):
                         break
                 if exit_while:
                     break
-                # print("Z", end="", flush=True)
                 sleep_time = 60
                 status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
                 time.sleep(sleep_time)
