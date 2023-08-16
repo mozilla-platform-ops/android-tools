@@ -9,6 +9,3 @@ pyflakes = "*"
 [packages]
 toml = "==0.10.0"
 pdpyras = "==3.1.1"
-
-[requires]
-python_version = "3.9"

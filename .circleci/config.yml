@@ -4,7 +4,7 @@ orbs:
 jobs:
   pre_commit:
     docker:
-      - image: cimg/python:3.9.1
+      - image: cimg/python:3.11.4
     steps:
       - checkout
       - run: sudo apt-get update
@@ -13,7 +13,7 @@ jobs:
       - run: pre-commit run --all-files --verbose
   test_worker_health:
     docker:
-      - image: cimg/python:3.9.1
+      - image: cimg/python:3.11.4
     executor: python/default
     steps:
       - checkout
@@ -25,7 +25,7 @@ jobs:
       - run: cd worker_health && pipenv run pyflakes *.py
   test_last_started:
     docker:
-      - image: cimg/python:3.9.1
+      - image: cimg/python:3.11.4
     executor: python/default
     steps:
       - checkout
