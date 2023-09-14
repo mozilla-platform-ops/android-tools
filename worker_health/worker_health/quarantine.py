@@ -20,30 +20,23 @@ class Quarantine:
             data = json.load(json_file)
         creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
 
-        self.tc_queue = taskcluster.Queue(
-            {"rootUrl": self.root_url, "credentials": creds}
-        )
+        self.tc_queue = taskcluster.Queue({"rootUrl": self.root_url, "credentials": creds})
 
     def quarantine(
         self,
         provisioner_id,
         worker_type,
         host_arr,
-        reason="worker-health api call",
+        reason="worker-health api call: quarantine",
         duration="10 years",
         verbose=True,
     ):
         # TODO: if host is already quarantined, short-circuit and return
 
         # try to detect worker group
-        wgs = self.get_worker_groups(
-            provisioner=provisioner_id, worker_type=worker_type
-        )
+        wgs = self.get_worker_groups(provisioner=provisioner_id, worker_type=worker_type)
         if len(wgs) > 1:
-            raise Exception(
-                "can't guess workerGroup, multiple present. "
-                "support not implemented yet."
-            )
+            raise Exception("can't guess workerGroup, multiple present. " "support not implemented yet.")
         worker_group = wgs[0]
 
         for a_host in host_arr:
@@ -75,7 +68,7 @@ class Quarantine:
         provisioner,
         worker_type,
         device_arr,
-        reason="worker-health api call",
+        reason="worker-health api call: lifting quarantine",
         verbose=True,
     ):
         # TODO: catch exception and wrap?
@@ -109,9 +102,7 @@ class Quarantine:
         # ipdb.set_trace()
 
         i = 0
-        outcome = self.tc_queue.listWorkers(
-            provisioner, worker_type, query={"quarantined": "true"}
-        )
+        outcome = self.tc_queue.listWorkers(provisioner, worker_type, query={"quarantined": "true"})
         while outcome.get("continuationToken"):
             # print('more...')
             if outcome.get("continuationToken"):

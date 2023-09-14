@@ -12,38 +12,53 @@ def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-r", "--reason", help="reason why action was taken, stored by TC"
-    )
+
     parser.add_argument("provisioner")
     parser.add_argument("worker_type")
-    parser.add_argument(
-        "action",
-        choices=["lift", "quarantine", "show", "show-all"],
-        help="action to do",
-    )
-    parser.add_argument("action_options", nargs="?")
+
+    sub_parsers = parser.add_subparsers(help="action to take:", dest="action")
+
+    # show
+    parser_show = sub_parsers.add_parser("show", help="show quarantined hosts")
+    # show-all
+    parser_show_all = sub_parsers.add_parser("show-all", help="show all hosts in a pool")
+    # quarantine
+    parser_quarantine = sub_parsers.add_parser("quarantine", help="quarantine a set of hosts")
+    parser_quarantine.add_argument("-r", "--reason", help="why the instance is being quarantined")
+    parser_quarantine.add_argument("hosts", nargs="?")
+    # lift
+    parser_lift = sub_parsers.add_parser("lift", help="lift the quarantine on a set of hosts")
+    parser_lift.add_argument("-r", "--reason", help="why the quarantine is being lifted")
+    parser_lift.add_argument("hosts", nargs="?")
+
     args = parser.parse_args()
+
+    # import pprint
+    # import sys
+    # pprint.pprint(args)
+    # sys.exit(1)
 
     if args.action == "quarantine":
         if args.action_options is None:
             parser.error("you must specify a comma-separated string of hosts")
         host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
-        q.quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
+        if args.reason:
+            q.quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
+        else:
+            q.quarantine(args.provisioner, args.worker_type, host_arr)
     elif args.action == "lift":
         if args.action_options is None:
             parser.error("you must specify a comma-separated string of hosts")
         host_arr = args.action_options.split(",")
         q = quarantine.Quarantine()
-        q.lift_quarantine(
-            args.provisioner, args.worker_type, host_arr, reason=args.reason
-        )
+        if args.reason:
+            q.lift_quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
+        else:
+            q.lift_quarantine(args.provisioner, args.worker_type, host_arr)
     elif args.action == "show":
         q = quarantine.Quarantine()
-        results = q.get_quarantined_workers(
-            provisioner=args.provisioner, worker_type=args.worker_type
-        )
+        results = q.get_quarantined_workers(provisioner=args.provisioner, worker_type=args.worker_type)
         if not results:
             print("no results")
         else:
