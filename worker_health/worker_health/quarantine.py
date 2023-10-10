@@ -36,7 +36,9 @@ class Quarantine:
         # try to detect worker group
         wgs = self.get_worker_groups(provisioner=provisioner_id, worker_type=worker_type)
         if len(wgs) > 1:
-            raise Exception("can't guess workerGroup, multiple present. " "support not implemented yet.")
+            raise Exception("can't guess workerGroup, multiple present. support not implemented yet.")
+        if len(wgs) == 0:
+            raise Exception(f"couldn't find a matching workerType ('{worker_type}')!")
         worker_group = wgs[0]
 
         for a_host in host_arr:
