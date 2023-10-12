@@ -188,6 +188,7 @@ class Runner:
                 worker_type=data["config"]["worker_type"],
                 hosts=data["state"]["remaining_hosts"],
                 command=data["config"]["command"],
+                # TODO: rename this to fqdn postfix, requires major version change though...
                 fqdn_prefix=data["config"]["fqdn_prefix"],
                 test_mode=test_mode,
             )
