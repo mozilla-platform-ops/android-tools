@@ -1,10 +1,10 @@
 [config]
-provisioner = "releng-hardware"
-worker_type = "gecko-t-osx-1015-r8"
-command = "ssh SR_HOST.SR_FQDN echo monkey"
-hosts_to_skip = [    'macmini-r8-222'
+provisioner = "releng-hardware999"
+worker_type = "gecko-t-banana"
+command = "ssh SR_HOST.SR_FQDN echo FUN FUN FUN"
+hosts_to_skip = [    'macmini-r8-222', 'macmini-r8-391'
 ]
-fqdn_prefix = "test.releng.mdc1.mozilla.com"
+fqdn_prefix = "test.releng.mdc1.mozilla.comzzz"
 
 
 [state]

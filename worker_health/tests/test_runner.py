@@ -34,12 +34,7 @@ def test_get_host_counts_general(datadir):
 def test_get_host_counts_general2(datadir):
     confdir = datadir.join("general2")
     r = runner.Runner.from_resume(confdir, test_mode=True)
-    assert r.get_host_counts() == {"skipped": 1, "completed": 1, "failed": 1, "remaining": 4, "total": 7, "to_skip": 1}
-
-
-def test_load_state(datadir):
-    # test_get_host_counts_* test this
-    pass
+    assert r.get_host_counts() == {"skipped": 1, "completed": 1, "failed": 1, "remaining": 4, "total": 7, "to_skip": 2}
 
 
 def test_load_config(datadir):
@@ -50,3 +45,13 @@ def test_load_config(datadir):
     assert r.command == "ssh SR_HOST.SR_FQDN echo monkey"
     assert r.hosts_to_skip == ["macmini-r8-9"]
     assert r.fqdn_postfix == "test.releng.mdc1.mozilla.com"
+
+
+def test_load_config2(datadir):
+    confdir = datadir.join("general2")
+    r = runner.Runner.from_resume(confdir, test_mode=True)
+    assert r.provisioner == "releng-hardware999"
+    assert r.worker_type == "gecko-t-banana"
+    assert r.command == "ssh SR_HOST.SR_FQDN echo FUN FUN FUN"
+    assert r.hosts_to_skip == ["macmini-r8-222", "macmini-r8-391"]
+    assert r.fqdn_postfix == "test.releng.mdc1.mozilla.comzzz"
