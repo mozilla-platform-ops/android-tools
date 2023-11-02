@@ -8,6 +8,8 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 
 ## steps
 
+Commands should be run in this directory unless otherwise noted (some are run in a mozilla-central hg client).
+
 - edit common.sh to point to your mozilla-central client
 - update the mozilla-central client that the configuration points at
   - `hg pull`
@@ -55,7 +57,8 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
     - make separate diffs for mac, linux, and windows
     - e.g. `hg commit -m 'Bug XYZ: update linux hostutils'
 - create phabricator diff
-  - `moz-phab --no-wip` (or `arc diff` in a pinch)
+  - in mozilla-central hg client
+    - `moz-phab --no-wip` (or `arc diff` in a pinch)
 - run tests
   - see reference doc
   - add the treeherder link to the phab review
