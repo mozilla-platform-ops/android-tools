@@ -64,8 +64,8 @@ Commands should be run in this directory unless otherwise noted (some are run in
   - add the treeherder link to the phab review
   - inspect tests
   - request reviews
-    - linux and mac: gbrown (and requestor if PR-based)
-    - win: gbrown (and requestor if PR-based) (mkato initially requested, but not active)
+    - linux and mac: requestor
+    - win: requestor (mkato initially requested, but not active)
 - repeat for other operating systems from 'run the build script' step
 
 ## TODO
