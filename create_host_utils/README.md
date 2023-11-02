@@ -49,11 +49,11 @@ Commands should be run in this directory unless otherwise noted (some are run in
     - could be on an earlier hostutils change for another OS, etc
     - `hg up central` and verify with `hg wip` or `hg glog`
   - `./copy_manifests.sh`
-  - inspect diff
+  - in mozilla-central hg client, inspect diff
     - cd to mozilla-central repo and `hg diff`
     - check that size is close
     - check that filename is correct arch and release
-  - commit change and create review
+  - in mozilla-central hg client, commit change and create review
     - make separate diffs for mac, linux, and windows
     - e.g. `hg commit -m 'Bug XYZ: update linux hostutils'
 - create phabricator diff
