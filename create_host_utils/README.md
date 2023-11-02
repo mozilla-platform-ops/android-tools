@@ -10,10 +10,11 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 
 - edit common.sh to point to your mozilla-central client
 - update the mozilla-central client that the configuration points at
-  - `hg up central`
   - `hg pull`
+  - `hg up central`
   - `hg glog`
-    - ensure that the output shows a recent date (should be today)
+    - ensure that the output shows a recent date (should be today).
+    - if not, repeat `pull` and `up` and retest.
 - create a new build script
   - `./generate_build_script.sh`
   - the script will output the new build script's name
