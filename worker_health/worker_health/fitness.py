@@ -61,7 +61,13 @@ class Fitness:
             # - currently only works for aws-metal (probably other tc worker ids also though...)
             #   - format: i-${hexhash}
             # possible solution: hash the entire name... best solution anyways.
-            h_sanitized = worker_id.split("-")[1]
+
+            # some worker_ids have a dash, take the second part
+            try:
+                h_sanitized = worker_id.split("-")[1]
+            except IndexError:
+                h_sanitized = worker_id
+
             hh = humanhash.humanize(h_sanitized, words=3)
             return_string += ("%s (%s)" % (worker_id, hh)).ljust(self.worker_id_maxlen + 36)
         else:
@@ -138,7 +144,7 @@ class Fitness:
                                 % (
                                     wt,
                                     self.format_workertype_fitness_report_result(item),
-                                )
+                                ),
                             )
                     else:
                         print("%s.%s" % (wt, self.format_workertype_fitness_report_result(item)))
@@ -152,14 +158,14 @@ class Fitness:
                     round((timer() - start), 2),
                     working_count,
                     round((sr_total / worker_count * 100), 2),
-                )
+                ),
             )
 
     def get_pending_tasks(self, queue):
         _url, output, exception = utils.get_jsonc2(
             "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/pending/%s/%s"
             # "https://queue.taskcluster.net/v1/pending/%s/%s"
-            % (self.provisioner, queue)
+            % (self.provisioner, queue),
         )
         return queue, output, exception
 
@@ -236,7 +242,7 @@ class Fitness:
                 m_count,
                 e_count,
                 utils.pformat_term(sorted(missing)),
-            )
+            ),
         )
 
         if args and args.log_level:
@@ -291,7 +297,7 @@ class Fitness:
             {
                 "rootUrl": "https://firefox-ci-tc.services.mozilla.com",
                 "credentials": creds,
-            }
+            },
         )
 
         outcome = queue.listWorkers(self.provisioner, worker_type)
@@ -527,7 +533,7 @@ class Fitness:
                 # if "alerts" not in results_obj:
                 #     results_obj["alerts"] = []
                 results_obj.setdefault("alerts", []).append(
-                    "Low health!"
+                    "Low health!",
                     # "Low health (less than %s)!" % self.alert_percent
                 )
 
@@ -535,7 +541,7 @@ class Fitness:
         total_consecutive_failures_from_end = utils.consecutive_non_ones_from_end(task_history_success_array)
         if total_consecutive_failures_from_end >= 2:
             results_obj.setdefault("alerts", []).append(
-                "Consecutive failures (%s)!" % total_consecutive_failures_from_end
+                "Consecutive failures (%s)!" % total_consecutive_failures_from_end,
             )
 
         # alert if worker hasn't worked in self.alert_time minutes

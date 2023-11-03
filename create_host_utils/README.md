@@ -8,10 +8,15 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
 
 ## steps
 
+Commands should be run in this directory unless otherwise noted (some are run in a mozilla-central hg client).
+
 - edit common.sh to point to your mozilla-central client
 - update the mozilla-central client that the configuration points at
-  - `h up central`
-  - `h pull`
+  - `hg pull`
+  - `hg up central`
+  - `hg glog`
+    - ensure that the output shows a recent date (should be today).
+    - if not, repeat `pull` and `up` and retest.
 - create a new build script
   - `./generate_build_script.sh`
   - the script will output the new build script's name
@@ -44,22 +49,24 @@ All of this is based on https://wiki.mozilla.org/Packaging_Android_host_utilitie
     - could be on an earlier hostutils change for another OS, etc
     - `hg up central` and verify with `hg wip` or `hg glog`
   - `./copy_manifests.sh`
-  - inspect diff
+  - in mozilla-central hg client, inspect diff
     - cd to mozilla-central repo and `hg diff`
     - check that size is close
     - check that filename is correct arch and release
-  - commit change and create review
+  - in mozilla-central hg client, commit change and create review
     - make separate diffs for mac, linux, and windows
     - e.g. `hg commit -m 'Bug XYZ: update linux hostutils'
 - create phabricator diff
-  - `moz-phab --no-wip` (or `arc diff` in a pinch)
+  - in mozilla-central hg client
+    - `moz-phab --no-wip` (or `arc diff` in a pinch)
 - run tests
-  - see reference doc
-  - add the treeherder link to the phab review
-  - inspect tests
-  - request reviews
-    - linux and mac: gbrown (and requestor if PR-based)
-    - win: gbrown (and requestor if PR-based) (mkato initially requested, but not active)
+  - see reference doc for the try command to use
+    - run the mach command
+    - add the treeherder link to the phab review
+    - inspect tests
+- request reviews
+  - linux and mac: requestor
+  - win: requestor (mkato initially requested, but not active)
 - repeat for other operating systems from 'run the build script' step
 
 ## TODO
