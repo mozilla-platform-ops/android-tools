@@ -51,11 +51,17 @@ wget "${url}/firefox-${FFVER}.en-US.mac.dmg"
 
 tar xf "firefox-${FFVER}.en-US.mac.common.tests.tar.gz" 'bin/*'
 open "firefox-${FFVER}.en-US.mac.dmg"
-# TODO: don't sleep (https://superuser.com/questions/878640/unix-script-wait-until-a-file-exists)
-sleep 30
+
+# wait for dmg to be mounted
+until [ -d /Volumes/Firefox\ Nightly/ ]
+do
+     sleep 5
+done
+
 cp -R /Volumes/Firefox\ Nightly/Firefox\ Nightly.app/Contents/MacOS/* bin
 cp -R /Volumes/Firefox\ Nightly/Firefox\ Nightly.app/Contents/Resources/* bin
 # TODO: how to avoid prompt (needed if running automated build)
+say "host utils. Password prompt."
 find bin -type f -perm +111 -print | grep -v \\. | xargs sudo codesign --force --deep --sign -
 mv bin "host-utils-${FFVER}.en-US.mac"
 # TODO: create hostutils_build_info file like other builds
