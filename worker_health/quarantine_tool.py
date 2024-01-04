@@ -39,18 +39,18 @@ if __name__ == "__main__":
     # sys.exit(1)
 
     if args.action == "quarantine":
-        if args.action_options is None:
+        if args.hosts is None:
             parser.error("you must specify a comma-separated string of hosts")
-        host_arr = args.action_options.split(",")
+        host_arr = args.hosts.split(",")
         q = quarantine.Quarantine()
         if args.reason:
             q.quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
         else:
             q.quarantine(args.provisioner, args.worker_type, host_arr)
     elif args.action == "lift":
-        if args.action_options is None:
+        if args.hosts is None:
             parser.error("you must specify a comma-separated string of hosts")
-        host_arr = args.action_options.split(",")
+        host_arr = args.hosts.split(",")
         q = quarantine.Quarantine()
         if args.reason:
             q.lift_quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
