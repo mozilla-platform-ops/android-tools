@@ -7,6 +7,8 @@ Documentation=https://github.com/mozilla-platform-ops/android-tools/tree/master/
 Type=simple
 ExecStart=/home/bitbar/.local/bin/pipenv run ./slack_alert.py
 Restart=always
+# address hanging, restart every 4h
+RuntimeMaxSec=4h
 WorkingDirectory=/home/bitbar/android-tools/worker_health
 User=bitbar
 
