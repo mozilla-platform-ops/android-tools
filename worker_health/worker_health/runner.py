@@ -112,7 +112,7 @@ class Runner:
         self.safe_mode = safe_mode
         # required args
         self.command = command
-        self.fqdn_postfix = fqdn_prefix
+        self.fqdn_postfix = fqdn_prefix.lstrip(".")
         # optional args
         self.provisioner = provisioner
         self.worker_type = worker_type
