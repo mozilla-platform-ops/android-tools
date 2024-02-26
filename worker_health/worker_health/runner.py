@@ -436,7 +436,7 @@ class Runner:
                 if talk:
                     say("quarantine lifted")
         else:
-            if verbose:
+            if verbose and self.safe_mode:
                 status_print(f"{hostname}: NOT lifting quarantine (per option).")
 
 
