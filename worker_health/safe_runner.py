@@ -9,7 +9,7 @@ from worker_health import runner
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=("runs a command against a set of hosts once " "they are quarantined and not working")
+        description=("runs a command against a set of hosts once " "they are quarantined and not working"),
     )
     parser.add_argument(
         "--resume_dir",
@@ -17,7 +17,7 @@ if __name__ == "__main__":
         metavar="RUN_DIR",
         # custom action that removes the positional args
         action=runner.ResumeAction,
-        help="'sr_' run directory. causes positional arguments to be ignored.",
+        help="causes positional arguments to be ignored. recommend prefixing with 'sr_' if not pre-existing.",
     )
     parser.add_argument(
         "--do-not-randomize",

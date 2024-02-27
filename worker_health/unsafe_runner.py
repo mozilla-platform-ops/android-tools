@@ -15,7 +15,7 @@ if __name__ == "__main__":
         metavar="RUN_DIR",
         # custom action that removes the positional args
         action=runner.ResumeAction,
-        help="'sr_' run directory. causes positional arguments to be ignored.",
+        help="causes positional arguments to be ignored. recommend prefixing with 'ur_' if not pre-existing.",
     )
     parser.add_argument(
         "--do-not-randomize",
