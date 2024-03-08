@@ -21,6 +21,10 @@ ALERT_TIME = 60
 DEFAULT_PROVISIONER = "proj-autophone"
 
 
+def get_r8_inventory_path():
+    return f"/Users/{getpass.getuser()}/git/ronin_puppet/inventory.d/macmini-r8.yaml"
+
+
 class Fitness:
     def __init__(
         self,
@@ -218,8 +222,8 @@ class Fitness:
 
     def r8_worker_report(
         self,
-        path_to_r8_inventory_file=f"/Users/{getpass.getuser()}/git/ronin_puppet/inventory.d/macmini-r8.yaml",
-        exclude_dict=[],
+        path_to_r8_inventory_file=get_r8_inventory_path(),
+        # exclude_dict={},
     ):
         import yaml
 
