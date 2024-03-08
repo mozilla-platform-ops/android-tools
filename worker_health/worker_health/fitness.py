@@ -1,3 +1,4 @@
+import getpass
 import json
 import os
 import pprint
@@ -215,12 +216,14 @@ class Fitness:
         # pprint.pprint(seen_workers)
         return seen_workers
 
-    def r8_worker_report(self, exclude_dict=[]):
+    def r8_worker_report(
+        self,
+        path_to_r8_inventory_file=f"/Users/{getpass.getuser()}/git/ronin_puppet/inventory.d/macmini-r8.yaml",
+        exclude_dict=[],
+    ):
         import yaml
 
-        file_path = "/Users/aerickson/git/ronin_puppet/inventory.d/macmini-r8.yaml"
-
-        with open(file_path, "r") as file:
+        with open(path_to_r8_inventory_file, "r") as file:
             data = yaml.safe_load(file)
 
         result = {}
