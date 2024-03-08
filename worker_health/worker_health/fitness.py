@@ -187,6 +187,78 @@ class Fitness:
             self.verbosity,
         )
 
+    def get_worker_report(self, worker_type, suffix="test.releng.mdc1.mozilla.com"):
+        url = (
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=200"
+            % (self.provisioner, worker_type)
+        )
+        try:
+            workers_result = utils.get_jsonc(url, self.verbosity)
+        except Exception as e:
+            workers_result = []
+            print(e)
+        # return workers_result
+        # print("get_worker_report:")
+        # import pprint
+        # pprint.pprint(workers_result)
+        # print("")
+        # import sys
+        # sys.exit(1)
+
+        seen_workers = []
+        # TODO: extract the seen hosts
+        for worker in workers_result["workers"]:
+            worker_id = worker["workerId"]
+            # print(worker_id)
+            seen_workers.append(f"{worker_id}.{suffix}")
+
+        # pprint.pprint(seen_workers)
+        return seen_workers
+
+    def r8_worker_report(self, exclude_dict=[]):
+        import yaml
+
+        file_path = "/Users/aerickson/git/ronin_puppet/inventory.d/macmini-r8.yaml"
+
+        with open(file_path, "r") as file:
+            data = yaml.safe_load(file)
+
+        result = {}
+        for group in data.get("groups", []):
+            name = group.get("name")
+            targets = group.get("targets", [])
+            result[name] = targets
+
+        # print("hosts from inventory")
+        # import pprint
+        # pprint.pprint(result)
+        # print("")
+
+        # for each name, do a worker lookup and then check against the list
+        missing_dict = {}
+        for pool_name, pool_host_list in result.items():
+            # print(pool_name, pool_host_list)
+            seen_hosts = self.get_worker_report(pool_name)
+            # pprint.pprint(seen_hosts)
+            for host in pool_host_list:
+                if host not in seen_hosts:
+                    if pool_name not in missing_dict:
+                        missing_dict[pool_name] = []
+                    missing_dict[pool_name].append(host)
+                    # print(f"{pool_name}: {host} missing")
+
+        # print(
+        #     "missing workers (%s/%s): %s"
+        #     % (
+        #         m_count,
+        #         e_count,
+        #         utils.pformat_term(sorted(missing)),
+        #     ),
+        # )
+        # import pprint
+        print("missing workers:")
+        pprint.pprint(missing_dict)
+
     # TODO: rename linux_moonshot_worker_report?
     def moonshot_worker_report(self, worker_type, args=None, exclude_dict={}):
         url = (
