@@ -202,22 +202,13 @@ class Fitness:
         except Exception as e:
             workers_result = []
             print(e)
-        # return workers_result
-        # print("get_worker_report:")
-        # import pprint
-        # pprint.pprint(workers_result)
-        # print("")
-        # import sys
-        # sys.exit(1)
 
         seen_workers = []
         # TODO: extract the seen hosts
         for worker in workers_result["workers"]:
             worker_id = worker["workerId"]
-            # print(worker_id)
             seen_workers.append(f"{worker_id}.{suffix}")
 
-        # pprint.pprint(seen_workers)
         return seen_workers
 
     def r8_worker_report(
