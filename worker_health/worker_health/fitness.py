@@ -229,15 +229,12 @@ class Fitness:
         # for each name, do a worker lookup and then check against the list
         missing_dict = {}
         for pool_name, pool_host_list in result.items():
-            # print(pool_name, pool_host_list)
             seen_hosts = self.get_worker_report(pool_name)
-            # pprint.pprint(seen_hosts)
             for host in pool_host_list:
                 if host not in seen_hosts:
                     if pool_name not in missing_dict:
                         missing_dict[pool_name] = []
                     missing_dict[pool_name].append(host)
-                    # print(f"{pool_name}: {host} missing")
 
         print("missing workers:")
         pprint.pprint(missing_dict)
