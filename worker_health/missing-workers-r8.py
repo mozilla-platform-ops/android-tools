@@ -6,14 +6,14 @@ from worker_health import fitness
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        dest="log_level",
-        default=0,
-        help="specify multiple times for even more verbosity.",
-    )
+    # parser.add_argument(
+    #     "-v",
+    #     "--verbose",
+    #     action="count",
+    #     dest="log_level",
+    #     default=0,
+    #     help="specify multiple times for even more verbosity.",
+    # )
     parser.add_argument(
         "-i",
         "--inventory_file",
