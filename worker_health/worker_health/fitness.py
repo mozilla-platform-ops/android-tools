@@ -204,7 +204,6 @@ class Fitness:
             print(e)
 
         seen_workers = []
-        # TODO: extract the seen hosts
         for worker in workers_result["workers"]:
             worker_id = worker["workerId"]
             seen_workers.append(f"{worker_id}.{suffix}")
@@ -227,11 +226,6 @@ class Fitness:
             targets = group.get("targets", [])
             result[name] = targets
 
-        # print("hosts from inventory")
-        # import pprint
-        # pprint.pprint(result)
-        # print("")
-
         # for each name, do a worker lookup and then check against the list
         missing_dict = {}
         for pool_name, pool_host_list in result.items():
@@ -245,15 +239,6 @@ class Fitness:
                     missing_dict[pool_name].append(host)
                     # print(f"{pool_name}: {host} missing")
 
-        # print(
-        #     "missing workers (%s/%s): %s"
-        #     % (
-        #         m_count,
-        #         e_count,
-        #         utils.pformat_term(sorted(missing)),
-        #     ),
-        # )
-        # import pprint
         print("missing workers:")
         pprint.pprint(missing_dict)
 
