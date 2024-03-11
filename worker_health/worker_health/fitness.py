@@ -1,3 +1,4 @@
+import getpass
 import json
 import os
 import pprint
@@ -18,6 +19,10 @@ TASK_THREAD_COUNT = 6
 ALERT_PERCENT = 0.85
 ALERT_TIME = 60
 DEFAULT_PROVISIONER = "proj-autophone"
+
+
+def get_r8_inventory_path():
+    return f"/Users/{getpass.getuser()}/git/ronin_puppet/inventory.d/macmini-r8.yaml"
 
 
 class Fitness:
@@ -186,6 +191,53 @@ class Fitness:
             % provisioner,
             self.verbosity,
         )
+
+    def get_worker_report(self, worker_type, suffix="test.releng.mdc1.mozilla.com"):
+        url = (
+            "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/provisioners/%s/worker-types/%s/workers?limit=200"
+            % (self.provisioner, worker_type)
+        )
+        try:
+            workers_result = utils.get_jsonc(url, self.verbosity)
+        except Exception as e:
+            workers_result = []
+            print(e)
+
+        seen_workers = []
+        for worker in workers_result["workers"]:
+            worker_id = worker["workerId"]
+            seen_workers.append(f"{worker_id}.{suffix}")
+
+        return seen_workers
+
+    def r8_worker_report(
+        self,
+        path_to_r8_inventory_file=get_r8_inventory_path(),
+        # exclude_dict={},
+    ):
+        import yaml
+
+        with open(path_to_r8_inventory_file, "r") as file:
+            data = yaml.safe_load(file)
+
+        result = {}
+        for group in data.get("groups", []):
+            name = group.get("name")
+            targets = group.get("targets", [])
+            result[name] = targets
+
+        # for each name, do a worker lookup and then check against the list
+        missing_dict = {}
+        for pool_name, pool_host_list in result.items():
+            seen_hosts = self.get_worker_report(pool_name)
+            for host in pool_host_list:
+                if host not in seen_hosts:
+                    if pool_name not in missing_dict:
+                        missing_dict[pool_name] = []
+                    missing_dict[pool_name].append(host)
+
+        print("missing workers:")
+        pprint.pprint(missing_dict)
 
     # TODO: rename linux_moonshot_worker_report?
     def moonshot_worker_report(self, worker_type, args=None, exclude_dict={}):
