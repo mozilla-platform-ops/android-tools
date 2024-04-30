@@ -20,7 +20,20 @@ if __name__ == "__main__":
     PROVISIONER = "releng-hardware"
     WORKER_TYPE = "gecko-t-linux-talos-1804"
 
-    exclude_dict = {"t-linux64-ms-228": "nvme disk error"}
+    # TODO: populate from moonshot spreadsheet
+    exclude_dict = {
+        "t-linux64-ms-228": "nvme disk error",
+        "t-linux64-ms-271": "too new of fw",
+        "t-linux64-ms-272": "too new of fw",
+        "t-linux64-ms-273": "too new of fw",
+        "t-linux64-ms-274": "too new of fw",
+        "t-linux64-ms-275": "too new of fw",
+        "t-linux64-ms-276": "too new of fw",
+        "t-linux64-ms-277": "too new of fw",
+        "t-linux64-ms-278": "too new of fw",
+        "t-linux64-ms-279": "too new of fw",
+        "t-linux64-ms-280": "too new of fw",
+    }
 
     f = fitness.Fitness(log_level=0, provisioner=PROVISIONER, alert_percent=85)
     f.moonshot_worker_report(WORKER_TYPE, args=args, exclude_dict=exclude_dict)
