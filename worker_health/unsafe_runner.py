@@ -39,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fqdn-postfix",
         "-F",
+        dest="fqdn_prefix",
         help=("string to append to host (used for ssh check). " f"defaults to '{runner.Runner.default_fqdn_postfix}'."),
     )
     # positional args
