@@ -474,7 +474,7 @@ def handler(_signum, _frame):
     if terminate >= 2:
         print("*** double ctrl-c detected. exiting immediately!")
         sys.exit(0)
-    print("*** ctrl-c detected. will exit after current host " "(one more to exit immediately).")
+    print("*** ctrl-c detected. will exit as soon as safely possible " "(one more to exit immediately).")
 
 
 # given a string hostname, returns True if sshable, else False.
@@ -677,6 +677,9 @@ def main(args, safe_mode=False):
                         break
                 if exit_while:
                     break
+                if terminate > 0:
+                    status_print("graceful exiting...")
+                    sys.exit(0)
                 sleep_time = 60
                 status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
                 time.sleep(sleep_time)
