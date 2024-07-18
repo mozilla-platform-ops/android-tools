@@ -343,7 +343,7 @@ class Runner:
         # TODO: show error?
         # output = ro.stdout.decode()
         if rc == 0:
-            print(f"transferred file '{file_path}' to '{hostname}:{dest_path}'")
+            status_print(f"transferred file '{file_path}' to '{hostname}:{dest_path}'")
         else:
             raise Exception(f"failed to transfer file '{file_path}' to '{hostname}:{dest_path}'")
 
@@ -758,7 +758,7 @@ def main(args, safe_mode=False):
             try:
                 # TODO: if shell_script param, scp script over and run it vs using command
                 if sr.shell_script:
-                    print("INFO: shell_script present, not using command!")
+                    status_print("shell_script present, not using command!")
                     # scp script over
                     # TODO: path should be relative to toml's path
                     local_path = os.path.join(os.path.dirname(sr.state_file), sr.shell_script)
