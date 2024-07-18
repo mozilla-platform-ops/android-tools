@@ -352,6 +352,8 @@ class Runner:
 
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
+    # TODO: mention what's in the script (if used)
+    #   - problem: this command doesn't know if we're using a script or not
     def safe_run_single_host(
         self,
         hostname,
@@ -760,18 +762,13 @@ def main(args, safe_mode=False):
             if args.talk:
                 say(f"starting {host}")
             try:
-                # TODO: if shell_script param, scp script over and run it vs using command
+                # if shell_script param, scp script over and run it vs using command
                 if sr.shell_script:
                     status_print("shell_script present, not using command!")
-                    # scp script over
-                    # TODO: path should be relative to toml's path
                     local_path = os.path.join(os.path.dirname(sr.state_file), sr.shell_script)
                     sr.scp_file(host, local_path, "/tmp/runner_script", make_executable=True)
-                    # TODO: chmod 755 remotely or do locally
                     sr.safe_run_single_host(
                         host,
-                        # sr.command, ## use real value for now, but override eventually
-                        # with "/tmp/runner_script",
                         'ssh -o PasswordAuthentication=no SR_HOST.SR_FQDN bash -c -l "/tmp/runner_script"',
                         talk=args.talk,
                         reboot_host=args.reboot_host,
