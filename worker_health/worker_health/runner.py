@@ -289,6 +289,64 @@ class Runner:
         with open(self.state_file, "w") as f:
             tomlkit.dump(data, f)
 
+    def scp_file(
+        self,
+        hostname,
+        file_path,
+        dest_path,
+        make_executable=False,
+    ):
+        # TODO: check if file exists
+        if not os.path.exists(file_path):
+            raise Exception(f"file '{file_path}' doesn't exist")
+
+        host_fqdn = get_fully_qualified_hostname(hostname, self.fqdn_postfix)
+
+        cmd = f"ssh-keygen -R {host_fqdn}"
+        subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
+        cmd = f"ssh-keyscan -t rsa {host_fqdn} >> ~/.ssh/known_hosts"
+        subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
+
+        command = f"scp {file_path} SR_HOST.SR_FQDN:/tmp/runner_script"
+        custom_cmd_temp = command.replace("SR_HOST", hostname)
+        custom_cmd = custom_cmd_temp.replace("SR_FQDN", self.fqdn_postfix)
+
+        # print(f"command is: {custom_cmd}")
+
+        if make_executable:
+            # chmod locally
+            os.chmod(file_path, 0o755)
+
+        # split_custom_cmd = ["/bin/bash", "-l", "-c", custom_cmd]
+        # ssh -o PasswordAuthentication=no SR_HOST.SR_FQDN
+        split_custom_cmd = custom_cmd.split(" ")
+        ro = subprocess.run(
+            split_custom_cmd,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+            # process should ignore parent ctrl-c
+            preexec_fn=lambda: preexec_function,
+        )
+        rc = ro.returncode
+        # TODO: show error?
+        # output = ro.stdout.decode()
+        if rc == 0:
+            print(f"transferred file '{file_path}' to '{hostname}:{dest_path}'")
+        else:
+            raise Exception(f"failed to transfer file '{file_path}' to '{hostname}:{dest_path}'")
+
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
     def safe_run_single_host(
@@ -700,18 +758,23 @@ def main(args, safe_mode=False):
             try:
                 # TODO: if shell_script param, scp script over and run it vs using command
                 if sr.shell_script:
-                    print("shell_script present, not using command")
-                    # TODO: scp script over and chmod 755
+                    print("INFO: shell_script present, not using command!")
+                    # scp script over
+                    # TODO: path should be relative to toml's path
+                    local_path = os.path.join(os.path.dirname(sr.state_file), sr.shell_script)
+                    sr.scp_file(host, local_path, "/tmp/runner_script", make_executable=True)
+                    # TODO: chmod 755 remotely or do locally
                     sr.safe_run_single_host(
                         host,
-                        "/tmp/runner_script",
+                        # sr.command, ## use real value for now, but override eventually
+                        # with "/tmp/runner_script",
+                        'ssh -o PasswordAuthentication=no SR_HOST.SR_FQDN bash -c -l "/tmp/runner_script"',
                         talk=args.talk,
                         reboot_host=args.reboot_host,
                         quarantine_mode=safe_mode,
                         dont_lift_quarantine=args.dont_lift_quarantine,
                         continue_on_failure=True,
                     )
-                    pass
                 else:
                     sr.safe_run_single_host(
                         host,
