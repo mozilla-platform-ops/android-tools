@@ -86,6 +86,7 @@ class Runner:
     empty_config_dict = {
         "config": {
             "command": "ssh SR_HOST.SR_FQDN",
+            "shell_script": "",
             "hosts_to_skip": [],
             "fqdn_prefix": "",
             "provisioner": "",
@@ -103,6 +104,7 @@ class Runner:
         self,
         hosts=[],
         command="ssh SR_HOST.SR_FQDN",
+        shell_script=None,
         fqdn_prefix=default_fqdn_postfix,
         safe_mode=False,
         provisioner=None,
@@ -112,6 +114,11 @@ class Runner:
         self.safe_mode = safe_mode
         # required args
         self.command = command
+        # TODO: needed?
+        # if shell_script == "":
+        #     self.shell_script = None
+        # else:
+        self.shell_script = shell_script
         self.fqdn_postfix = fqdn_prefix.lstrip(".")
         # optional args
         self.provisioner = provisioner
@@ -201,6 +208,7 @@ class Runner:
         i.skipped_hosts = data["state"]["skipped_hosts"]
         i.failed_hosts = data["state"]["failed_hosts"]
         i.hosts_to_skip = data["config"]["hosts_to_skip"]
+        i.shell_script = data["config"]["shell_script"]
         i.run_dir = resume_dir
         i.state_file = f"{resume_dir}/{Runner.state_file_name}"
         # create utility instances
@@ -690,15 +698,30 @@ def main(args, safe_mode=False):
             if args.talk:
                 say(f"starting {host}")
             try:
-                sr.safe_run_single_host(
-                    host,
-                    sr.command,
-                    talk=args.talk,
-                    reboot_host=args.reboot_host,
-                    quarantine_mode=safe_mode,
-                    dont_lift_quarantine=args.dont_lift_quarantine,
-                    continue_on_failure=True,
-                )
+                # TODO: if shell_script param, scp script over and run it vs using command
+                if sr.shell_script:
+                    print("shell_script present, not using command")
+                    # TODO: scp script over and chmod 755
+                    sr.safe_run_single_host(
+                        host,
+                        "/tmp/runner_script",
+                        talk=args.talk,
+                        reboot_host=args.reboot_host,
+                        quarantine_mode=safe_mode,
+                        dont_lift_quarantine=args.dont_lift_quarantine,
+                        continue_on_failure=True,
+                    )
+                    pass
+                else:
+                    sr.safe_run_single_host(
+                        host,
+                        sr.command,
+                        talk=args.talk,
+                        reboot_host=args.reboot_host,
+                        quarantine_mode=safe_mode,
+                        dont_lift_quarantine=args.dont_lift_quarantine,
+                        continue_on_failure=True,
+                    )
             except CommandFailedException:
                 # TODO: control decision to continue or exit via flag
                 print("command failed, continuing...")
