@@ -208,7 +208,10 @@ class Runner:
         i.skipped_hosts = data["state"]["skipped_hosts"]
         i.failed_hosts = data["state"]["failed_hosts"]
         i.hosts_to_skip = data["config"]["hosts_to_skip"]
-        i.shell_script = data["config"]["shell_script"]
+        if "shell_script" in data["config"]:
+            i.shell_script = data["config"]["shell_script"]
+        else:
+            i.shell_script = None
         i.run_dir = resume_dir
         i.state_file = f"{resume_dir}/{Runner.state_file_name}"
         # create utility instances
@@ -644,6 +647,7 @@ def main(args, safe_mode=False):
             print(f"    TC provisioner: {sr.provisioner}")
             print(f"    TC workerType: {sr.worker_type}")
         print(f"  command: {sr.command}")
+        print(f"  shell script (causes command to be ignored): {sr.shell_script}")
         print("")
     except AttributeError as e:
         print("FATAL: missing config value!?!")
