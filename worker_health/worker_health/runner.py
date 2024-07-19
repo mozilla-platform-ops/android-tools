@@ -4,7 +4,6 @@
 # - if you need to quarantine hosts, use safe_runner (this is not safe)
 
 import argparse
-import copy
 import datetime
 import os
 import random
@@ -186,6 +185,7 @@ class Runner:
             # write empty file
             # TODO: verify user wants this
             print("no state file found in directory, creating empty file and exiting...")
+            # TODO: move this code to write_initial_toml() and call it here
             with open(resume_file, "w") as f:
                 f.write("# runner_state.toml \n")
                 f.write("# \n")
@@ -286,23 +286,23 @@ class Runner:
         result_obj["failed"] = len(failed_hosts)
         return result_obj
 
-    def write_initial_toml(self):
-        # populate data
-        data = copy.deepcopy(Runner.empty_config_dict)
-        # config
-        data["config"]["provisioner"] = self.provisioner
-        data["config"]["worker_type"] = self.worker_type
-        data["config"]["command"] = self.command
-        data["config"]["fqdn_prefix"] = self.fqdn_postfix
-        data["config"]["hosts_to_skip"] = self.hosts_to_skip
-        # state
-        data["state"]["remaining_hosts"] = self.remaining_hosts
-        # not writing remaining
+    # def write_initial_toml(self):
+    #     # populate data
+    #     data = copy.deepcopy(Runner.empty_config_dict)
+    #     # config
+    #     data["config"]["provisioner"] = self.provisioner
+    #     data["config"]["worker_type"] = self.worker_type
+    #     data["config"]["command"] = self.command
+    #     data["config"]["fqdn_prefix"] = self.fqdn_postfix
+    #     data["config"]["hosts_to_skip"] = self.hosts_to_skip
+    #     # state
+    #     data["state"]["remaining_hosts"] = self.remaining_hosts
+    #     # not writing remaining
 
-        utils.mkdir_p(os.path.dirname(self.state_file))
-        with open(self.state_file, "w") as f:
-            # TODO: write a comment with info about substitution variables, etc
-            tomlkit.dump(data, f)
+    #     utils.mkdir_p(os.path.dirname(self.state_file))
+    #     with open(self.state_file, "w") as f:
+    #         # TODO: write a comment with info about substitution variables, etc
+    #         tomlkit.dump(data, f)
 
     # loads existing state file first, so we can preserve comments
     def checkpoint_toml(self):
@@ -699,9 +699,10 @@ def main(args, safe_mode=False):
     # TODO: ideally this would just be when we're converging until done
     signal.signal(signal.SIGINT, handler)
 
+    # TODO: is this ever hit?
     # for fresh runs, write toml
-    if not args.resume_dir:
-        sr.write_initial_toml()
+    # if not args.resume_dir:
+    #     sr.write_initial_toml()
 
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: make a more-intelligent multi-host version...
