@@ -650,8 +650,10 @@ def main(args, safe_mode=False):
         if safe_mode:
             print(f"    TC provisioner: {sr.provisioner}")
             print(f"    TC workerType: {sr.worker_type}")
-        print(f"  command: {sr.command}")
-        print(f"  shell script (causes command to be ignored): {sr.shell_script}")
+        if sr.shell_script:
+            print(f"  shell script (command is ignored): {sr.shell_script}")
+        else:
+            print(f"  command: {sr.command}")
         print("")
     except AttributeError as e:
         print("FATAL: missing config value!?!")
