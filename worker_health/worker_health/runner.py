@@ -305,6 +305,7 @@ class Runner:
 
         host_fqdn = get_fully_qualified_hostname(hostname, self.fqdn_postfix)
 
+        # TODO: ideally we'd only do this once per hosts... this is duplicated in safe_run_single_host
         cmd = f"ssh-keygen -R {host_fqdn}"
         subprocess.run(
             cmd,
@@ -326,14 +327,10 @@ class Runner:
         custom_cmd_temp = command.replace("SR_HOST", hostname)
         custom_cmd = custom_cmd_temp.replace("SR_FQDN", self.fqdn_postfix)
 
-        # print(f"command is: {custom_cmd}")
-
         if make_executable:
             # chmod locally
             os.chmod(file_path, 0o755)
 
-        # split_custom_cmd = ["/bin/bash", "-l", "-c", custom_cmd]
-        # ssh -o PasswordAuthentication=no SR_HOST.SR_FQDN
         split_custom_cmd = custom_cmd.split(" ")
         ro = subprocess.run(
             split_custom_cmd,
