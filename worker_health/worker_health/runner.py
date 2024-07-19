@@ -80,7 +80,7 @@ class CommandFailedException(Exception):
 
 class Runner:
     default_pre_quarantine_additional_host_count = 5
-    # default_fqdn_postfix = "test.releng.mdc1.mozilla.com"
+    default_fqdn_postfix = ""
     state_file_name = "runner_state.toml"
     # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
@@ -165,6 +165,14 @@ class Runner:
             # TODO: verify user wants this
             print("no state file found in directory, creating empty file and exiting...")
             with open(resume_file, "w") as f:
+                f.write("# runner_state.toml \n")
+                f.write("# \n")
+                f.write("# - if config.shell_script is present, config.command is ignored \n")
+                f.write("#   - config.shell_script holds the path to the script, relative to this state file \n")
+                f.write("# - for config.command, SR_HOST and SR_FQDN are replaced with the appropriate values \n")
+                f.write("# - provisioner and wrorker_type are only used in safe_runner \n")
+                f.write("# \n")
+                f.write("\n")
                 tomlkit.dump(cls.empty_config_dict, f)
             sys.exit(0)
 
@@ -271,6 +279,7 @@ class Runner:
 
         utils.mkdir_p(os.path.dirname(self.state_file))
         with open(self.state_file, "w") as f:
+            # TODO: write a comment with info about substitution variables, etc
             tomlkit.dump(data, f)
 
     # loads existing state file first, so we can preserve comments
