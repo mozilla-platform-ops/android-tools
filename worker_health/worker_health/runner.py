@@ -299,7 +299,7 @@ class Runner:
         dest_path,
         make_executable=False,
     ):
-        # TODO: check if file exists
+        # check if file exists locally before continuing
         if not os.path.exists(file_path):
             raise Exception(f"file '{file_path}' doesn't exist")
 
