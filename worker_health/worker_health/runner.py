@@ -80,7 +80,7 @@ class CommandFailedException(Exception):
 
 class Runner:
     default_pre_quarantine_additional_host_count = 5
-    default_fqdn_postfix = "test.releng.mdc1.mozilla.com"
+    # default_fqdn_postfix = "test.releng.mdc1.mozilla.com"
     state_file_name = "runner_state.toml"
     # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
@@ -105,7 +105,7 @@ class Runner:
         hosts=[],
         command="ssh -o PasswordAuthentication=no SR_HOST uptime",
         shell_script=None,
-        fqdn_prefix=default_fqdn_postfix,
+        fqdn_prefix=None,
         safe_mode=False,
         provisioner=None,
         worker_type=None,
