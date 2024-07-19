@@ -114,13 +114,9 @@ class Runner:
         self.safe_mode = safe_mode
         # required args
         self.command = command
-        # TODO: needed?
-        # if shell_script == "":
-        #     self.shell_script = None
-        # else:
-        self.shell_script = shell_script
         self.fqdn_postfix = fqdn_prefix.lstrip(".")
         # optional args
+        self.shell_script = shell_script
         self.provisioner = provisioner
         self.worker_type = worker_type
 
@@ -349,7 +345,7 @@ class Runner:
 
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
-    # TODO: mention what's in the script (if used)
+    # TODO: mention what's in the script (if used) in the output file
     #   - problem: this command doesn't know if we're using a script or not
     def safe_run_single_host(
         self,
