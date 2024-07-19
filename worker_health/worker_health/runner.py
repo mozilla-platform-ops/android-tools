@@ -791,8 +791,6 @@ def main(args, safe_mode=False):
             try:
                 # if shell_script param, scp script over and run it vs using command
                 if sr.shell_script:
-                    # TODO: a bit chatty to say this on each host... move up a few levels/earlier.
-                    status_print("shell_script present, not using command!")
                     local_path = os.path.join(os.path.dirname(sr.state_file), sr.shell_script)
                     sr.scp_file(host, local_path, "/tmp/runner_script", make_executable=True)
                     sr.safe_run_single_host(
@@ -833,10 +831,7 @@ def main(args, safe_mode=False):
             # TODO: remove need for remaining_hosts... feels gross
             remaining_hosts = list(sr.remaining_hosts)
             status_print(f"completed {host}")
-            status_print(
-                f"hosts remaining ({len(sr.remaining_hosts)}/{host_counts['remaining']}): "
-                f"{', '.join(sr.remaining_hosts)}",
-            )
+            status_print(f"hosts remaining: {len(sr.remaining_hosts)}/{host_counts['remaining']}")
             if args.talk:
                 # say(f"completed {host}.")
                 say(f"{len(sr.remaining_hosts)} hosts remaining.")
