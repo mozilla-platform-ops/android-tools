@@ -757,6 +757,7 @@ def main(args, safe_mode=False):
             try:
                 # if shell_script param, scp script over and run it vs using command
                 if sr.shell_script:
+                    # TODO: a bit chatty to say this on each host... move up a few levels/earlier.
                     status_print("shell_script present, not using command!")
                     local_path = os.path.join(os.path.dirname(sr.state_file), sr.shell_script)
                     sr.scp_file(host, local_path, "/tmp/runner_script", make_executable=True)
