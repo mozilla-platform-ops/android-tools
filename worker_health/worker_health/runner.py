@@ -74,6 +74,28 @@ def preexec_function():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
+def tomlkit_to_popo(d):
+    try:
+        result = getattr(d, "value")
+    except AttributeError:
+        result = d
+
+    if isinstance(result, list):
+        result = [tomlkit_to_popo(x) for x in result]
+    elif isinstance(result, dict):
+        result = {tomlkit_to_popo(key): tomlkit_to_popo(val) for key, val in result.items()}
+    elif isinstance(result, tomlkit.items.Integer):
+        result = int(result)
+    elif isinstance(result, tomlkit.items.Float):
+        result = float(result)
+    elif isinstance(result, tomlkit.items.String):
+        result = str(result)
+    elif isinstance(result, tomlkit.items.Bool):
+        result = bool(result)
+
+    return result
+
+
 class CommandFailedException(Exception):
     pass
 
@@ -643,9 +665,10 @@ def main(args, safe_mode=False):
         )
         if len(sr.hosts_to_skip) != 0:
             print(f"    skipping: {', '.join(sr.hosts_to_skip)}")
-        print(f"    remaining: {', '.join(sr.remaining_hosts)}")
+        # print(f"    remaining: {', '.join(sr.remaining_hosts)}")
         # TODO: show more detail here (counts of each type)
-        print(f"    fqdn_postfix: {sr.fqdn_postfix}")
+        # print(f"    fqdn_postfix: {sr.fqdn_postfix}")
+        # TODO: show hosts_to_skip?
         # TODO: mention talk, reboot, pre-quarantine count
         if safe_mode:
             print(f"    TC provisioner: {sr.provisioner}")
