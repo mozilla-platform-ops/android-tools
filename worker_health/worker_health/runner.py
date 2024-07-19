@@ -85,10 +85,10 @@ class Runner:
     # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
         "config": {
-            "command": "ssh SR_HOST.SR_FQDN",
+            "command": "ssh -o PasswordAuthentication=no SR_HOST uptime",
             "shell_script": "",
             "hosts_to_skip": [],
-            "fqdn_prefix": "",
+            "fqdn_prefix": "",  # TODO: get rid of this, default should be fqdns
             "provisioner": "",
             "worker_type": "",
         },
@@ -103,7 +103,7 @@ class Runner:
     def __init__(
         self,
         hosts=[],
-        command="ssh SR_HOST.SR_FQDN",
+        command="ssh -o PasswordAuthentication=no SR_HOST uptime",
         shell_script=None,
         fqdn_prefix=default_fqdn_postfix,
         safe_mode=False,
