@@ -777,12 +777,16 @@ def main(args, safe_mode=False):
                         break
                 if exit_while:
                     break
-                if terminate > 0:
-                    status_print("graceful exiting...")
-                    sys.exit(0)
                 sleep_time = 60
                 status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
-                time.sleep(sleep_time)
+                sleep_time_left = sleep_time
+                while sleep_time_left > 1:
+                    if terminate > 0:
+                        status_print("graceful exiting...")
+                        sys.exit(0)
+                    time.sleep(1)
+                    sleep_time_left -= 1
+
             # print(" found.", flush=True)
             # bar.unpause()
 
