@@ -7,11 +7,14 @@ import argparse
 
 from worker_health import runner
 
+VERSION = "2.0.0"
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=("runs a command against a set of hosts"))
     parser.add_argument(
         "--resume_dir",
         "-r",
+        required=True,
         metavar="RUN_DIR",
         # custom action that removes the positional args
         action=runner.ResumeAction,
@@ -35,18 +38,20 @@ if __name__ == "__main__":
         action="store_true",
         help="reboot the host after command runs successfully.",
     )
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
     # TODO: add argument to do a reboot if run is successful?
-    parser.add_argument(
-        "--fqdn-postfix",
-        "-F",
-        dest="fqdn_prefix",
-        help=("string to append to host (used for ssh check). " f"defaults to '{runner.Runner.default_fqdn_postfix}'."),
-    )
+    # parser.add_argument(
+    #     "--fqdn-postfix",
+    #     "-F",
+    #     dest="fqdn_prefix",
+    #     help=("string to append to host (used for ssh check). "
+    #           f"defaults to '{runner.Runner.default_fqdn_postfix}'."),
+    # )
     # positional args
-    parser.add_argument("host_csv", type=runner.csv_strs, help="e.g. 'host1,host2'")
-    parser.add_argument("command", help="command to run locally")
+    # parser.add_argument("host_csv", type=runner.csv_strs, help="e.g. 'host1,host2'")
+    # parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
-    args.hosts = args.host_csv
+    # args.hosts = args.host_csv
     # TODO: add as an exposed option?
     args.verbose = True
     args.dont_lift_quarantine = True

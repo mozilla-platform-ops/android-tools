@@ -4,7 +4,6 @@
 # - if you need to quarantine hosts, use safe_runner (this is not safe)
 
 import argparse
-import copy
 import datetime
 import os
 import random
@@ -74,20 +73,43 @@ def preexec_function():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
+def tomlkit_to_popo(d):
+    try:
+        result = getattr(d, "value")
+    except AttributeError:
+        result = d
+
+    if isinstance(result, list):
+        result = [tomlkit_to_popo(x) for x in result]
+    elif isinstance(result, dict):
+        result = {tomlkit_to_popo(key): tomlkit_to_popo(val) for key, val in result.items()}
+    elif isinstance(result, tomlkit.items.Integer):
+        result = int(result)
+    elif isinstance(result, tomlkit.items.Float):
+        result = float(result)
+    elif isinstance(result, tomlkit.items.String):
+        result = str(result)
+    elif isinstance(result, tomlkit.items.Bool):
+        result = bool(result)
+
+    return result
+
+
 class CommandFailedException(Exception):
     pass
 
 
 class Runner:
     default_pre_quarantine_additional_host_count = 5
-    default_fqdn_postfix = "test.releng.mdc1.mozilla.com"
+    default_fqdn_postfix = ""
     state_file_name = "runner_state.toml"
     # TODO: use tomlkit tables so formatting is nice for empty lists?
     empty_config_dict = {
         "config": {
-            "command": "ssh SR_HOST.SR_FQDN",
+            "command": "ssh -o PasswordAuthentication=no SR_HOST uptime",
+            "shell_script": "",
             "hosts_to_skip": [],
-            "fqdn_prefix": "",
+            "fqdn_prefix": "",  # TODO: get rid of this, default should be fqdns
             "provisioner": "",
             "worker_type": "",
         },
@@ -102,8 +124,9 @@ class Runner:
     def __init__(
         self,
         hosts=[],
-        command="ssh SR_HOST.SR_FQDN",
-        fqdn_prefix=default_fqdn_postfix,
+        command="ssh -o PasswordAuthentication=no SR_HOST uptime",
+        shell_script=None,
+        fqdn_prefix=None,
         safe_mode=False,
         provisioner=None,
         worker_type=None,
@@ -114,6 +137,7 @@ class Runner:
         self.command = command
         self.fqdn_postfix = fqdn_prefix.lstrip(".")
         # optional args
+        self.shell_script = shell_script
         self.provisioner = provisioner
         self.worker_type = worker_type
 
@@ -161,7 +185,16 @@ class Runner:
             # write empty file
             # TODO: verify user wants this
             print("no state file found in directory, creating empty file and exiting...")
+            # TODO: move this code to write_initial_toml() and call it here
             with open(resume_file, "w") as f:
+                f.write("# runner_state.toml \n")
+                f.write("# \n")
+                f.write("# - if config.shell_script is present, config.command is ignored \n")
+                f.write("#   - config.shell_script holds the path to the script, relative to this state file \n")
+                f.write("# - for config.command, SR_HOST and SR_FQDN are replaced with the appropriate values \n")
+                f.write("# - provisioner and wrorker_type are only used in safe_runner \n")
+                f.write("# \n")
+                f.write("\n")
                 tomlkit.dump(cls.empty_config_dict, f)
             sys.exit(0)
 
@@ -201,6 +234,10 @@ class Runner:
         i.skipped_hosts = data["state"]["skipped_hosts"]
         i.failed_hosts = data["state"]["failed_hosts"]
         i.hosts_to_skip = data["config"]["hosts_to_skip"]
+        if "shell_script" in data["config"]:
+            i.shell_script = data["config"]["shell_script"]
+        else:
+            i.shell_script = None
         i.run_dir = resume_dir
         i.state_file = f"{resume_dir}/{Runner.state_file_name}"
         # create utility instances
@@ -249,22 +286,23 @@ class Runner:
         result_obj["failed"] = len(failed_hosts)
         return result_obj
 
-    def write_initial_toml(self):
-        # populate data
-        data = copy.deepcopy(Runner.empty_config_dict)
-        # config
-        data["config"]["provisioner"] = self.provisioner
-        data["config"]["worker_type"] = self.worker_type
-        data["config"]["command"] = self.command
-        data["config"]["fqdn_prefix"] = self.fqdn_postfix
-        data["config"]["hosts_to_skip"] = self.hosts_to_skip
-        # state
-        data["state"]["remaining_hosts"] = self.remaining_hosts
-        # not writing remaining
+    # def write_initial_toml(self):
+    #     # populate data
+    #     data = copy.deepcopy(Runner.empty_config_dict)
+    #     # config
+    #     data["config"]["provisioner"] = self.provisioner
+    #     data["config"]["worker_type"] = self.worker_type
+    #     data["config"]["command"] = self.command
+    #     data["config"]["fqdn_prefix"] = self.fqdn_postfix
+    #     data["config"]["hosts_to_skip"] = self.hosts_to_skip
+    #     # state
+    #     data["state"]["remaining_hosts"] = self.remaining_hosts
+    #     # not writing remaining
 
-        utils.mkdir_p(os.path.dirname(self.state_file))
-        with open(self.state_file, "w") as f:
-            tomlkit.dump(data, f)
+    #     utils.mkdir_p(os.path.dirname(self.state_file))
+    #     with open(self.state_file, "w") as f:
+    #         # TODO: write a comment with info about substitution variables, etc
+    #         tomlkit.dump(data, f)
 
     # loads existing state file first, so we can preserve comments
     def checkpoint_toml(self):
@@ -281,8 +319,65 @@ class Runner:
         with open(self.state_file, "w") as f:
             tomlkit.dump(data, f)
 
+    def scp_file(
+        self,
+        hostname,
+        file_path,
+        dest_path,
+        make_executable=False,
+    ):
+        # check if file exists locally before continuing
+        if not os.path.exists(file_path):
+            raise Exception(f"file '{file_path}' doesn't exist")
+
+        host_fqdn = get_fully_qualified_hostname(hostname, self.fqdn_postfix)
+
+        # TODO: ideally we'd only do this once per hosts... this is duplicated in safe_run_single_host
+        cmd = f"ssh-keygen -R {host_fqdn}"
+        subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
+        cmd = f"ssh-keyscan -t rsa {host_fqdn} >> ~/.ssh/known_hosts"
+        subprocess.run(
+            cmd,
+            shell=True,
+            check=True,
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
+
+        command = f"scp {file_path} SR_HOST.SR_FQDN:/tmp/runner_script"
+        custom_cmd_temp = command.replace("SR_HOST", hostname)
+        custom_cmd = custom_cmd_temp.replace("SR_FQDN", self.fqdn_postfix)
+
+        if make_executable:
+            # chmod locally
+            os.chmod(file_path, 0o755)
+
+        split_custom_cmd = custom_cmd.split(" ")
+        ro = subprocess.run(
+            split_custom_cmd,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+            # process should ignore parent ctrl-c
+            preexec_fn=lambda: preexec_function,
+        )
+        rc = ro.returncode
+        # TODO: show error?
+        # output = ro.stdout.decode()
+        if rc == 0:
+            status_print(f"transferred file '{file_path}' to '{hostname}:{dest_path}'")
+        else:
+            raise Exception(f"failed to transfer file '{file_path}' to '{hostname}:{dest_path}'")
+
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
+    # TODO: mention what's in the script (if used) in the output file
+    #   - problem: this command doesn't know if we're using a script or not
     def safe_run_single_host(
         self,
         hostname,
@@ -570,14 +665,18 @@ def main(args, safe_mode=False):
         )
         if len(sr.hosts_to_skip) != 0:
             print(f"    skipping: {', '.join(sr.hosts_to_skip)}")
-        print(f"    remaining: {', '.join(sr.remaining_hosts)}")
+        # print(f"    remaining: {', '.join(sr.remaining_hosts)}")
         # TODO: show more detail here (counts of each type)
-        print(f"    fqdn_postfix: {sr.fqdn_postfix}")
+        # print(f"    fqdn_postfix: {sr.fqdn_postfix}")
+        # TODO: show hosts_to_skip?
         # TODO: mention talk, reboot, pre-quarantine count
         if safe_mode:
             print(f"    TC provisioner: {sr.provisioner}")
             print(f"    TC workerType: {sr.worker_type}")
-        print(f"  command: {sr.command}")
+        if sr.shell_script:
+            print(f"  shell script (command is ignored): {sr.shell_script}")
+        else:
+            print(f"  command: {sr.command}")
         print("")
     except AttributeError as e:
         print("FATAL: missing config value!?!")
@@ -600,9 +699,10 @@ def main(args, safe_mode=False):
     # TODO: ideally this would just be when we're converging until done
     signal.signal(signal.SIGINT, handler)
 
+    # TODO: is this ever hit?
     # for fresh runs, write toml
-    if not args.resume_dir:
-        sr.write_initial_toml()
+    # if not args.resume_dir:
+    #     sr.write_initial_toml()
 
     # TODO: eventually use this as outer code for safe_run_multi_host
     # TODO: make a more-intelligent multi-host version...
@@ -677,12 +777,16 @@ def main(args, safe_mode=False):
                         break
                 if exit_while:
                     break
-                if terminate > 0:
-                    status_print("graceful exiting...")
-                    sys.exit(0)
                 sleep_time = 60
                 status_print(f"no ssh-able hosts found. sleeping {sleep_time}s...")
-                time.sleep(sleep_time)
+                sleep_time_left = sleep_time
+                while sleep_time_left > 1:
+                    if terminate > 0:
+                        status_print("graceful exiting...")
+                        sys.exit(0)
+                    time.sleep(1)
+                    sleep_time_left -= 1
+
             # print(" found.", flush=True)
             # bar.unpause()
 
@@ -690,15 +794,29 @@ def main(args, safe_mode=False):
             if args.talk:
                 say(f"starting {host}")
             try:
-                sr.safe_run_single_host(
-                    host,
-                    sr.command,
-                    talk=args.talk,
-                    reboot_host=args.reboot_host,
-                    quarantine_mode=safe_mode,
-                    dont_lift_quarantine=args.dont_lift_quarantine,
-                    continue_on_failure=True,
-                )
+                # if shell_script param, scp script over and run it vs using command
+                if sr.shell_script:
+                    local_path = os.path.join(os.path.dirname(sr.state_file), sr.shell_script)
+                    sr.scp_file(host, local_path, "/tmp/runner_script", make_executable=True)
+                    sr.safe_run_single_host(
+                        host,
+                        'ssh -o PasswordAuthentication=no SR_HOST.SR_FQDN bash -c -l "/tmp/runner_script"',
+                        talk=args.talk,
+                        reboot_host=args.reboot_host,
+                        quarantine_mode=safe_mode,
+                        dont_lift_quarantine=args.dont_lift_quarantine,
+                        continue_on_failure=True,
+                    )
+                else:
+                    sr.safe_run_single_host(
+                        host,
+                        sr.command,
+                        talk=args.talk,
+                        reboot_host=args.reboot_host,
+                        quarantine_mode=safe_mode,
+                        dont_lift_quarantine=args.dont_lift_quarantine,
+                        continue_on_failure=True,
+                    )
             except CommandFailedException:
                 # TODO: control decision to continue or exit via flag
                 print("command failed, continuing...")
@@ -718,10 +836,7 @@ def main(args, safe_mode=False):
             # TODO: remove need for remaining_hosts... feels gross
             remaining_hosts = list(sr.remaining_hosts)
             status_print(f"completed {host}")
-            status_print(
-                f"hosts remaining ({len(sr.remaining_hosts)}/{host_counts['remaining']}): "
-                f"{', '.join(sr.remaining_hosts)}",
-            )
+            status_print(f"hosts remaining: {len(sr.remaining_hosts)}/{host_counts['remaining']}")
             if args.talk:
                 # say(f"completed {host}.")
                 say(f"{len(sr.remaining_hosts)} hosts remaining.")
