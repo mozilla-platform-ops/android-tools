@@ -25,6 +25,10 @@ from worker_health import quarantine, status, utils
 #   - where to get this data from?
 # TODO: command to dump an empty state file in restore dir
 #   - currrent mechanic of specifying dir without state file is... interesting
+# TODO: add support for parsing puppet inventory files
+#   - need to be able to specify groups or exclude groups also
+#   - seems simpler than current hack of tool to export inventory files to csv
+#     which is then put into the TOML. just skip a step.
 
 # developer todos
 # TODO: move these non-class functions to utils?
