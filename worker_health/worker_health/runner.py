@@ -637,15 +637,71 @@ def main(args, safe_mode=False):
         name_string = "unsafe runner"
         ur_print_banner()
 
-    if args.talk:
-        say(f"{name_string}: talk enabled", background_mode=True)
+    # handle deleting output files or resetting state
+    #   - TODO: should either of these require prompting or a force flag?
 
+    # open the state file, gather all hosts in the 'state' section in a list,
+    # and then delete the output files for those hosts
+    if args.delete_output_files:
+        print(f"deleting output files in {args.resume_dir}...")
+        temp_sr = Runner.from_resume(args.resume_dir)
+        with open(temp_sr.state_file, "r") as f:
+            data = tomlkit.load(f)
+        hosts = (
+            data["state"]["failed_hosts"]
+            + data["state"]["skipped_hosts"]
+            + data["state"]["completed_hosts"]
+            + data["state"]["remaining_hosts"]
+        )
+        cleaned_file_count = 0
+        for host in hosts:
+            try:
+                os.remove(f"{temp_sr.run_dir}/{host}.txt")
+                cleaned_file_count += 1
+            except FileNotFoundError:
+                pass
+        print(f"deleted {cleaned_file_count} output files.")
+
+    # open the state file, in the 'state' section, take all of the hosts from all
+    #  of the lists and place them in 'remaining_hosts'
+    if args.reset_state:
+        temp_sr = Runner.from_resume(args.resume_dir)
+        print(f"resetting state file ({temp_sr.state_file})...")
+        with open(temp_sr.state_file, "r") as f:
+            data = tomlkit.load(f)
+        starting_remaining_host_count = len(data["state"]["remaining_hosts"])
+        data["state"]["remaining_hosts"] = (
+            data["state"]["failed_hosts"]
+            + data["state"]["skipped_hosts"]
+            + data["state"]["completed_hosts"]
+            + data["state"]["remaining_hosts"]
+        )
+        data["state"]["skipped_hosts"] = []
+        data["state"]["failed_hosts"] = []
+        data["state"]["completed_hosts"] = []
+        with open(temp_sr.state_file, "w") as f:
+            tomlkit.dump(data, f)
+        host_count = len(data["state"]["remaining_hosts"])
+        print(
+            f"{host_count} hosts now remaining (previously {starting_remaining_host_count}).",
+        )
+
+    # should we exit here? do we need to?
+    if args.reset_state or args.delete_output_files:
+        sys.exit(0)
+
+    # execution of the main functionality
+
+    # TODO: shouldn't ever be hitting this now... eventually remove
     if not args.resume_dir:
         sr = Runner(hosts=args.hosts, command=args.command, fqdn_prefix=args.fqdn_prefix)
         print(f"state file (new): {sr.state_file}")
     else:
         sr = Runner.from_resume(args.resume_dir)
         print(f"state file (resumed): {sr.state_file}")
+
+    if args.talk:
+        say(f"{name_string}: talk enabled", background_mode=True)
 
     # TODO: config check
     #   - idea: catch missing data before try/catch below

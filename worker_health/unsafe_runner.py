@@ -38,6 +38,8 @@ if __name__ == "__main__":
         action="store_true",
         help="reboot the host after command runs successfully.",
     )
+    parser.add_argument("--reset-state", "-S", action="store_true", help="reset the state section of the config file")
+    parser.add_argument("--delete-output-files", "-D", action="store_true", help="delete the output files")
     parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
     # TODO: add argument to do a reboot if run is successful?
     # parser.add_argument(
