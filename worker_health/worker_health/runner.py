@@ -3,7 +3,6 @@
 # runs a command with checkpoint
 # - if you need to quarantine hosts, use safe_runner (this is not safe)
 
-import argparse
 import datetime
 import os
 import random
@@ -554,18 +553,6 @@ def remove_argument(a_parser, arg):
                 return
 
 
-class ResumeAction(argparse.Action):
-    def __call__(self, parser, args, values, option_string):
-        # remove these arguments becuase they're not needed with -r/--resume_file
-        remove_argument(parser, "provisioner")
-        remove_argument(parser, "worker_type")
-        remove_argument(parser, "command")
-        remove_argument(parser, "host_csv")
-        remove_argument(parser, "fqdn_prefix")
-        # the normal part
-        setattr(args, self.dest, values)
-
-
 def handler(_signum, _frame):
     global terminate
     terminate += 1
@@ -716,6 +703,7 @@ def main(args, safe_mode=False):
 
     # get user to ack what we're about to do
     # TODO: mention skipped hosts?
+    # TODO: math is often off by one or two, figure out why
     try:
         print("run options:")
         print(
@@ -727,7 +715,8 @@ def main(args, safe_mode=False):
             print(f"    skipping: {', '.join(sr.hosts_to_skip)}")
         # print(f"    remaining: {', '.join(sr.remaining_hosts)}")
         # TODO: show more detail here (counts of each type)
-        # print(f"    fqdn_postfix: {sr.fqdn_postfix}")
+        if sr.fqdn_postfix:
+            print(f"    fqdn_postfix: {sr.fqdn_postfix}")
         # TODO: show hosts_to_skip?
         # TODO: mention talk, reboot, pre-quarantine count
         if safe_mode:
