@@ -16,9 +16,7 @@ if __name__ == "__main__":
         "-r",
         required=True,
         metavar="RUN_DIR",
-        # custom action that removes the positional args
-        action=runner.ResumeAction,
-        help="causes positional arguments to be ignored. recommend prefixing with 'ur_' if not pre-existing.",
+        help="recommend prefixing with 'ur_' if not pre-existing.",
     )
     parser.add_argument(
         "--do-not-randomize",
@@ -38,22 +36,20 @@ if __name__ == "__main__":
         action="store_true",
         help="reboot the host after command runs successfully.",
     )
-    parser.add_argument("--reset-state", "-S", action="store_true", help="reset the state section of the config file")
-    parser.add_argument("--delete-output-files", "-D", action="store_true", help="delete the output files")
+    parser.add_argument(
+        "--reset-state",
+        "-S",
+        action="store_true",
+        help="reset the state section of the config file (all hosts to remaining_hosts)",
+    )
+    parser.add_argument(
+        "--delete-output-files",
+        "-D",
+        action="store_true",
+        help="delete the output files in the state directory",
+    )
     parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
-    # TODO: add argument to do a reboot if run is successful?
-    # parser.add_argument(
-    #     "--fqdn-postfix",
-    #     "-F",
-    #     dest="fqdn_prefix",
-    #     help=("string to append to host (used for ssh check). "
-    #           f"defaults to '{runner.Runner.default_fqdn_postfix}'."),
-    # )
-    # positional args
-    # parser.add_argument("host_csv", type=runner.csv_strs, help="e.g. 'host1,host2'")
-    # parser.add_argument("command", help="command to run locally")
     args = parser.parse_args()
-    # args.hosts = args.host_csv
     # TODO: add as an exposed option?
     args.verbose = True
     args.dont_lift_quarantine = True
