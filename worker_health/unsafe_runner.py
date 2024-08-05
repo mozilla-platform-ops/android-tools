@@ -44,7 +44,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--delete-output-files",
-        "-D",
+        "-O",
         action="store_true",
         help="delete the output files in the state directory",
     )
