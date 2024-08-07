@@ -18,9 +18,7 @@ if __name__ == "__main__":
         "-r",
         required=True,
         metavar="RUN_DIR",
-        # custom action that removes the positional args
-        action=runner.ResumeAction,
-        help="causes positional arguments to be ignored. recommend prefixing with 'sr_' if not pre-existing.",
+        help="recommend prefixing with 'sr_' if not pre-existing.",
     )
     parser.add_argument(
         "--do-not-randomize",
@@ -41,18 +39,23 @@ if __name__ == "__main__":
         help="reboot the host after command runs successfully.",
     )
     parser.add_argument(
+        "--reset-state",
+        "-S",
+        action="store_true",
+        help="reset the state section of the config file (all hosts to remaining_hosts)",
+    )
+    parser.add_argument(
+        "--delete-output-files",
+        "-O",
+        action="store_true",
+        help="delete the output files in the state directory",
+    )
+    parser.add_argument(
         "--dont-lift_quarantine",
         "-D",
         action="store_true",
         help=("don't lift the quarantine after successfully running. " "useful for pre-quarantined bad hosts."),
     )
-    # TODO: add argument to do a reboot if run is successful?
-    # parser.add_argument(
-    #     "--fqdn-postfix",
-    #     "-F",
-    #     help=("string to append to host (used for ssh check). "
-    #            f"defaults to '{runner.Runner.default_fqdn_postfix}'."),
-    # )
     parser.add_argument(
         "--pre_quarantine_additional_host_count",
         "-P",
@@ -65,14 +68,8 @@ if __name__ == "__main__":
         type=int,
         default=runner.Runner.default_pre_quarantine_additional_host_count,
     )
-    # positional args
-    # parser.add_argument("provisioner", help="e.g. 'releng-hardware' or 'gecko-t'")
-    # parser.add_argument("worker_type", help="e.g. 'gecko-t-osx-1015-r8'")
-    # parser.add_argument("host_csv", type=runner.csv_strs, help="e.g. 'host1,host2'")
-    # parser.add_argument("command", help="command to run locally")
     parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
     args = parser.parse_args()
-    # args.hosts = args.host_csv
     # TODO: add as an exposed option?
     args.verbose = True
 

@@ -2,30 +2,30 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 - repo: https://github.com/pycqa/isort
-  rev: 5.12.0
+  rev: 5.13.2
   hooks:
     - id: isort
       name: isort (python)
 -   repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
+    rev: 7.1.1
     hooks:
     - id: flake8
       additional_dependencies:
         - flake8-black>=0.1.1
 -   repo: https://github.com/ambv/black
-    rev: 23.7.0
+    rev: 24.8.0
     hooks:
     - id: black
       language_version: python3
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.6.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: check-yaml
     -   id: check-added-large-files
 -   repo: git@github.com:Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
     -   id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
@@ -35,6 +35,6 @@ repos:
   hooks:
     - id: shellcheck
 -   repo: https://github.com/asottile/add-trailing-comma
-    rev: v3.0.1
+    rev: v3.1.0
     hooks:
     -   id: add-trailing-comma
