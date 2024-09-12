@@ -55,6 +55,10 @@ def csv_strs(vstr, sep=","):
     return values
 
 
+class SCPException(Exception):
+    pass
+
+
 # uses os x speech api
 def say(what_to_say, background_mode=False):
     # Samantha is the Siri voice, default is System setting
@@ -375,7 +379,7 @@ class Runner:
         if rc == 0:
             status_print(f"transferred file '{file_path}' to '{hostname}:{dest_path}'")
         else:
-            raise Exception(f"failed to transfer file '{file_path}' to '{hostname}:{dest_path}'")
+            raise SCPException(f"failed to transfer file '{file_path}' to '{hostname}:{dest_path}'")
 
     # TODO: have a multi-host with smarter sequencing...
     #   - for large groups of hosts, quarantine several at a time?
@@ -866,9 +870,14 @@ def main(args, safe_mode=False):
                         dont_lift_quarantine=args.dont_lift_quarantine,
                         continue_on_failure=True,
                     )
+            except SCPException as e:
+                # mention the exception and skip the host for now
+                status_print(f"SCPException: {e}")
+                status_print("skipping host for now...")
+                continue
             except CommandFailedException:
                 # TODO: control decision to continue or exit via flag
-                print("command failed, continuing...")
+                status_print("command failed, continuing...")
                 sr.remaining_hosts.remove(host)
                 remaining_hosts = list(sr.remaining_hosts)
                 sr.failed_hosts.append(host)
