@@ -174,30 +174,16 @@ class Health:
         # get device group data
         # TODO: get rid of need for calling out each type to check for
         for item in self.devicepool_config_yaml["device_groups"]:
-            if (
-                item.startswith("motog5")
-                or item.startswith("pixel2")
-                or item.startswith("pixel5")
-                or item.startswith("s7")
-                or item.startswith("a51")
-                or item.startswith("a55")
-                or item.startswith("test")
-            ):
+            # TODO: note in devicepool/config that this key name is special
+            if not ("docker-builder" in item):
                 if self.devicepool_config_yaml["device_groups"][item]:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
                     self.devicepool_bitbar_device_groups[item] = list(keys)
 
         # TODO: get rid of need for calling out each type to check for
         for project in self.devicepool_config_yaml["projects"]:
-            if (
-                project.endswith("p2")
-                or project.endswith("p5")
-                or project.endswith("g5")
-                or project.endswith("a51")
-                or project.endswith("a55")
-                or project.endswith("s7")
-                or "test" in project
-            ):
+            # TODO: note in devicepool/config that these keys names are special
+            if not ("defaults" in project or "docker-build" in project):
                 try:
                     # set the workers for a queue
                     self.devicepool_queues_and_workers[
