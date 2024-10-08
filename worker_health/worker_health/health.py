@@ -46,7 +46,10 @@ class Health:
     def __init__(self, verbosity=0):
         username = getpass.getuser()
         self.devicepool_client_dir = os.path.join(
-            "/", "tmp", ("worker_health.%s" % username), "mozilla-bitbar-devicepool"
+            "/",
+            "tmp",
+            ("worker_health.%s" % username),
+            "mozilla-bitbar-devicepool",
         )
         self.devicepool_git_clone_url = "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
         self.tc_url_root = "https://firefox-ci-tc.services.mozilla.com/api/queue/v1"
@@ -169,6 +172,7 @@ class Health:
                 print(exc)
 
         # get device group data
+        # TODO: get rid of need for calling out each type to check for
         for item in self.devicepool_config_yaml["device_groups"]:
             if (
                 item.startswith("motog5")
@@ -176,18 +180,21 @@ class Health:
                 or item.startswith("pixel5")
                 or item.startswith("s7")
                 or item.startswith("a51")
+                or item.startswith("a55")
                 or item.startswith("test")
             ):
                 if self.devicepool_config_yaml["device_groups"][item]:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
                     self.devicepool_bitbar_device_groups[item] = list(keys)
 
+        # TODO: get rid of need for calling out each type to check for
         for project in self.devicepool_config_yaml["projects"]:
             if (
                 project.endswith("p2")
                 or project.endswith("p5")
                 or project.endswith("g5")
                 or project.endswith("a51")
+                or project.endswith("a55")
                 or project.endswith("s7")
                 or "test" in project
             ):
@@ -361,7 +368,7 @@ class Health:
                                     worker,
                                     self.tc_current_worker_last_started[worker],
                                     difference,
-                                )
+                                ),
                             )
                     else:
                         print("    %s: missing! (no data)" % worker)
@@ -486,7 +493,7 @@ class Health:
         lines = []
         for queue in missing:
             lines.append(
-                "bitbar_workers,provisioner=%s,queue=%s configured=%s" % (provisioner, queue, len(missing[queue]))
+                "bitbar_workers,provisioner=%s,queue=%s configured=%s" % (provisioner, queue, len(missing[queue])),
             )
         return lines
 
@@ -679,7 +686,7 @@ class Health:
                 % (
                     "tc (%s)" % len(missing_workers_flattened),
                     missing_workers_flattened,
-                )
+                ),
             )
 
             mw2 = self.get_tc_missing_workers()
@@ -688,7 +695,7 @@ class Health:
                 % (
                     "tc 2 (%s)" % len(mw2),
                     mw2,
-                )
+                ),
             )
 
             if self.quarantined_workers:
@@ -697,7 +704,7 @@ class Health:
                     % (
                         "tc-quarantined (%s)" % len(self.quarantined_workers),
                         self.quarantined_workers,
-                    )
+                    ),
                 )
 
             if utils.bitbar_systemd_service_present():
@@ -708,7 +715,7 @@ class Health:
                     % (
                         "devicepool (%s)" % len(offline_workers_flattened),
                         offline_workers_flattened,
-                    )
+                    ),
                 )
 
                 merged = self.make_list_unique(offline_workers_flattened + missing_workers_flattened)
