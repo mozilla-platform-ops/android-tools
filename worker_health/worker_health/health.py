@@ -174,6 +174,7 @@ class Health:
         # get device group data
         # TODO: get rid of need for calling out each type to check for
         for item in self.devicepool_config_yaml["device_groups"]:
+            # TODO: note in devicepool/config that this key name is special
             if not ("docker-builder" in item):
                 if self.devicepool_config_yaml["device_groups"][item]:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
@@ -181,6 +182,7 @@ class Health:
 
         # TODO: get rid of need for calling out each type to check for
         for project in self.devicepool_config_yaml["projects"]:
+            # TODO: note in devicepool/config that these keys names are special
             if not ("defaults" in project or "docker-build" in project):
                 try:
                     # set the workers for a queue
