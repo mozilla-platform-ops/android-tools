@@ -179,6 +179,8 @@ class Health:
                 or item.startswith("pixel2")
                 or item.startswith("pixel5")
                 or item.startswith("s7")
+                or item.startswith("s21")
+                or item.startswith("s24")
                 or item.startswith("a51")
                 or item.startswith("a55")
                 or item.startswith("test")
@@ -196,6 +198,8 @@ class Health:
                 or project.endswith("a51")
                 or project.endswith("a55")
                 or project.endswith("s7")
+                or project.endswith("s21")
+                or project.endswith("s24")
                 or "test" in project
             ):
                 try:
