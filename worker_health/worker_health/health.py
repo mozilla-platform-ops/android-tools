@@ -373,7 +373,7 @@ class Health:
     #   - the output from self.calculate_missing_workers_from_tc misses these devices unless there are jobs in the queue
     #
     # new simpler function that doesn't worry about tardy
-    def get_tc_missing_workers(self, verbose=False):
+    def get_tc_missing_workers(self, exclude_quarantined=False, verbose=False):
         missing_workers = set()
         expected_workers = self.get_devicepool_config_workers()
         for worker in expected_workers:
@@ -407,6 +407,9 @@ class Health:
                         print("boo adding %s 2" % worker)
                     missing_workers.add(worker)
                     continue
+
+        if exclude_quarantined:
+            missing_workers = set(missing_workers) - set(self.quarantined_workers)
 
         # dedupe and return list
         return sorted(list(set(missing_workers)))
@@ -684,7 +687,7 @@ class Health:
             )
 
             # tc2
-            mw2 = self.get_tc_missing_workers()
+            mw2 = self.get_tc_missing_workers(exclude_quarantined=True)
             print(
                 output_format
                 % (
