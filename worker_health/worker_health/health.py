@@ -691,10 +691,14 @@ class Health:
             print(
                 output_format
                 % (
-                    "tc 2 (%s)" % len(mw2),
+                    "tc2 (%s)" % len(mw2),
                     mw2,
                 ),
             )
+
+            # tc + tc2 union
+            merged = self.make_list_unique(mw2 + missing_workers_flattened)
+            print(output_format % ("tc+tc2 (%s)" % len(merged), merged))
 
             # show quarantined
             if self.quarantined_workers:
