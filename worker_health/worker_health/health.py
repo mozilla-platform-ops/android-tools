@@ -414,6 +414,7 @@ class Health:
     # TODO: unit test this
     # rename/rework to detect_tardy()
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
+        include_quarantined = not exclude_quarantined
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
         #   - if not offline, remove
@@ -436,8 +437,13 @@ class Health:
                 more_workers_than_jobs = True
 
             for worker in self.devicepool_queues_and_workers[queue]:
-                if not exclude_quarantined and worker in self.quarantined_workers:
+                # adds quarantined workers to problem hosts if exclude_quarantined=False
+                if include_quarantined and worker in self.quarantined_workers:
                     mw2[queue].append(worker)
+                    continue
+
+                # skip quarantined hosts if exclude_quarantined
+                if exclude_quarantined and worker in self.quarantined_workers:
                     continue
 
                 if worker in self.tc_current_worker_last_started:
