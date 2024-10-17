@@ -84,6 +84,7 @@ currently_alerting = false
             # bold workers with high confidence (devicepool showing as bad)
             worker_string = "["
             for worker in report_data["union"]:
+                # bold the device if it's offline in the devicepool api
                 if worker in report_data["devicepool"]:
                     worker_string += "*%s*, " % worker
                 else:
