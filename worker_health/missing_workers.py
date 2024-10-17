@@ -46,12 +46,15 @@ def main():
     wh = health.Health(args.log_level)
 
     # TESTING
-    # output = wh.get_jsonc("https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=50")
+    # output = wh.get_jsonc("https://queue.taskcluster.net/v1/provisioners/"
+    #       "proj-autophone/worker-types/gecko-t-ap-unit-p2/workers?limit=50")
     # wh.pp.pprint(output)
     # sys.exit(0)
 
-    wh.show_missing_workers_report(
-        show_all=args.all, time_limit=args.time_limit, verbosity=args.log_level
+    wh.missing_workers_show_missing_workers_report(
+        show_all=args.all,
+        time_limit=args.time_limit,
+        verbosity=args.log_level,
     )
 
 

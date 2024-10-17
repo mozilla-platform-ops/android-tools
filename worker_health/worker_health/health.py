@@ -636,7 +636,7 @@ class Health:
         return set(return_arr)
 
     # returns a dict
-    def get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
+    def influx_report_get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
         # TODO: stop calling gather_data in processing/calculation code
         # - only call when necessary, push up to higher level
         self.gather_data()
@@ -655,7 +655,7 @@ class Health:
         # use flatten_dict if needed in list
         return merged2
 
-    def show_missing_workers_report(self, show_all=False, time_limit=None, verbosity=0):
+    def missing_workers_show_missing_workers_report(self, show_all=False, time_limit=None, verbosity=0):
         self.gather_data()
 
         if verbosity:
