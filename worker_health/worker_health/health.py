@@ -670,6 +670,8 @@ class Health:
         if time_limit:
             output_format = "%-16s %s"
 
+            # TODO: explain tc vs tc2
+
             # exclude quarantined as we mention them specifically later
             missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
@@ -681,6 +683,7 @@ class Health:
                 ),
             )
 
+            # tc2
             mw2 = self.get_tc_missing_workers()
             print(
                 output_format
@@ -690,6 +693,7 @@ class Health:
                 ),
             )
 
+            # show quarantined
             if self.quarantined_workers:
                 print(
                     output_format
@@ -757,7 +761,8 @@ class Health:
             return result_dict
 
     def influx_report(self, time_limit=None, verbosity=0):
-        problem_workers = self.get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
+        # include quarantined
+        problem_workers = self.influx_report_get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
 
         logger.info("generating influx log lines for problem workers...")
         self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))
