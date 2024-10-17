@@ -3,6 +3,7 @@ import json
 import os
 import pprint
 import subprocess
+import sys
 from multiprocessing.pool import ThreadPool
 from time import time as timer
 
@@ -413,7 +414,7 @@ class Fitness:
             elif isinstance(value, int):
                 result_string += "{:2d}".format(value)
             elif isinstance(value, list):
-                result_string += pprint.pformat(value)
+                result_string += pprint.pformat(value, width=sys.maxsize)
             elif isinstance(value, float):
                 # the only float is success rate
                 result_string += utils.graph_percentage(value)
