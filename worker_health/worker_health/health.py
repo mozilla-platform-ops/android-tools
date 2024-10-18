@@ -373,7 +373,7 @@ class Health:
     #   - the output from self.calculate_missing_workers_from_tc misses these devices unless there are jobs in the queue
     #
     # new simpler function that doesn't worry about tardy
-    def get_tc_missing_workers(self, verbose=False):
+    def get_tc_missing_workers(self, exclude_quarantined=False, verbose=False):
         missing_workers = set()
         expected_workers = self.get_devicepool_config_workers()
         for worker in expected_workers:
@@ -408,12 +408,16 @@ class Health:
                     missing_workers.add(worker)
                     continue
 
+        if exclude_quarantined:
+            missing_workers = set(missing_workers) - set(self.quarantined_workers)
+
         # dedupe and return list
         return sorted(list(set(missing_workers)))
 
     # TODO: unit test this
     # rename/rework to detect_tardy()
     def calculate_missing_workers_from_tc(self, limit, exclude_quarantined=False):
+        include_quarantined = not exclude_quarantined
         # TODO: get rid of intermittents
         # store a file with last_seen_online for each host
         #   - if not offline, remove
@@ -436,8 +440,13 @@ class Health:
                 more_workers_than_jobs = True
 
             for worker in self.devicepool_queues_and_workers[queue]:
-                if not exclude_quarantined and worker in self.quarantined_workers:
+                # adds quarantined workers to problem hosts if exclude_quarantined=False
+                if include_quarantined and worker in self.quarantined_workers:
                     mw2[queue].append(worker)
+                    continue
+
+                # skip quarantined hosts if exclude_quarantined
+                if exclude_quarantined and worker in self.quarantined_workers:
                     continue
 
                 if worker in self.tc_current_worker_last_started:
@@ -630,7 +639,7 @@ class Health:
         return set(return_arr)
 
     # returns a dict
-    def get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
+    def influx_report_get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
         # TODO: stop calling gather_data in processing/calculation code
         # - only call when necessary, push up to higher level
         self.gather_data()
@@ -649,7 +658,7 @@ class Health:
         # use flatten_dict if needed in list
         return merged2
 
-    def show_missing_workers_report(self, show_all=False, time_limit=None, verbosity=0):
+    def missing_workers_show_missing_workers_report(self, show_all=False, time_limit=None, verbosity=0):
         self.gather_data()
 
         if verbosity:
@@ -664,6 +673,8 @@ class Health:
         if time_limit:
             output_format = "%-16s %s"
 
+            # TODO: explain tc vs tc2
+
             # exclude quarantined as we mention them specifically later
             missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)
             missing_workers_flattened = self.flatten_list(missing_workers.values())
@@ -675,15 +686,21 @@ class Health:
                 ),
             )
 
-            mw2 = self.get_tc_missing_workers()
+            # tc2
+            mw2 = self.get_tc_missing_workers(exclude_quarantined=True)
             print(
                 output_format
                 % (
-                    "tc 2 (%s)" % len(mw2),
+                    "tc2 (%s)" % len(mw2),
                     mw2,
                 ),
             )
 
+            # tc + tc2 union
+            merged = self.make_list_unique(mw2 + missing_workers_flattened)
+            print(output_format % ("tc+tc2 (%s)" % len(merged), merged))
+
+            # show quarantined
             if self.quarantined_workers:
                 print(
                     output_format
@@ -751,7 +768,8 @@ class Health:
             return result_dict
 
     def influx_report(self, time_limit=None, verbosity=0):
-        problem_workers = self.get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
+        # include quarantined
+        problem_workers = self.influx_report_get_problem_workers2(time_limit=time_limit, exclude_quarantined=False)
 
         logger.info("generating influx log lines for problem workers...")
         self.influx_log_lines_to_send.extend(self.gen_influx_mw_lines(problem_workers))
