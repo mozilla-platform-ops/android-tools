@@ -51,7 +51,12 @@ def parse_yaml(file_paths, long_format, ignore_array=[]):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Process YAML inventory files to extract targets.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Process ronin-puppet YAML inventory files and "
+            "set safe/unsafe-runner state files `remaining_hosts` value."
+        ),
+    )
     parser.add_argument("-l", "--long", action="store_true", help="Include full hostname in output")
     parser.add_argument(
         "-i",
