@@ -618,6 +618,24 @@ def sr_print_banner():
     )
 
 
+# safe runner thoughts/TODOs
+# - should check if host is in quarantine before running
+#   - use unique quarantine message, and then check for that to find hosts that this process is working on
+# - should check to see if there are any hosts in pre-quarantine state, vs just adding X each cycle
+
+# pre-quarantine 0 doesn't work /
+#     --pre_quarantine_additional_host_count is broken
+#
+#   Traceback (most recent call last):
+#       File "/Users/aerickson/git/android-tools/worker_health/./safe_runner.py", line 76, in <module>
+#         runner.main(args, safe_mode=True)
+#       File "/Users/aerickson/git/android-tools/worker_health/worker_health/runner.py", line 822, in main
+#         idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
+#                                                ^^^^^^^^^^^^^^^^^^^^
+#     UnboundLocalError: cannot access local variable 'pre_quarantine_hosts' where it is not associated with a value
+#
+
+
 # TODO: should exit immediately when waiting, requires two frequently
 #    - need more checks for exit state (vs just at end)
 def main(args, safe_mode=False):
@@ -796,6 +814,8 @@ def main(args, safe_mode=False):
                     # this modifies in place
                     random.shuffle(remaining_hosts)
 
+                # TODO: needs fixin' wrt pre-quarantine
+                #    - need to store list of hosts we've quarantined in service of this run
                 if safe_mode:
                     # pre quarantine hosts
                     if args.pre_quarantine_additional_host_count:
@@ -812,6 +832,9 @@ def main(args, safe_mode=False):
                         status_print(f"pre-quarantine: quarantined {len(pre_quarantine_hosts)} hosts")
                         if args.talk:
                             say(f"pre-quarantined {len(pre_quarantine_hosts)} hosts")
+                    else:
+                        # if no extra hosts, just quarantine one host
+                        pass
 
                     status_print("looking for hosts idle on TC...")
                     idle_hosts = sr.si.wait_for_idle_hosts(pre_quarantine_hosts, show_indicator=False)
