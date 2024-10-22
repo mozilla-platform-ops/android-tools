@@ -138,8 +138,8 @@ class Fitness:
                 worker_types_result = self.get_worker_types(self.provisioner)
                 worker_types = []
                 if "workerTypes" in worker_types_result:
-                    for provisioner in worker_types_result["workerTypes"]:
-                        worker_type = provisioner["workerType"]
+                    for prov in worker_types_result["workerTypes"]:
+                        worker_type = prov["workerType"]
                         worker_types.append(worker_type)
                     # print(worker_types)
                 else:
