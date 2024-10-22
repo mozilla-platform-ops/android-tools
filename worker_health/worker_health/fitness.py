@@ -111,7 +111,7 @@ class Fitness:
         result_object["worker_id"] = worker_id
         return result_object
 
-    def main(self, provisioner, worker_type, worker_id):
+    def main(self, worker_type, worker_id):
         # TODO: show when worker last started a task (taskStarted in TC)
         # - aws metal nodes has quarantined nodes that have been deleted that never drop off from worker-data
 
@@ -135,7 +135,7 @@ class Fitness:
                 worker_types = [worker_type]
             # provisioner mode
             else:
-                worker_types_result = self.get_worker_types(provisioner)
+                worker_types_result = self.get_worker_types(self.provisioner)
                 worker_types = []
                 if "workerTypes" in worker_types_result:
                     for provisioner in worker_types_result["workerTypes"]:
