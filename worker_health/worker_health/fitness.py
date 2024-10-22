@@ -26,6 +26,10 @@ def get_r8_inventory_path():
     return f"/Users/{getpass.getuser()}/git/ronin_puppet/inventory.d/macmini-r8.yaml"
 
 
+class NoDataForHostException(Exception):
+    pass
+
+
 class Fitness:
     def __init__(
         self,
@@ -81,6 +85,32 @@ class Fitness:
         return_string += self.sr_dict_format(res)
         return return_string
 
+    # TODO: take provisioner?
+    def fitness_report_single_host(self, worker_type, worker_id):
+        self.get_pending_tasks_multi([worker_type])
+        url = (
+            f"{self.tc_url_root}/provisioners/{self.provisioner}/worker-types/{worker_type}/workers?limit=5"
+            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
+        )
+        # print(url)
+        worker_group_result = utils.get_jsonc(url, self.verbosity)
+        # worker_group = worker_group_result['workerTypes'][0][]
+        # import pprint
+        # pprint.pprint(worker_group_result)
+        # sys.exit()
+        if len(worker_group_result["workers"]) == 0:
+            print("%s.%s: %s" % (worker_type, worker_id, "no data"))
+            return
+        worker_group = worker_group_result["workers"][0]["workerGroup"]
+        self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
+        try:
+            _worker, result_object, _e = self.device_fitness_report(worker_type, worker_group, worker_id)
+        except NoDataForHostException as e:
+            print(f"{worker_type}.{worker_id}: {e}")
+            sys.exit(1)
+        result_object["worker_id"] = worker_id
+        return result_object
+
     def main(self, provisioner, worker_type, worker_id):
         # TODO: show when worker last started a task (taskStarted in TC)
         # - aws metal nodes has quarantined nodes that have been deleted that never drop off from worker-data
@@ -96,24 +126,7 @@ class Fitness:
         #   - can't code in else below be smarter about queries (so we don't need this)?
         if worker_type and worker_id:
             worker_count = 1
-            self.get_pending_tasks_multi([worker_type])
-            url = (
-                f"{self.tc_url_root}/provisioners/{self.provisioner}/worker-types/{worker_type}/workers?limit=5"
-                # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
-            )
-            # print(url)
-            worker_group_result = utils.get_jsonc(url, self.verbosity)
-            # worker_group = worker_group_result['workerTypes'][0][]
-            # import pprint
-            # pprint.pprint(worker_group_result)
-            # sys.exit()
-            if len(worker_group_result["workers"]) == 0:
-                print("%s.%s: %s" % (worker_type, worker_id, "no data"))
-                return
-            worker_group = worker_group_result["workers"][0]["workerGroup"]
-            self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
-            _worker, res_obj, _e = self.device_fitness_report(worker_type, worker_group, worker_id)
-            res_obj["worker_id"] = worker_id
+            res_obj = self.fitness_report_single_host(worker_type, worker_id)
             sr_total += res_obj["sr"]
             print("%s.%s" % (worker_type, self.format_workertype_fitness_report_result(res_obj)))
         else:
@@ -447,6 +460,9 @@ class Fitness:
         task_exceptions = 0
         task_last_started_timestamp = None
         task_history_success_array = []  # 1 for success, 0 for failure or exception
+
+        if "recentTasks" not in results:
+            raise NoDataForHostException(f"no results['recentTasks'] for {queue}.{device}")
 
         task_ids = []
         for task in results["recentTasks"]:
