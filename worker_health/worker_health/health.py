@@ -638,6 +638,14 @@ class Health:
 
         return set(return_arr)
 
+    # differs from influx_report_get_problem_workers2 in that it fetches offline workers from bitbar api
+    def prom_report_get_problem_workers(self, time_limit=None, verbosity=0, exclude_quarantined=False):
+        self.gather_data()
+        missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=exclude_quarantined)
+        offline_workers = self.get_offline_workers_from_bitbar_api()
+        merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
+        return merged2
+
     # returns a dict
     def influx_report_get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
         # TODO: stop calling gather_data in processing/calculation code
