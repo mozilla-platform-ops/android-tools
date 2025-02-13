@@ -27,3 +27,4 @@ colorama = "*"
 tomlkit = {git = "https://github.com/sdispater/tomlkit.git", editable = false, ref = "a3ed6a1"}
 alive-progress = "*"
 testdroid = "*"
+gitpython = "*"

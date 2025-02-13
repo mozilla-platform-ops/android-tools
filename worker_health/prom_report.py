@@ -49,3 +49,4 @@ class PromReport:
 if __name__ == "__main__":
     pr_instance = PromReport()
     pr_instance.get_offline_devices_per_project()
+    pr_instance.dc_instance.parse_config_file()
