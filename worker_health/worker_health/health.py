@@ -144,7 +144,7 @@ class Health:
         open(last_updated_file, "a").close()
         os.utime(last_updated_file, None)
 
-    def set_devicepool_configuration_path(self):
+    def set_devicepool_configuration_path(self, verbose=False):
         # the path to the config in the devicepool repo checkout we make
         checkout_yaml_file_path = os.path.join(self.devicepool_client_dir, "config", "config.yml")
         # this is that path that we expect the config file to be
@@ -152,7 +152,8 @@ class Health:
         devicepool_host_yaml_file_path = "/home/bitbar/mozilla-bitbar-devicepool/config/config.yml"
         local_dev_path = os.path.join(os.path.expanduser("~"), "git/mozilla-bitbar-devicepool/config/config.yml")
         if os.path.exists(local_dev_path):
-            logger.warning("Found devicepool config in local development location (not using repo checkout)!")
+            if verbose:
+                logger.warning("Found devicepool config in local development location (not using repo checkout)!")
             self.devicepool_config_yaml_path = local_dev_path
         elif os.path.exists(devicepool_host_yaml_file_path):
             logger.info("Found devicepool config in production location (not using repo checkout)!")

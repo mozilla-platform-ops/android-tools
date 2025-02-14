@@ -92,16 +92,29 @@ class PromReport:
         return offline_devices_by_project
 
 
+def dict_array_to_dict_len(dict_array):
+    dict_len = {}
+    for key in dict_array:
+        dict_len[key] = len(dict_array[key])
+    return dict_len
+
+
 if __name__ == "__main__":
     import pprint
 
     pr_instance = PromReport()
 
-    # DONE, loading config file
-    # pprint.pprint(pr_instance.dc_instance.get_configured_devices())
+    print("configured devices")
+    configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
+    configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
+    pprint.pprint(configured_devices_by_project_count)
+    print("---")
 
-    # pprint.pprint(pr_instance.ba_instance.get_device_problems())
+    print("offline devices")
+    offline_devices_by_project = pr_instance.get_offline_devices_by_project()
+    offline_deviced_by_project_count = dict_array_to_dict_len(offline_devices_by_project)
+    pprint.pprint(offline_devices_by_project)
+    pprint.pprint(offline_deviced_by_project_count)
+    print("---")
 
-    pprint.pprint(pr_instance.get_offline_devices_by_project())
-
-    # pr_instance.prom_report_get_problem_workers()
+    # TODO: get missing devices
