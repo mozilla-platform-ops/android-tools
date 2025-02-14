@@ -4,7 +4,7 @@
 import pprint
 import sys
 
-from worker_health import bitbar_api, devicepool_config, health, utils
+from worker_health import bitbar_api, devicepool_config, health, tc_jql, utils
 
 
 class PromReport:
@@ -108,38 +108,64 @@ class PromReport:
             # "https://queue.taskcluster.net/v1/provisioners/proj-autophone/worker-types?limit=%s"
         )
 
+        # get the workerTypes in the provisioner
         json_1 = utils.get_jsonc(url, 0)
         tc_current_worker_types = []
         for item in json_1["workerTypes"]:
             tc_current_worker_types.append(item["workerType"])
 
-        for workerType in tc_current_worker_types:
-            url = f"{tc_url_root}/provisioners/{provisioner}/worker-types/{workerType}/workers?limit=100"
-            print(url)
-            sys.exit(0)
-            json_2 = utils.get_jsonc(url, 0)
-            # pprint.pprint(json_2)
-            tc_worker_data[workerType] = json_2
+        # get the data for each workerType
 
+        # OLD
+        # for workerType in tc_current_worker_types:
+        #     url = f"{tc_url_root}/provisioners/{provisioner}/worker-types/{workerType}/workers?limit=100"
+        #     print(url)
+        #     sys.exit(0)
+        #     json_2 = utils.get_jsonc(url, 0)
+        #     # pprint.pprint(json_2)
+        #     tc_worker_data[workerType] = json_2
+
+        # NEW
+        for workerType in tc_current_worker_types:
+            workers_arr = []
+            data = tc_jql.get_tc_workers(provisioner, workerType)
+            # pprint.pprint(data)
+            # print("---")
+            # pprint.pprint(data['data']['workers']['edges'])
+            workers_edges = data["data"]["workers"]["edges"]
+            for item in workers_edges:
+                worker_blob = {}
+                worker_id = item["node"]["workerId"]
+                # worker_group = item['node']['workerGroup']
+                lastDateActive = item["node"]["lastDateActive"]
+                worker_blob["workerId"] = worker_id
+                # worker_blob['workerGroup'] = worker_group
+                worker_blob["lastDateActive"] = lastDateActive
+                workers_arr.append(worker_blob)
+            # sys.exit(0)
+            tc_worker_data[workerType] = workers_arr
+
+        # pprint.pprint(tc_worker_data)
+        # sys.exit(0)
         return tc_worker_data
 
     # TODO: rename to get_present_workers_by_worker_group
     # TODO: make this return all workerGroups (don't skip lambda)
-    def get_present_workers_by_project(self, tc_worker_data, excluded_worker_groups=["lambda"]):
+    def get_present_workers_by_project(self, tc_worker_data):
         present_workers_by_project = {}
         for workerType in tc_worker_data:
             # workerType is something like gecko-t-bitbar-gw-perf-s24
             # pprint.pprint(workerType)
-            for worker in tc_worker_data[workerType]["workers"]:
-                project = worker["workerGroup"]
-                worker_id = worker["workerId"]
-                if project in excluded_worker_groups:
-                    continue
+            for item in tc_worker_data[workerType]:
+                # project = workerType
+                worker_id = item["workerId"]
                 # pprint.pprint(worker)
                 if workerType in present_workers_by_project:
                     present_workers_by_project[workerType].append(worker_id)
                 else:
                     present_workers_by_project[workerType] = [worker_id]
+        # pprint.pprint(present_workers_by_project)
+        # sys.exit(0)
         return present_workers_by_project
 
     def get_missing_workers_by_project(self, tc_worker_data):
@@ -156,26 +182,27 @@ class PromReport:
 
         missing_workers_by_project = {}
         for project in configured_devices_by_project:
-            print(project)
-            if project in configured_devices_by_project:
-                pprint.pprint(configured_devices_by_project[project])
-            else:
-                print("project not in present_workers_by_project")
-            if project in present_workers_by_project:
-                pprint.pprint(present_workers_by_project[project])
-            else:
-                print("project not in configured_devices_by_project")
-            print("---")
+            # print(project)
+            # if project in configured_devices_by_project:
+            #     pprint.pprint(configured_devices_by_project[project])
+            # else:
+            #     print("project not in present_workers_by_project")
+            # if project in present_workers_by_project:
+            #     pprint.pprint(present_workers_by_project[project])
+            # else:
+            #     print("project not in configured_devices_by_project")
+            # print("---")
             if project not in present_workers_by_project:
                 missing_workers_by_project[project] = configured_devices_by_project[project]
                 continue
             missing_workers = list(
                 set(configured_devices_by_project[project]) - set(present_workers_by_project[project]),
             )
-            pprint.pprint(missing_workers)
+            # pprint.pprint(missing_workers)
             if missing_workers:
                 missing_workers_by_project[project] = missing_workers
 
+        pprint.pprint(missing_workers_by_project)
         sys.exit(0)
         return missing_workers_by_project
 

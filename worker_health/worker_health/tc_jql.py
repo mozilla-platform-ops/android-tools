@@ -1,8 +1,10 @@
-import json
+# import json
 
 import requests
 
 
+# query stolen from:
+# https://firefox-ci-tc.services.mozilla.com/provisioners/proj-autophone/worker-types/gecko-t-bitbar-gw-perf-a55
 def get_tc_workers(provisioner, workerType):
     url = "https://firefox-ci-tc.services.mozilla.com/graphql"
 
@@ -105,12 +107,18 @@ def get_tc_workers(provisioner, workerType):
 
     # Print the results
     if response.status_code == 200:
-        print(json.dumps(response.json(), indent=2))
+        # print(json.dumps(response.json(), indent=2))
+        pass
     else:
-        print(f"Error: {response.status_code}")
-        print(response.text)
+        raise Exception(
+            "Error getting workers from Taskcluster. "
+            f"Status code: {response.status_code}. Status text: {response.text}",
+        )
+
+    return response.json()
 
 
-provisioner = "proj-autophone"
-workerType = "gecko-t-bitbar-gw-perf-a55"
-get_tc_workers(provisioner, workerType)
+if __name__ == "__main__":
+    provisioner = "proj-autophone"
+    workerType = "gecko-t-bitbar-gw-perf-a55"
+    get_tc_workers(provisioner, workerType)
