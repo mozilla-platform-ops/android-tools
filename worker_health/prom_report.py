@@ -1,7 +1,7 @@
 # output prometheus line format
 #   - intended to be called by telegraf
 
-from worker_health import bitbar_api, devicepool_config
+from worker_health import bitbar_api, devicepool_config, health
 
 
 class PromReport:
@@ -9,6 +9,7 @@ class PromReport:
     def __init__(self) -> None:
         self.ba_instance = bitbar_api.BitbarApi()
         self.dc_instance = devicepool_config.DevicepoolConfig()
+        self.h_instance = health.Health()
 
     def get_offline_devices_per_project(self):
         # parses the response from self.get_device_problems()
@@ -45,8 +46,62 @@ class PromReport:
 
         pass
 
+    def prom_report_get_problem_workers(self, time_limit=45, verbosity=0, exclude_quarantined=False):
+        import pprint
+        import sys
+
+        # TODO: make this run in init
+        self.h_instance.gather_data()
+        missing_workers = self.h_instance.calculate_missing_workers_from_tc(
+            time_limit,
+            exclude_quarantined=exclude_quarantined,
+        )
+        pprint.pprint(missing_workers)
+
+        offline_workers = self.get_offline_devices_per_project()
+        # TODO: verify we can merge these...
+        pprint.pprint(offline_workers)
+
+        sys.exit(0)
+
+        merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
+        return merged2
+
+    def get_offline_devices_by_project(self):
+        offline_devices = []
+        offline_devices_by_project = {}
+
+        configured_devices = pr_instance.dc_instance.get_configured_devices()
+        device_problems = pr_instance.ba_instance.get_device_problems()
+
+        for item in device_problems:
+            for problem in item["problems"]:
+                if problem["type"] == "OFFLINE":
+                    device_name = item["deviceName"]
+                    offline_devices.append(device_name)
+
+        for device in offline_devices:
+            for project in configured_devices:
+                if device in configured_devices[project]:
+                    # add the device name to an array of offline devices for that project
+                    if project in offline_devices_by_project:
+                        offline_devices_by_project[project].append(device)
+                    else:
+                        offline_devices_by_project[project] = [device]
+
+        return offline_devices_by_project
+
 
 if __name__ == "__main__":
+    import pprint
+
     pr_instance = PromReport()
-    pr_instance.get_offline_devices_per_project()
-    pr_instance.dc_instance.parse_config_file()
+
+    # DONE, loading config file
+    # pprint.pprint(pr_instance.dc_instance.get_configured_devices())
+
+    # pprint.pprint(pr_instance.ba_instance.get_device_problems())
+
+    pprint.pprint(pr_instance.get_offline_devices_by_project())
+
+    # pr_instance.prom_report_get_problem_workers()
