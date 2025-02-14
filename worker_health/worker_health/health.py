@@ -648,7 +648,7 @@ class Health:
         return merged2
 
     # returns a dict
-    def influx_report_get_problem_workers2(self, time_limit=None, verbosity=0, exclude_quarantined=False):
+    def influx_report_get_problem_workers2(self, time_limit=75, verbosity=0, exclude_quarantined=False):
         # TODO: stop calling gather_data in processing/calculation code
         # - only call when necessary, push up to higher level
         self.gather_data()
