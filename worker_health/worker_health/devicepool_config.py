@@ -4,6 +4,8 @@ import git
 import yaml
 from git.exc import GitCommandError
 
+# import pprint
+
 
 class DevicepoolConfig:
 
@@ -12,6 +14,7 @@ class DevicepoolConfig:
         self.repo_url = "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
         self.repo_path = os.path.expanduser("~/.cache/worker_health/mozilla-bitbar-devicepool")
 
+        self.device_group_devices = {}
         self.configured_devices = {}
 
         self.clone_or_update_repo()
@@ -43,12 +46,26 @@ class DevicepoolConfig:
         except yaml.YAMLError as e:
             print(f"Error parsing YAML file: {e}")
 
-        for project in config_data["device_groups"]:
+        for device_group in config_data["device_groups"]:
             # if the project contains 'test' or 'builder', skip it
-            if "test" in project or "builder" in project:
+            if "test" in device_group or "builder" in device_group:
                 continue
-            if config_data["device_groups"][project]:
-                self.configured_devices[project] = list(config_data["device_groups"][project].keys())
+            if config_data["device_groups"][device_group]:
+                self.device_group_devices[device_group] = list(config_data["device_groups"][device_group].keys())
+
+        # pprint.pprint(self.device_group_devices)
+
+        # pprint.pprint(config_data["projects"])
+        # iterate over the key,value pairs in config_data["projects"]
+        for project_name, value in config_data["projects"].items():
+            if project_name != "defaults":
+                if value["device_group_name"] in self.device_group_devices:
+                    self.configured_devices[project_name] = self.device_group_devices[value["device_group_name"]]
+
+        # for project in config_data["projects"]:
+        #     project_name = project['project']
+        #     if project_name != 'defaults':
+        #         self.configured_devices[project_name] = self.device_group_devices[item['device_group_name']]
 
     def get_configured_devices(self):
         return self.configured_devices

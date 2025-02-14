@@ -1,6 +1,9 @@
 # output prometheus line format
 #   - intended to be called by telegraf
 
+import pprint
+import sys
+
 from worker_health import bitbar_api, devicepool_config, health, utils
 
 
@@ -94,7 +97,7 @@ class PromReport:
     def get_tc_worker_data(self, provisioner="proj-autophone"):
         tc_url_root = "https://firefox-ci-tc.services.mozilla.com/api/queue/v1"
         MAX_WORKER_TYPES = 50
-        import pprint
+        # import pprint
 
         # missing_workers_by_project = {}
         # tardy_workers_by_project = {}
@@ -113,10 +116,48 @@ class PromReport:
         for workerType in tc_current_worker_types:
             url = f"{tc_url_root}/provisioners/{provisioner}/worker-types/{workerType}/workers"
             json_2 = utils.get_jsonc(url, 0)
-            pprint.pprint(json_2)
+            # pprint.pprint(json_2)
             tc_worker_data[workerType] = json_2
 
         return tc_worker_data
+
+    # TODO: rename to get_present_workers_by_worker_group
+    # TODO: make this return all workerGroups (don't skip lambda)
+    def get_present_workers_by_project(self, tc_worker_data, excluded_worker_groups=["lambda"]):
+        present_workers_by_project = {}
+        for workerType in tc_worker_data:
+            # workerType is something like gecko-t-bitbar-gw-perf-s24
+            # pprint.pprint(workerType)
+            for worker in tc_worker_data[workerType]["workers"]:
+                project = worker["workerGroup"]
+                worker_id = worker["workerId"]
+                if project in excluded_worker_groups:
+                    continue
+                # pprint.pprint(worker)
+                if workerType in present_workers_by_project:
+                    present_workers_by_project[workerType].append(worker_id)
+                else:
+                    present_workers_by_project[workerType] = [worker_id]
+        return present_workers_by_project
+
+    def get_missing_workers_by_project(self, tc_worker_data):
+        configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
+        present_workers_by_project = self.get_present_workers_by_project(tc_worker_data)
+
+        # import sys
+        # import pprint
+        # pprint.pprint(present_workers_by_project)
+        # sys.exit(0)
+
+        missing_workers_by_project = {}
+        for project in configured_devices_by_project:
+            missing_workers = list(
+                set(configured_devices_by_project[project]) - set(present_workers_by_project[project]),
+            )
+            if missing_workers:
+                missing_workers_by_project[project] = missing_workers
+
+        return missing_workers_by_project
 
 
 def dict_array_to_dict_len(dict_array):
@@ -137,16 +178,15 @@ def dict_merge_with_dedupe(dict1, dict2):
 
 
 if __name__ == "__main__":
-    import pprint
-    import sys
-
     pr_instance = PromReport()
 
-    # print("configured devices")
-    # configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
-    # configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
-    # pprint.pprint(configured_devices_by_project_count)
-    # print("---")
+    print("configured devices")
+    configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
+    configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
+    pprint.pprint(configured_devices_by_project)
+    pprint.pprint(configured_devices_by_project_count)
+    print("---")
+    sys.exit(0)
 
     # print("offline devices")
     # offline_devices_by_project = pr_instance.get_offline_devices_by_project()
@@ -156,9 +196,9 @@ if __name__ == "__main__":
     # print("---")
 
     print("missing/tardy devices")
-    pr_instance.get_tc_worker_data()
+    tc_worker_data = pr_instance.get_tc_worker_data()
     # calculate missing
-    missing_workers_by_project = pr_instance.get_missing_workers_by_project()
+    missing_workers_by_project = pr_instance.get_missing_workers_by_project(tc_worker_data)
     pprint.pprint(missing_workers_by_project)
     sys.exit(0)
 
