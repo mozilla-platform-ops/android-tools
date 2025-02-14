@@ -4,10 +4,14 @@
 import pprint
 import sys
 
+import pendulum
+
 from worker_health import bitbar_api, devicepool_config, health, tc_jql, utils
 
 
 class PromReport:
+
+    TIME_LIMIT = 75
 
     def __init__(self) -> None:
         self.ba_instance = bitbar_api.BitbarApi()
@@ -172,8 +176,8 @@ class PromReport:
         configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
         present_workers_by_project = self.get_present_workers_by_project(tc_worker_data)
 
-        import pprint
-        import sys
+        # import pprint
+        # import sys
 
         # pprint.pprint(configured_devices_by_project)
         # print("---")
@@ -202,9 +206,26 @@ class PromReport:
             if missing_workers:
                 missing_workers_by_project[project] = missing_workers
 
-        pprint.pprint(missing_workers_by_project)
-        sys.exit(0)
+        # pprint.pprint(missing_workers_by_project)
+        # sys.exit(0)
         return missing_workers_by_project
+
+    def get_tardy_workers_by_project(self, tc_worker_data, time_limit=TIME_LIMIT):
+        dt = pendulum.now(tz="UTC")
+        comparison_dt = dt.subtract(minutes=time_limit)
+
+        tardy_workers_by_project = {}
+        for workerType in tc_worker_data:
+            for item in tc_worker_data[workerType]:
+                worker_id = item["workerId"]
+                lastDateActive = pendulum.parse(item["lastDateActive"])
+                # print(f"worker_id: {worker_id}, lastDateActive: {lastDateActive}")
+                if lastDateActive < comparison_dt:
+                    if workerType in tardy_workers_by_project:
+                        tardy_workers_by_project[workerType].append(worker_id)
+                    else:
+                        tardy_workers_by_project[workerType] = [worker_id]
+        return tardy_workers_by_project
 
 
 def dict_array_to_dict_len(dict_array):
@@ -245,11 +266,14 @@ if __name__ == "__main__":
     tc_worker_data = pr_instance.get_tc_worker_data()
     # calculate missing
     missing_workers_by_project = pr_instance.get_missing_workers_by_project(tc_worker_data)
-    pprint.pprint(missing_workers_by_project)
-    sys.exit(0)
+    # pprint.pprint(missing_workers_by_project)
+    # sys.exit(0)
 
     # calculate tardy
-    tardy_workers_by_project = pr_instance.get_tardy_workers_by_project()
+    tardy_workers_by_project = pr_instance.get_tardy_workers_by_project(tc_worker_data)
+    pprint.pprint(tardy_workers_by_project)
+    sys.exit(0)
+
     # merge missing and tardy
     merged = pr_instance.dict_merge_with_dedupe(missing_workers_by_project, tardy_workers_by_project)
     merged_count = dict_array_to_dict_len(merged)
