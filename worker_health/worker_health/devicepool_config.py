@@ -59,8 +59,9 @@ class DevicepoolConfig:
         # iterate over the key,value pairs in config_data["projects"]
         for project_name, value in config_data["projects"].items():
             if project_name != "defaults":
+                tc_worker_type = value["additional_parameters"]["TC_WORKER_TYPE"]
                 if value["device_group_name"] in self.device_group_devices:
-                    self.configured_devices[project_name] = self.device_group_devices[value["device_group_name"]]
+                    self.configured_devices[tc_worker_type] = self.device_group_devices[value["device_group_name"]]
 
         # for project in config_data["projects"]:
         #     project_name = project['project']

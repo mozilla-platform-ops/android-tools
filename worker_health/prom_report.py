@@ -114,7 +114,9 @@ class PromReport:
             tc_current_worker_types.append(item["workerType"])
 
         for workerType in tc_current_worker_types:
-            url = f"{tc_url_root}/provisioners/{provisioner}/worker-types/{workerType}/workers"
+            url = f"{tc_url_root}/provisioners/{provisioner}/worker-types/{workerType}/workers?limit=100"
+            print(url)
+            sys.exit(0)
             json_2 = utils.get_jsonc(url, 0)
             # pprint.pprint(json_2)
             tc_worker_data[workerType] = json_2
@@ -144,19 +146,37 @@ class PromReport:
         configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
         present_workers_by_project = self.get_present_workers_by_project(tc_worker_data)
 
-        # import sys
-        # import pprint
+        import pprint
+        import sys
+
+        # pprint.pprint(configured_devices_by_project)
+        # print("---")
         # pprint.pprint(present_workers_by_project)
         # sys.exit(0)
 
         missing_workers_by_project = {}
         for project in configured_devices_by_project:
+            print(project)
+            if project in configured_devices_by_project:
+                pprint.pprint(configured_devices_by_project[project])
+            else:
+                print("project not in present_workers_by_project")
+            if project in present_workers_by_project:
+                pprint.pprint(present_workers_by_project[project])
+            else:
+                print("project not in configured_devices_by_project")
+            print("---")
+            if project not in present_workers_by_project:
+                missing_workers_by_project[project] = configured_devices_by_project[project]
+                continue
             missing_workers = list(
                 set(configured_devices_by_project[project]) - set(present_workers_by_project[project]),
             )
+            pprint.pprint(missing_workers)
             if missing_workers:
                 missing_workers_by_project[project] = missing_workers
 
+        sys.exit(0)
         return missing_workers_by_project
 
 
@@ -180,13 +200,12 @@ def dict_merge_with_dedupe(dict1, dict2):
 if __name__ == "__main__":
     pr_instance = PromReport()
 
-    print("configured devices")
-    configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
-    configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
-    pprint.pprint(configured_devices_by_project)
-    pprint.pprint(configured_devices_by_project_count)
-    print("---")
-    sys.exit(0)
+    # print("configured devices")
+    # configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
+    # configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
+    # pprint.pprint(configured_devices_by_project)
+    # pprint.pprint(configured_devices_by_project_count)
+    # print("---")
 
     # print("offline devices")
     # offline_devices_by_project = pr_instance.get_offline_devices_by_project()
