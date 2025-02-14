@@ -2,11 +2,12 @@
 #   - intended to be called by telegraf
 
 import pprint
-import sys
 
 import pendulum
 
 from worker_health import bitbar_api, devicepool_config, health, tc_jql, utils
+
+# import sys
 
 
 class PromReport:
@@ -29,11 +30,11 @@ class PromReport:
                 if problem["type"] == "OFFLINE":
                     offline_devices.append(device_problem["deviceModelName"])
 
-        import pprint
-        import sys
+        # import pprint
+        # import sys
 
-        pprint.pprint(offline_devices)
-        sys.exit()
+        # pprint.pprint(offline_devices)
+        # sys.exit()
 
         return offline_devices
 
@@ -78,8 +79,8 @@ class PromReport:
         offline_devices = []
         offline_devices_by_project = {}
 
-        configured_devices = pr_instance.dc_instance.get_configured_devices()
-        device_problems = pr_instance.ba_instance.get_device_problems()
+        configured_devices = self.dc_instance.get_configured_devices()
+        device_problems = self.ba_instance.get_device_problems()
 
         for item in device_problems:
             for problem in item["problems"]:
@@ -173,7 +174,7 @@ class PromReport:
         return present_workers_by_project
 
     def get_missing_workers_by_project(self, tc_worker_data):
-        configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
+        configured_devices_by_project = self.dc_instance.get_configured_devices()
         present_workers_by_project = self.get_present_workers_by_project(tc_worker_data)
 
         # import pprint
@@ -245,7 +246,7 @@ def dict_merge_with_dedupe(dict1, dict2):
     return merged
 
 
-if __name__ == "__main__":
+def test_main():
     pr_instance = PromReport()
 
     # print("configured devices")
@@ -256,29 +257,60 @@ if __name__ == "__main__":
     # print("---")
 
     # print("offline devices")
-    # offline_devices_by_project = pr_instance.get_offline_devices_by_project()
+    offline_devices_by_project = pr_instance.get_offline_devices_by_project()
     # offline_deviced_by_project_count = dict_array_to_dict_len(offline_devices_by_project)
     # pprint.pprint(offline_devices_by_project)
     # pprint.pprint(offline_deviced_by_project_count)
     # print("---")
 
-    print("missing/tardy devices")
+    print("missing+offline devices")
     tc_worker_data = pr_instance.get_tc_worker_data()
     # calculate missing
     missing_workers_by_project = pr_instance.get_missing_workers_by_project(tc_worker_data)
     # pprint.pprint(missing_workers_by_project)
     # sys.exit(0)
 
+    # TODO: use tardy?
+    # TODO: replace code in fitness with code here
     # calculate tardy
-    tardy_workers_by_project = pr_instance.get_tardy_workers_by_project(tc_worker_data)
-    pprint.pprint(tardy_workers_by_project)
-    sys.exit(0)
+    # tardy_workers_by_project = pr_instance.get_tardy_workers_by_project(tc_worker_data)
+    # pprint.pprint(tardy_workers_by_project)
+    # sys.exit(0)
 
-    # merge missing and tardy
-    merged = pr_instance.dict_merge_with_dedupe(missing_workers_by_project, tardy_workers_by_project)
+    # merge missing and offline
+    merged = dict_merge_with_dedupe(missing_workers_by_project, offline_devices_by_project)
     merged_count = dict_array_to_dict_len(merged)
     pprint.pprint(merged)
     pprint.pprint(merged_count)
     print("---")
 
     # TODO: get missing devices
+
+
+def prom_report():
+    pr_instance = PromReport()
+
+    configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
+    configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
+    # generate prometheus lines
+    for project in configured_devices_by_project:
+        print(
+            f'worker_health_configured_devices{{workerType="{project}"}} '
+            f"{configured_devices_by_project_count[project]}",
+        )
+
+    tc_worker_data = pr_instance.get_tc_worker_data()
+    offline_devices_by_project = pr_instance.get_offline_devices_by_project()
+    missing_workers_by_project = pr_instance.get_missing_workers_by_project(tc_worker_data)
+    merged = dict_merge_with_dedupe(missing_workers_by_project, offline_devices_by_project)
+    merged_count = dict_array_to_dict_len(merged)
+    # generate prometheus lines
+    for project in merged:
+        print(f'worker_health_missing_or_offline_devices{{workerType="{project}"}} ' f"{merged_count[project]}")
+
+    pass
+
+
+if __name__ == "__main__":
+    # test_main()
+    prom_report()
