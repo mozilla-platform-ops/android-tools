@@ -28,7 +28,6 @@ else:
     print("SENTRY_DSN not set, not initializing sentry")
 
 import pprint
-import sys
 
 import pendulum
 
@@ -207,17 +206,8 @@ def test_main():
 
 
 def prom_report():
-    try:
-        pr_instance = PromReport()
-    except Exception:
-        # extract the last part of the exception classname if ther are periods in the name
-        short_name = str(sys.exc_info()[0])
-        if "." in str(sys.exc_info()[0]):
-            short_name = str(sys.exc_info()[0]).split(".")[-1]
-            # cleanup the short name
-            short_name = short_name.replace("'>", "")
-        print(short_name + ": " + sys.exc_info()[1].args[0])
-        sys.exit(5)
+    # no exception handling, because we want a sentry stack trace
+    pr_instance = PromReport()
 
     configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
     configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
