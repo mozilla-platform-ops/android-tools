@@ -1,4 +1,5 @@
 # import json
+import pprint
 
 import requests
 
@@ -119,6 +120,7 @@ def get_tc_workers(provisioner, workerType):
 
 
 if __name__ == "__main__":
+
     provisioner = "proj-autophone"
     workerType = "gecko-t-bitbar-gw-perf-a55"
-    get_tc_workers(provisioner, workerType)
+    pprint.pprint(get_tc_workers(provisioner, workerType))
