@@ -16,7 +16,6 @@ pytest = "*"
 [packages]
 pyyaml = "*"
 requests = "*"
-pendulum = "*"
 influxdb = "*"
 schedule = "*"
 toml = "*"
@@ -28,3 +27,4 @@ tomlkit = {git = "https://github.com/sdispater/tomlkit.git", editable = false, r
 alive-progress = "*"
 testdroid = "*"
 gitpython = "*"
+pendulum = "*"
