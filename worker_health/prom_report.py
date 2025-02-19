@@ -23,9 +23,12 @@ if "SENTRY_DSN" in os.environ:
         # We recommend adjusting this value in production.
         profiles_sample_rate=1.0,
     )
-    print("SENTRY_DSN set, initializing sentry")
+    # can't print anything here because it messes with output
+    # print("SENTRY_DSN set, initializing sentry")
 else:
-    print("SENTRY_DSN not set, not initializing sentry")
+    # can't print anything here because it messes with output
+    # print("SENTRY_DSN not set, not initializing sentry")
+    pass
 
 import pprint
 
