@@ -1,5 +1,4 @@
 import csv
-import getpass
 import logging
 import os
 import re
@@ -44,11 +43,14 @@ class NonZeroExit(Exception):
 
 class Health:
     def __init__(self, verbosity=0):
-        username = getpass.getuser()
+        # don't user username, instead user user id
+        #   - for temp users in docker, it doesn't exist
+        user_id = os.getuid()
+
         self.devicepool_client_dir = os.path.join(
             "/",
             "tmp",
-            ("worker_health.%s" % username),
+            ("worker_health.%s" % user_id),
             "mozilla-bitbar-devicepool",
         )
         self.devicepool_git_clone_url = "https://github.com/mozilla-platform-ops/mozilla-bitbar-devicepool.git"
