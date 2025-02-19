@@ -202,10 +202,7 @@ def prom_report():
     # generate prometheus lines
     for project in merged:
         print(
-            f'worker_health_missing_or_offline_devices{{workerType="{project}"}} '
-            f"{
-              merged_count[project]
-            }",
+            f'worker_health_missing_or_offline_devices{{workerType="{project}"}} ' f"{merged_count[project]}",
         )
 
     pass
