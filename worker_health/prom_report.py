@@ -5,6 +5,7 @@
 #   - intended to be called by telegraf
 
 import pprint
+import sys
 
 import pendulum
 
@@ -183,7 +184,15 @@ def test_main():
 
 
 def prom_report():
-    pr_instance = PromReport()
+    try:
+        pr_instance = PromReport()
+    except Exception:
+        # extract the last part of the exception classname
+        short_name = str(sys.exc_info()[0]).split(".")[-1]
+        # cleanup the short name
+        short_name = short_name.replace("'>", "")
+        print(short_name + ": " + sys.exc_info()[1].args[0])
+        sys.exit(5)
 
     configured_devices_by_project = pr_instance.dc_instance.get_configured_devices()
     configured_devices_by_project_count = dict_array_to_dict_len(configured_devices_by_project)
