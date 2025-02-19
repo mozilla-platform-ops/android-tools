@@ -45,27 +45,6 @@ class PromReport:
 
         return offline_devices
 
-    # def prom_report_get_problem_workers(self, time_limit=45, verbosity=0, exclude_quarantined=False):
-    #     import pprint
-    #     import sys
-
-    #     # TODO: make this run in init
-    #     self.h_instance.gather_data()
-    #     missing_workers = self.h_instance.calculate_missing_workers_from_tc(
-    #         time_limit,
-    #         exclude_quarantined=exclude_quarantined,
-    #     )
-    #     pprint.pprint(missing_workers)
-
-    #     offline_workers = self.get_offline_devices_per_project()
-    #     # TODO: verify we can merge these...
-    #     pprint.pprint(offline_workers)
-
-    #     sys.exit(0)
-
-    #     merged2 = self.dict_merge_with_dedupe(missing_workers, offline_workers)
-    #     return merged2
-
     def get_offline_devices_by_project(self):
         offline_devices = []
         offline_devices_by_project = {}
