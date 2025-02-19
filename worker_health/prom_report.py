@@ -4,6 +4,29 @@
 # output prometheus line format
 #   - intended to be called by telegraf
 
+import os
+
+import sentry_sdk
+
+# if SENTRY_DSN is set, then init sentry
+if "SENTRY_DSN" in os.environ:
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        send_default_pii=True,
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for tracing.
+        traces_sample_rate=1.0,
+        # Set profiles_sample_rate to 1.0 to profile 100%
+        # of sampled transactions.
+        # We recommend adjusting this value in production.
+        profiles_sample_rate=1.0,
+    )
+    print("SENTRY_DSN set, initializing sentry")
+else:
+    print("SENTRY_DSN not set, not initializing sentry")
+
 import pprint
 import sys
 
