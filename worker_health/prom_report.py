@@ -20,30 +20,6 @@ class PromReport:
         self.dc_instance = devicepool_config.DevicepoolConfig()
         self.h_instance = health.Health()
 
-    # returns a dict like:
-    # {
-    #   gecko-t-bitbar-gw-unit-p5: 2,
-    #   gecko-t-bitbar-gw-test-1: 0,
-    #   gecko-t-bitbar-gw-perf-s24: 1,
-    #   gecko-t-bitbar-gw-perf-s21: 2,
-    #   gecko-t-bitbar-gw-perf-p6: 0,
-    #   gecko-t-bitbar-gw-perf-p5: 0,
-    #   gecko-t-bitbar-gw-perf-a55: 2,
-    #   gecko-t-bitbar-gw-perf-a51: 9,
-    # }
-    def get_offline_devices_per_project(self):
-        # parses the response from self.get_device_problems()
-        data = self.ba_instance.get_device_problems()
-
-        offline_devices = []
-        for device_problem in data:
-            problems = device_problem["problems"]
-            for problem in problems:
-                if problem["type"] == "OFFLINE":
-                    offline_devices.append(device_problem["deviceModelName"])
-
-        return offline_devices
-
     def get_offline_devices_by_project(self):
         offline_devices = []
         offline_devices_by_project = {}
