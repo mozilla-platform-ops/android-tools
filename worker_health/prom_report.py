@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# vim: ts=4 sw=4 et
 
 # output prometheus line format
 #   - intended to be called by telegraf
@@ -105,7 +104,6 @@ class PromReport:
         return tc_worker_data
 
     # TODO: rename to get_present_workers_by_worker_group
-    # TODO: make this return all workerGroups (don't skip lambda)
     def get_present_workers_by_project(self, tc_worker_data):
         present_workers_by_project = {}
         for workerType in tc_worker_data:
@@ -227,7 +225,12 @@ def prom_report():
     merged_count = dict_array_to_dict_len(merged)
     # generate prometheus lines
     for project in merged:
-        print(f'worker_health_missing_or_offline_devices{{workerType="{project}"}} ' f"{merged_count[project]}")
+        print(
+            f'worker_health_missing_or_offline_devices{{workerType="{project}"}} '
+            f"{
+              merged_count[project]
+            }",
+        )
 
     pass
 
