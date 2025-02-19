@@ -3,6 +3,14 @@ import os
 from testdroid import Testdroid
 
 
+class BitbarApiException(Exception):
+    pass
+
+
+class BitbarApiTestdroidEnvvVarsNotSetException(BitbarApiException):
+    pass
+
+
 class BitbarApi:
 
     def __init__(self):
@@ -13,7 +21,9 @@ class BitbarApi:
             # TESTDROID = Testdroid(apikey=TESTDROID_APIKEY, url=TESTDROID_URL)
             self.TESTDROID = Testdroid(apikey=TESTDROID_APIKEY, url=TESTDROID_URL)
         else:
-            raise Exception("TESTDROID_URL and TESTDROID_APIKEY must be set in the environment")
+            raise BitbarApiTestdroidEnvvVarsNotSetException(
+                "TESTDROID_URL and TESTDROID_APIKEY must be set in the environment",
+            )
 
     def get_device_problems(self):
         """Return list of matching Bitbar devices with device problems.
