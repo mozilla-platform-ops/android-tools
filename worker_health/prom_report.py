@@ -210,10 +210,12 @@ def prom_report():
     try:
         pr_instance = PromReport()
     except Exception:
-        # extract the last part of the exception classname
-        short_name = str(sys.exc_info()[0]).split(".")[-1]
-        # cleanup the short name
-        short_name = short_name.replace("'>", "")
+        # extract the last part of the exception classname if ther are periods in the name
+        short_name = str(sys.exc_info()[0])
+        if "." in str(sys.exc_info()[0]):
+            short_name = str(sys.exc_info()[0]).split(".")[-1]
+            # cleanup the short name
+            short_name = short_name.replace("'>", "")
         print(short_name + ": " + sys.exc_info()[1].args[0])
         sys.exit(5)
 
