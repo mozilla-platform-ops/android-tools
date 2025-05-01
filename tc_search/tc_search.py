@@ -22,11 +22,22 @@ if __name__ == "__main__":
             """\
         If the search term is omitted, all provisioners and
         worker types will be listed.
-        """
-        )
+        """,
+        ),
     )
     parser.add_argument(
-        "search_term", type=str, nargs="?", help="string to search for", default=None
+        "search_term",
+        type=str,
+        nargs="?",
+        help="string to search for",
+        default=None,
+    )
+    # add verbose option
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="print more information about the search",
     )
     args = parser.parse_args()
 
@@ -39,6 +50,14 @@ if __name__ == "__main__":
 
     queue = taskcluster.Queue({"rootUrl": root_url, "credentials": creds})
 
+    # if verbose, show queue with pprint
+    # if args.verbose:
+    #     import pprint
+
+    #     print("Queue object details:")
+    #     pprint.pprint(queue.__dict__)
+    #     print("\n")
+
     p_count = 0
     wt_count = 0
     m_count = 0
@@ -49,15 +68,22 @@ if __name__ == "__main__":
             provisioner_id = item["provisionerId"]
             print(
                 "https://firefox-ci-tc.services.mozilla.com/provisioners/%s"
-                % fg(provisioner_id, 13)
+                % fg(provisioner_id, 13),
             )
             for wt in queue.listWorkerTypes(provisioner_id)["workerTypes"]:
+                # if verbose show wt with pprint
+                if args.verbose:
+                    import pprint
+
+                    print("WorkerType object details:")
+                    pprint.pprint(wt)
+                    print("\n")
                 wt_count += 1
                 worker_type = wt["workerType"]
                 # import pdb; pdb.set_trace()
                 print(
                     "  https://firefox-ci-tc.services.mozilla.com/provisioners/%s/worker-types/%s"
-                    % (provisioner_id, fg(worker_type, 14))
+                    % (provisioner_id, fg(worker_type, 14)),
                 )
         print("found %s provisionerIds and %s workerTypes" % (p_count, wt_count))
 
@@ -69,7 +95,7 @@ if __name__ == "__main__":
                 m_count += 1
                 print(
                     "https://firefox-ci-tc.services.mozilla.com/provisioners/%s"
-                    % fg(provisioner_id, 13)
+                    % fg(provisioner_id, 13),
                 )
             for wt in queue.listWorkerTypes(provisioner_id)["workerTypes"]:
                 wt_count += 1
@@ -79,9 +105,9 @@ if __name__ == "__main__":
                     m_count += 1
                     print(
                         "https://firefox-ci-tc.services.mozilla.com/provisioners/%s/worker-types/%s"
-                        % (provisioner_id, fg(worker_type, 14))
+                        % (provisioner_id, fg(worker_type, 14)),
                     )
         print(
             "%s matches, scanned %s provisionerIds and %s workerTypes"
-            % (m_count, p_count, wt_count)
+            % (m_count, p_count, wt_count),
         )
