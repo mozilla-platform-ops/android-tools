@@ -225,12 +225,15 @@ if __name__ == "__main__":
     #     workerType="gecko-t-bitbar-gw-perf-a55",
     # )
 
+    provisioner = "proj-autophone"
+    workerType = "gecko-t-bitbar-gw-perf-a55"
+    workerPoolId = f"{provisioner}/{workerType}"
     result = view_quarantined_worker_details(
-        provisionerId="proj-autophone",
-        workerType="gecko-t-bitbar-gw-perf-a55",
+        provisionerId=provisioner,
+        workerType=workerType,
         workerGroup="bitbar",
         workerId="a55-23",
-        workerPoolId="proj-autophone/gecko-t-bitbar-gw-perf-a55",
+        workerPoolId=workerPoolId,
     )
 
     print(json.dumps(result["data"]["worker"]["quarantineDetails"], indent=2))
