@@ -2,10 +2,12 @@
 
 import json
 import os
+import pprint
 
 import taskcluster
 
 from worker_health import fitness
+from worker_health import quarantine_graphql
 
 # see https://github.com/mozilla-platform-ops/relops-infra/blob/master/quarantine_tc.py
 # for prior art
@@ -20,7 +22,9 @@ class Quarantine:
             data = json.load(json_file)
         creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
 
-        self.tc_queue = taskcluster.Queue({"rootUrl": self.root_url, "credentials": creds})
+        self.tc_queue = taskcluster.Queue(
+            {"rootUrl": self.root_url, "credentials": creds},
+        )
 
     def quarantine(
         self,
@@ -34,9 +38,14 @@ class Quarantine:
         # TODO: if host is already quarantined, short-circuit and return
 
         # try to detect worker group
-        wgs = self.get_worker_groups(provisioner=provisioner_id, worker_type=worker_type)
+        wgs = self.get_worker_groups(
+            provisioner=provisioner_id,
+            worker_type=worker_type,
+        )
         if len(wgs) > 1:
-            raise Exception("can't guess workerGroup, multiple present. support not implemented yet.")
+            raise Exception(
+                "can't guess workerGroup, multiple present. support not implemented yet.",
+            )
         if len(wgs) == 0:
             raise Exception(f"couldn't find a matching workerType ('{worker_type}')!")
         worker_group = wgs[0]
@@ -104,7 +113,11 @@ class Quarantine:
         # ipdb.set_trace()
 
         i = 0
-        outcome = self.tc_queue.listWorkers(provisioner, worker_type, query={"quarantined": "true"})
+        outcome = self.tc_queue.listWorkers(
+            provisioner,
+            worker_type,
+            query={"quarantined": "true"},
+        )
         while outcome.get("continuationToken"):
             # print('more...')
             if outcome.get("continuationToken"):
@@ -123,11 +136,78 @@ class Quarantine:
         for item in outcome["workers"]:
             hostname = item["workerId"]
             # print(hostname)
+
             # pprint.pprint(item)
             quarantined_workers.append(hostname)
         return quarantined_workers
+
+    def get_quarantined_workers_with_details(self, provisioner, worker_type):
+        result_dict = {}
+
+        # import ipdb
+        # ipdb.set_trace()
+
+        i = 0
+        outcome = self.tc_queue.listWorkers(
+            provisioner,
+            worker_type,
+            query={"quarantined": "true"},
+        )
+        while outcome.get("continuationToken"):
+            # print('more...')
+            if outcome.get("continuationToken"):
+                outcome = self.tc_queue.listWorkers(
+                    provisioner,
+                    worker_type,
+                    query={
+                        "quarantined": "true",
+                        "continuationToken": outcome.get("continuationToken"),
+                    },
+                )
+            i += 1
+            # tasks += len(outcome.get('tasks', []))
+
+        quarantined_workers = []
+        for item in outcome["workers"]:
+            hostname = item["workerId"]
+            workerPoolId = f"{provisioner}/{worker_type}"
+            quarantine_info = quarantine_graphql.view_quarantined_worker_details(
+                provisionerId=provisioner,
+                workerType=worker_type,
+                workerGroup=item["workerGroup"],
+                workerId=hostname,
+                workerPoolId=workerPoolId,
+            )
+
+            # print(hostname)
+            # pprint.pprint(item)
+            quarantined_workers.append(hostname)
+            result_dict[hostname] = quarantine_info
+        # return quarantined_workers
+        result_dict = {
+            "quarantined_workers": quarantined_workers,
+            "quarantine_info": result_dict,
+        }
+        return result_dict
 
     def print_quarantined_workers(self, provisioner, worker_type):
         output = self.get_quarantined_workers(provisioner, worker_type)
         count = len(output)
         print("quarantined workers (%s): %s" % (count, output))
+
+
+if __name__ == "__main__":
+    # test get_quarantined_workers_with_details()
+    q = Quarantine()
+    prov = "proj-autophone"
+    wt = "gecko-t-bitbar-gw-perf-a55"
+    results = q.get_quarantined_workers_with_details(provisioner=prov, worker_type=wt)
+    devices = results["quarantined_workers"]
+    print("quarantined workers (%s): %s" % (len(devices), devices))
+
+    print("")
+
+    # print("quarantined workers (%s): %s" % (len(devices), pprint.pformat(devices)))
+    print(
+        "quarantined workers with details (%s): %s" % (len(results), pprint.pformat(results)),
+    )

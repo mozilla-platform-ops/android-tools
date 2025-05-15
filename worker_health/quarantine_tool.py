@@ -2,6 +2,7 @@
 
 import argparse
 import re
+import pprint
 
 from worker_health import quarantine
 
@@ -20,15 +21,38 @@ if __name__ == "__main__":
 
     # show
     parser_show = sub_parsers.add_parser("show", help="show quarantined hosts")
+    parser_show.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="enable verbose output",
+    )
     # show-all
-    parser_show_all = sub_parsers.add_parser("show-all", help="show all hosts in a pool")
+    parser_show_all = sub_parsers.add_parser(
+        "show-all",
+        help="show all hosts in a pool",
+    )
     # quarantine
-    parser_quarantine = sub_parsers.add_parser("quarantine", help="quarantine a set of hosts")
-    parser_quarantine.add_argument("-r", "--reason", help="why the instance is being quarantined")
+    parser_quarantine = sub_parsers.add_parser(
+        "quarantine",
+        help="quarantine a set of hosts",
+    )
+    parser_quarantine.add_argument(
+        "-r",
+        "--reason",
+        help="why the instance is being quarantined",
+    )
     parser_quarantine.add_argument("hosts", nargs="?")
     # lift
-    parser_lift = sub_parsers.add_parser("lift", help="lift the quarantine on a set of hosts")
-    parser_lift.add_argument("-r", "--reason", help="why the quarantine is being lifted")
+    parser_lift = sub_parsers.add_parser(
+        "lift",
+        help="lift the quarantine on a set of hosts",
+    )
+    parser_lift.add_argument(
+        "-r",
+        "--reason",
+        help="why the quarantine is being lifted",
+    )
     parser_lift.add_argument("hosts", nargs="?")
 
     args = parser.parse_args()
@@ -44,7 +68,12 @@ if __name__ == "__main__":
         host_arr = args.hosts.split(",")
         q = quarantine.Quarantine()
         if args.reason:
-            q.quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
+            q.quarantine(
+                args.provisioner,
+                args.worker_type,
+                host_arr,
+                reason=args.reason,
+            )
         else:
             q.quarantine(args.provisioner, args.worker_type, host_arr)
     elif args.action == "lift":
@@ -53,18 +82,35 @@ if __name__ == "__main__":
         host_arr = args.hosts.split(",")
         q = quarantine.Quarantine()
         if args.reason:
-            q.lift_quarantine(args.provisioner, args.worker_type, host_arr, reason=args.reason)
+            q.lift_quarantine(
+                args.provisioner,
+                args.worker_type,
+                host_arr,
+                reason=args.reason,
+            )
         else:
             q.lift_quarantine(args.provisioner, args.worker_type, host_arr)
     elif args.action == "show":
         q = quarantine.Quarantine()
-        results = q.get_quarantined_workers(provisioner=args.provisioner, worker_type=args.worker_type)
+        # results = q.get_quarantined_workers(provisioner=args.provisioner, worker_type=args.worker_type)
+        results = q.get_quarantined_workers_with_details(
+            provisioner=args.provisioner,
+            worker_type=args.worker_type,
+        )
         if not results:
             print("no results")
         else:
-            # human order
-            results.sort(key=lambda d: "{0:0>8}".format(d.replace("macmini-r8-", "")))
-            print(",".join(results))
+            quarantine_info = results["quarantine_info"]
+            quarantined_workers = results["quarantined_workers"]
+            formatted_workers = sorted(
+                quarantined_workers,
+                key=lambda d: "{0:0>8}".format(d.replace("macmini-r8-", "")),
+            )
+            if args.verbose:
+                print(",".join(formatted_workers))
+                pprint.pprint(quarantine_info)
+            else:
+                print(",".join(formatted_workers))
     elif args.action == "show-all":
         q = quarantine.Quarantine()
         results = q.get_workers(args.provisioner, args.worker_type)
