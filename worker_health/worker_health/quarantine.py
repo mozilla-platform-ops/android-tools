@@ -7,6 +7,7 @@ import pprint
 import taskcluster
 
 from worker_health import fitness
+from worker_health import quarantine_graphql
 
 # see https://github.com/mozilla-platform-ops/relops-infra/blob/master/quarantine_tc.py
 # for prior art
@@ -142,7 +143,7 @@ class Quarantine:
         return quarantined_workers
 
     def get_quarantined_workers_with_details(self, provisioner, worker_type):
-        # result_dict = {}
+        result_dict = {}
 
         # import ipdb
         # ipdb.set_trace()
@@ -170,12 +171,45 @@ class Quarantine:
         quarantined_workers = []
         for item in outcome["workers"]:
             hostname = item["workerId"]
+            workerPoolId = f"{provisioner}/{worker_type}"
+            quarantine_info = quarantine_graphql.view_quarantined_worker_details(
+                provisionerId=provisioner,
+                workerType=worker_type,
+                workerGroup=item["workerGroup"],
+                workerId=hostname,
+                workerPoolId=workerPoolId,
+            )
+
             # print(hostname)
             pprint.pprint(item)
             quarantined_workers.append(hostname)
-        return quarantined_workers
+            result_dict[hostname] = quarantine_info
+        # return quarantined_workers
+        result_dict = {
+            "quarantined_workers": quarantined_workers,
+            "quarantine_info": result_dict,
+        }
+        return result_dict
 
     def print_quarantined_workers(self, provisioner, worker_type):
         output = self.get_quarantined_workers(provisioner, worker_type)
         count = len(output)
         print("quarantined workers (%s): %s" % (count, output))
+
+
+if __name__ == "__main__":
+    # test get_quarantined_workers_with_details()
+    q = Quarantine()
+    prov = "proj-autophone"
+    wt = "gecko-t-bitbar-gw-perf-a55"
+    results = q.get_quarantined_workers_with_details(provisioner=prov, worker_type=wt)
+    devices = results["quarantined_workers"]
+    print("quarantined workers (%s): %s" % (len(devices), devices))
+
+    print("")
+
+    # print("quarantined workers (%s): %s" % (len(devices), pprint.pformat(devices)))
+    print(
+        "quarantined workers with details (%s): %s"
+        % (len(results), pprint.pformat(results)),
+    )

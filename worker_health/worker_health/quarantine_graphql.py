@@ -91,6 +91,16 @@ def view_quarantined_worker_details(
     Returns:
         dict: The parsed JSON response.
     """
+    # show args
+    print(
+        "view_quarantined_worker_details ",
+        provisionerId,
+        workerType,
+        workerGroup,
+        workerId,
+        workerPoolId,
+    )
+
     url = "https://firefox-ci-tc.services.mozilla.com/graphql"
     headers = {
         "content-type": "application/json",
@@ -214,7 +224,7 @@ def view_quarantined_worker_details(
     }
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
-    return response.json()
+    return response.json()["data"]["worker"]["quarantineDetails"]
 
 
 # main
@@ -237,4 +247,4 @@ if __name__ == "__main__":
         workerPoolId=workerPoolId,
     )
 
-    print(json.dumps(result["data"]["worker"]["quarantineDetails"], indent=2))
+    print(json.dumps(result, indent=2))
