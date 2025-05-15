@@ -224,6 +224,7 @@ if __name__ == "__main__":
     #     provisioner="proj-autophone",
     #     workerType="gecko-t-bitbar-gw-perf-a55",
     # )
+    # sys.exit(0)
 
     provisioner = "proj-autophone"
     workerType = "gecko-t-bitbar-gw-perf-a55"
@@ -237,5 +238,3 @@ if __name__ == "__main__":
     )
 
     print(json.dumps(result["data"]["worker"]["quarantineDetails"], indent=2))
-
-    # print(result['data']["quarantineDetails"])
