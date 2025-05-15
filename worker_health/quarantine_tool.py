@@ -107,10 +107,10 @@ if __name__ == "__main__":
                 key=lambda d: "{0:0>8}".format(d.replace("macmini-r8-", "")),
             )
             if args.verbose:
-                print(", ".join(formatted_workers))
+                print(",".join(formatted_workers))
                 pprint.pprint(quarantine_info)
             else:
-                print(", ".join(formatted_workers))
+                print(",".join(formatted_workers))
     elif args.action == "show-all":
         q = quarantine.Quarantine()
         results = q.get_workers(args.provisioner, args.worker_type)
