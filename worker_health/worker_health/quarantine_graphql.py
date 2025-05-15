@@ -91,16 +91,6 @@ def view_quarantined_worker_details(
     Returns:
         dict: The parsed JSON response.
     """
-    # show args
-    print(
-        "view_quarantined_worker_details ",
-        provisionerId,
-        workerType,
-        workerGroup,
-        workerId,
-        workerPoolId,
-    )
-
     url = "https://firefox-ci-tc.services.mozilla.com/graphql"
     headers = {
         "content-type": "application/json",
