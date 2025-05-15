@@ -136,9 +136,8 @@ class Quarantine:
         for item in outcome["workers"]:
             hostname = item["workerId"]
             # print(hostname)
-            import pprint
 
-            pprint.pprint(item)
+            # pprint.pprint(item)
             quarantined_workers.append(hostname)
         return quarantined_workers
 
@@ -181,7 +180,7 @@ class Quarantine:
             )
 
             # print(hostname)
-            pprint.pprint(item)
+            # pprint.pprint(item)
             quarantined_workers.append(hostname)
             result_dict[hostname] = quarantine_info
         # return quarantined_workers
