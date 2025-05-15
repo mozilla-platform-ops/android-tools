@@ -5,6 +5,8 @@
 #   - intended to be called by telegraf
 
 import os
+import argparse
+
 
 import sentry_sdk
 
@@ -38,7 +40,6 @@ from worker_health import bitbar_api, devicepool_config, health, tc_jql, utils
 
 
 class PromReport:
-
     TIME_LIMIT = 75
 
     def __init__(self) -> None:
@@ -229,12 +230,26 @@ def prom_report():
     # generate prometheus lines
     for project in merged:
         print(
-            f'worker_health_missing_or_offline_devices{{workerType="{project}"}} ' f"{merged_count[project]}",
+            f'worker_health_missing_or_offline_devices{{workerType="{project}"}} {merged_count[project]}',
         )
 
     pass
 
 
+def main():
+    parser = argparse.ArgumentParser(description="Output Prometheus line format for worker health.")
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Run in test mode (prints debug info instead of Prometheus lines)",
+    )
+    args = parser.parse_args()
+
+    if args.test:
+        test_main()
+    else:
+        prom_report()
+
+
 if __name__ == "__main__":
-    # test_main()
-    prom_report()
+    main()
