@@ -209,6 +209,5 @@ if __name__ == "__main__":
 
     # print("quarantined workers (%s): %s" % (len(devices), pprint.pformat(devices)))
     print(
-        "quarantined workers with details (%s): %s"
-        % (len(results), pprint.pformat(results)),
+        "quarantined workers with details (%s): %s" % (len(results), pprint.pformat(results)),
     )

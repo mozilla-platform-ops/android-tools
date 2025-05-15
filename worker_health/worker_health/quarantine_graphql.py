@@ -60,9 +60,7 @@ def view_workers(provisioner, workerType, continuation=None):
         """,
     }
     # Remove None values from variables
-    payload["variables"] = {
-        k: v for k, v in payload["variables"].items() if v is not None
-    }
+    payload["variables"] = {k: v for k, v in payload["variables"].items() if v is not None}
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
     return response.json()
@@ -209,9 +207,7 @@ def view_quarantined_worker_details(
         """,
     }
     # Remove None values from variables
-    payload["variables"] = {
-        k: v for k, v in payload["variables"].items() if v is not None
-    }
+    payload["variables"] = {k: v for k, v in payload["variables"].items() if v is not None}
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
     return response.json()["data"]["worker"]["quarantineDetails"]
