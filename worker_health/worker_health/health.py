@@ -178,7 +178,7 @@ class Health:
         # TODO: get rid of need for calling out each type to check for
         for item in self.devicepool_config_yaml["device_groups"]:
             # TODO: note in devicepool/config that this key name is special
-            if not ("docker-builder" in item):
+            if "docker-builder" not in item:
                 if self.devicepool_config_yaml["device_groups"][item]:
                     keys = self.devicepool_config_yaml["device_groups"][item].keys()
                     self.devicepool_bitbar_device_groups[item] = list(keys)
@@ -676,7 +676,13 @@ class Health:
         if time_limit:
             output_format = "%-16s %s"
 
-            # TODO: explain tc vs tc2
+            # explain tc vs tc2
+            print(
+                "NOTE: 'tc' vs 'tc2': \n"
+                "- tc will report a worker missing if it hasn't worked in a period (tardy), tc2 will not. \n"
+                "- tc2 works with no tasks in queues, tc results require tasks to be in the queues. \n"
+                "- tc2 is the proposed replacement for tc. still evaluating. \n",
+            )
 
             # exclude quarantined as we mention them specifically later
             missing_workers = self.calculate_missing_workers_from_tc(time_limit, exclude_quarantined=True)

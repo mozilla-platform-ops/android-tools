@@ -22,6 +22,10 @@ ALERT_TIME = 60
 DEFAULT_PROVISIONER = "proj-autophone"
 
 
+class NoDataForHostException(Exception):
+    pass
+
+
 def get_r8_inventory_path():
     return f"/Users/{getpass.getuser()}/git/ronin_puppet/inventory.d/macmini-r8.yaml"
 
@@ -81,6 +85,22 @@ class Fitness:
         return_string += self.sr_dict_format(res)
         return return_string
 
+    def fitness_report_single_host(self, worker_type, worker_id):
+        self.get_pending_tasks_multi([worker_type])
+        url = (
+            f"{self.tc_url_root}/provisioners/{self.provisioner}/worker-types/{worker_type}/workers?limit=5"
+            # "https://queue.taskcluster.net/v1/provisioners/%s/worker-types/%s/workers?limit=5"
+        )
+        worker_group_result = utils.get_jsonc(url, self.verbosity)
+        if len(worker_group_result["workers"]) == 0:
+            print("%s.%s: %s" % (worker_type, worker_id, "no data"))
+            return
+        worker_group = worker_group_result["workers"][0]["workerGroup"]
+        self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
+        _worker, result_object, _e = self.device_fitness_report(worker_type, worker_group, worker_id)
+        result_object["worker_id"] = worker_id
+        return result_object
+
     def main(self, provisioner, worker_type, worker_id):
         # TODO: show when worker last started a task (taskStarted in TC)
         # - aws metal nodes has quarantined nodes that have been deleted that never drop off from worker-data
@@ -114,6 +134,11 @@ class Fitness:
             self.quarantine_data[worker_type] = self.quarantine.get_quarantined_workers(self.provisioner, worker_type)
             _worker, res_obj, _e = self.device_fitness_report(worker_type, worker_group, worker_id)
             res_obj["worker_id"] = worker_id
+            try:
+                res_obj = self.fitness_report_single_host(worker_type, worker_id)
+            except NoDataForHostException as e:
+                print(f"{worker_type}.{worker_id}: {e}")
+                sys.exit(1)
             sr_total += res_obj["sr"]
             print("%s.%s" % (worker_type, self.format_workertype_fitness_report_result(res_obj)))
         else:
@@ -427,9 +452,7 @@ class Fitness:
                 # result_string += value.format('YYYY-MM-DD HH:mm:ss zz')
                 result_string += (
                     # pass True as a 2nd parameter to remove the modifiers ago, from now, etc.
-                    pendulum.now(tz="UTC")
-                    .diff_for_humans(value, True)
-                    .rjust(10)
+                    pendulum.now(tz="UTC").diff_for_humans(value, True).rjust(10)
                 )
             else:
                 raise Exception("unknown type (%s)" % type(value))

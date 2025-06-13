@@ -28,7 +28,8 @@ else
 	echo "* not using proxy"
 	echo ""
 
-	docker build -t "$DOCKER_IMAGE_NAME" .
+	docker build --platform="$LINUX_PLAT" -t "$DOCKER_IMAGE_NAME" .
+	#docker build -t "$DOCKER_IMAGE_NAME" . --no-cache
 fi
 
 docker create --name "$DOCKER_IMAGE_NAME" "$DOCKER_IMAGE_NAME"
