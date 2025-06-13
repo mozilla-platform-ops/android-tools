@@ -31,9 +31,10 @@ fi
 
 set -x
 
+# --platform=linux/amd64 \
 docker run -u root \
-  --platform=linux/amd64 \
   -v "$(pwd)":/work \
+  --platform="$LINUX_PLAT" \
   -e DEVICE_NAME='aje-test' \
   -e TC_WORKER_TYPE='gecko-t-ap-test-g5' \
   -e TC_WORKER_GROUP='bitbar' \
