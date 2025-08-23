@@ -35,6 +35,13 @@ def parse_args():
         required=True,
         help="Taskcluster queue id (e.g. proj-autophone/gecko-t-bitbar-gw-test-2)",
     )
+    parser.add_argument("--count", "-c", type=int, default=1, help="Number of tasks to create (default: 1)")
+    parser.add_argument(
+        "--bash-command",
+        "-b",
+        default="for ((i=1;i<=60;i++)); do echo $i; sleep 1; done",
+        help="Command to run in the task",
+    )
     return parser.parse_args()
 
 
@@ -50,29 +57,32 @@ def main():
 
     # prepare args
     user = os.environ.get("USER")
-    bash_cmd = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
-    # format: "2025-08-22T18:18:05.351Z"
-    datetime_string_format = "%Y-%m-%dT%H:%M:%S.000Z"
-    current_time = time.strftime(datetime_string_format, time.gmtime())
-    three_hours_from_now = time.strftime(datetime_string_format, time.gmtime(time.time() + 3 * 60 * 60))
 
-    create_task_args = {
-        "taskQueueId": args.queue,
-        "schedulerId": "taskcluster-ui",
-        "created": current_time,
-        "deadline": three_hours_from_now,
-        "payload": {
-            "command": [["/bin/bash", "-c", bash_cmd]],
-            "maxRunTime": 90,
-        },
-        "metadata": {
-            "name": "test-task",
-            "description": "An **example** test task",
-            "owner": f"{user}@mozilla.com",
-            "source": "http://github.com/mozilla-platform-ops/android-tools",
-        },
-    }
-    tcclient.queue_object.createTask(gen_task_id(), create_task_args)
+    for i in range(args.count):
+        # format: "2025-08-22T18:18:05.351Z"
+        datetime_string_format = "%Y-%m-%dT%H:%M:%S.000Z"
+        current_time = time.strftime(datetime_string_format, time.gmtime())
+        three_hours_from_now = time.strftime(datetime_string_format, time.gmtime(time.time() + 3 * 60 * 60))
+        task_id = gen_task_id()
+
+        create_task_args = {
+            "taskQueueId": args.queue,
+            # "schedulerId": "taskcluster-ui",
+            "created": current_time,
+            "deadline": three_hours_from_now,
+            "payload": {
+                "command": [["/bin/bash", "-c", args.bash_command]],
+                "maxRunTime": 90,
+            },
+            "metadata": {
+                "name": "test-task",
+                "description": "An **example** test task",
+                "owner": f"{user}@mozilla.com",
+                "source": "http://github.com/mozilla-platform-ops/android-tools",
+            },
+        }
+        tcclient.queue_object.createTask(task_id, create_task_args)
+        print(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
 
 
 if __name__ == "__main__":
