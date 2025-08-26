@@ -40,9 +40,7 @@ class TCClient:
         try:
             with open(os.path.expanduser("~/.tc_token")) as json_file:
                 data = json.load(json_file)
-        except Exception as e:
-            print(f"Error reading ~/.tc_token: {e}")
-            return
+            raise RuntimeError(f"Error reading ~/.tc_token: {e}")
         try:
             creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
         except KeyError as e:
