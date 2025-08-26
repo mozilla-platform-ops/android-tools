@@ -158,8 +158,10 @@ def main():
 
     if args.continuous_mode:
         SLEEP_INTERVAL = 15
-        print(f"Starting in continuous mode with job count {args.count} and limit {args.continuous_mode_limit}.")
-        print(f"Sleeping for {SLEEP_INTERVAL} seconds between queue checks.")
+        print(
+            f"Starting in continuous mode with job count {args.count} and limit {args.continuous_mode_limit}. "
+            f"Sleeping for {SLEEP_INTERVAL} seconds between queue checks.",
+        )
 
         # continuous mode
         while True:
