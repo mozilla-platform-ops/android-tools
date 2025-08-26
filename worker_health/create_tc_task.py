@@ -12,6 +12,8 @@ Creating a token:
     queue:create-task:*
     queue:quarantine-worker:*
     queue:scheduler-id:*
+    queue:pending-count:*
+    queue:claimed-count:*
   Place the ~/.tc_token file with contents simlar to:
     {
         "clientId": "mozilla-auth0/ad|Mozilla-LDAP|...",
@@ -28,17 +30,53 @@ import time
 import alive_progress
 import taskcluster
 
+DEFAULT_BASH_COMMAND = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
+
 
 class TCClient:
-    def __init__(self):
+    def __init__(self, queue, dry_run=False, bash_command=DEFAULT_BASH_COMMAND):
         self.root_url = "https://firefox-ci-tc.services.mozilla.com"
         with open(os.path.expanduser("~/.tc_token")) as json_file:
             data = json.load(json_file)
         creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
-
+        self.queue = queue
+        self.dry_run = dry_run
+        self.bash_command = bash_command
         self.queue_object = taskcluster.Queue(
             {"rootUrl": self.root_url, "credentials": creds},
         )
+
+    def create_task(self):
+        # prepare args
+        user = os.environ.get("USER")
+        # format: "2025-08-22T18:18:05.351Z"
+        datetime_string_format = "%Y-%m-%dT%H:%M:%S.000Z"
+        current_time = time.strftime(datetime_string_format, time.gmtime())
+        three_hours_from_now = time.strftime(datetime_string_format, time.gmtime(time.time() + 3 * 60 * 60))
+        task_id = gen_task_id()
+
+        create_task_args = {
+            "taskQueueId": self.queue,
+            # "schedulerId": "taskcluster-ui",
+            "created": current_time,
+            "deadline": three_hours_from_now,
+            "payload": {
+                "command": [["/bin/bash", "-c", self.bash_command]],
+                "maxRunTime": 90,
+            },
+            "metadata": {
+                "name": "test-task",
+                "description": "An **example** test task",
+                "owner": f"{user}@mozilla.com",
+                "source": "http://github.com/mozilla-platform-ops/android-tools",
+            },
+        }
+        if not self.dry_run:
+            self.queue_object.createTask(task_id, create_task_args)
+            print(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
+        else:
+            time.sleep(0.1)
+            print(f"[Dry Run] Task ID would be: {task_id}")
 
 
 def parse_args():
@@ -63,6 +101,19 @@ def parse_args():
         action="store_true",
         help="Simulate task creation without actually creating tasks",
     )
+    parser.add_argument(
+        "--continuous-mode",
+        "-C",
+        action="store_true",
+        help="Enable continuous mode (ensures a continuous load in a queue by monitoring and launching more jobs when the queue is below the limit).",
+    )
+    parser.add_argument(
+        "--continuous-mode-limit",
+        "-L",
+        type=int,
+        default=30,
+        help="The minimum number of jobs to keep in the queue (default: 30)",
+    )
     return parser.parse_args()
 
 
@@ -74,43 +125,38 @@ def gen_task_id():
 
 def main():
     args = parse_args()
-    tcclient = TCClient()
+    tcclient = TCClient(args.queue, dry_run=args.dry_run, bash_command=args.bash_command)
+    if args.dry_run:
+        print("[Dry Run] Dry Run mode is enabled. No tasks will be created.")
 
-    # prepare args
-    user = os.environ.get("USER")
+    if args.continuous_mode:
+        SLEEP_INTERVAL = 15
+        print(f"Monitoring {args.queue}...")
+        print(f"Starting in continuous mode with job count {args.count} and limit {args.continuous_mode_limit}.")
+        print(f"Sleeping for {SLEEP_INTERVAL} seconds between queue checks.")
 
-    # use alive-progress
-    with alive_progress.alive_bar(args.count, unit=" jobs", enrich_print=False) as bar:
-        for i in range(args.count):
-            # format: "2025-08-22T18:18:05.351Z"
-            datetime_string_format = "%Y-%m-%dT%H:%M:%S.000Z"
-            current_time = time.strftime(datetime_string_format, time.gmtime())
-            three_hours_from_now = time.strftime(datetime_string_format, time.gmtime(time.time() + 3 * 60 * 60))
-            task_id = gen_task_id()
-
-            create_task_args = {
-                "taskQueueId": args.queue,
-                # "schedulerId": "taskcluster-ui",
-                "created": current_time,
-                "deadline": three_hours_from_now,
-                "payload": {
-                    "command": [["/bin/bash", "-c", args.bash_command]],
-                    "maxRunTime": 90,
-                },
-                "metadata": {
-                    "name": "test-task",
-                    "description": "An **example** test task",
-                    "owner": f"{user}@mozilla.com",
-                    "source": "http://github.com/mozilla-platform-ops/android-tools",
-                },
-            }
-            if not args.dry_run:
-                tcclient.queue_object.createTask(task_id, create_task_args)
-                print(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
-            else:
-                time.sleep(0.1)
-                print(f"[Dry Run] Task ID would be: {task_id}")
-            bar()
+        # continuous mode
+        while True:
+            # ctrl-c to exit
+            try:
+                # req = tcclient.queue_object.taskQueueCounts(args.queue)
+                # import pprint
+                # pprint.pprint(req)
+                queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
+                print(f"queue_count: {queue_count}")
+                if queue_count < args.continuous_mode_limit:
+                    print(f"starting {args.count} tasks...")
+                    for i in range(args.count):
+                        tcclient.create_task()
+                time.sleep(SLEEP_INTERVAL)
+            except KeyboardInterrupt:
+                break
+    else:
+        # one-off mode
+        with alive_progress.alive_bar(args.count, unit=" jobs", enrich_print=False) as bar:
+            for i in range(args.count):
+                tcclient.create_task()
+                bar()
 
 
 if __name__ == "__main__":
