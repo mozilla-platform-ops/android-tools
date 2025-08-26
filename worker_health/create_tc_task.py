@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 
 """
-Taskcluster Task Creation CLI
-Usage example:
-  python create_task_test_2.py --queue proj-autophone/gecko-t-bitbar-gw-test-2 --name "example-task" --description "An example task" --owner "aerickson@mozilla.com" --command "/bin/bash -c 'echo hello'" --token <AUTH_TOKEN>
+create_tc_task.py
 
-Creating a token:
-  Create a token at
-   https://firefox-ci-tc.services.mozilla.com/auth/clients
-  with the following scopes:
-    queue:create-task:*
-    queue:quarantine-worker:*
-    queue:scheduler-id:*
-    queue:pending-count:*
-    queue:claimed-count:*
-  Place the ~/.tc_token file with contents simlar to:
+Creating a TC token:
+  1. Go to URL and create a token:
+    https://firefox-ci-tc.services.mozilla.com/auth/clients
+
+    with the following scopes:
+      queue:create-task:*
+      queue:quarantine-worker:*
+      queue:scheduler-id:*
+      queue:pending-count:*
+      queue:claimed-count:*
+
+  2. Place the ~/.tc_token file with contents similar to:
     {
         "clientId": "mozilla-auth0/ad|Mozilla-LDAP|...",
         "accessToken": "<ACCESS_TOKEN>"
     }
+
 """
 
 import argparse
@@ -36,9 +37,22 @@ DEFAULT_BASH_COMMAND = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
 class TCClient:
     def __init__(self, queue, dry_run=False, bash_command=DEFAULT_BASH_COMMAND):
         self.root_url = "https://firefox-ci-tc.services.mozilla.com"
-        with open(os.path.expanduser("~/.tc_token")) as json_file:
-            data = json.load(json_file)
-        creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
+        try:
+            with open(os.path.expanduser("~/.tc_token")) as json_file:
+                data = json.load(json_file)
+        except Exception as e:
+            print(f"Error reading ~/.tc_token: {e}")
+            return
+        try:
+            creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
+        except KeyError as e:
+            print(f"Missing key in ~/.tc_token: {e}")
+            # mention format
+            print("Expected format:")
+            print('{"clientId": "<CLIENT_ID>", "accessToken": "<ACCESS_TOKEN>"}')
+            print("")
+            print("*** See notes in the header of this script for credential details.")
+            return
         self.queue = queue
         self.dry_run = dry_run
         self.bash_command = bash_command
