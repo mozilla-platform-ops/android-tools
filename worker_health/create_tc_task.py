@@ -136,6 +136,13 @@ def parse_args():
         default=30,
         help="The minimum number of jobs to keep in the queue (default: 30)",
     )
+    parser.add_argument(
+        "--continuous-mode-check-interval",
+        "-I",
+        type=int,
+        default=15,
+        help="Continuous mode check interval in seconds (default: 15)",
+    )
     return parser.parse_args()
 
 
@@ -157,10 +164,9 @@ def main():
         print("Dry Run mode is enabled. No tasks will be created.")
 
     if args.continuous_mode:
-        SLEEP_INTERVAL = 15
         print(
             f"Starting in continuous mode with job count {args.count} and limit {args.continuous_mode_limit}. "
-            f"Sleeping for {SLEEP_INTERVAL} seconds between queue checks.",
+            f"Sleeping for {args.continuous_mode_check_interval} seconds between queue checks.",
         )
 
         # continuous mode
@@ -173,7 +179,7 @@ def main():
                     print(f"Below limit {args.continuous_mode_limit}, starting {args.count} tasks...")
                     for i in range(args.count):
                         tcclient.create_task()
-                time.sleep(SLEEP_INTERVAL)
+                time.sleep(args.continuous_mode_check_interval)
             except KeyboardInterrupt:
                 break
     else:
