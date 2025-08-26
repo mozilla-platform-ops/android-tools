@@ -127,11 +127,10 @@ def main():
     args = parse_args()
     tcclient = TCClient(args.queue, dry_run=args.dry_run, bash_command=args.bash_command)
     if args.dry_run:
-        print("[Dry Run] Dry Run mode is enabled. No tasks will be created.")
+        print("Dry Run mode is enabled. No tasks will be created.")
 
     if args.continuous_mode:
         SLEEP_INTERVAL = 15
-        print(f"Monitoring {args.queue}...")
         print(f"Starting in continuous mode with job count {args.count} and limit {args.continuous_mode_limit}.")
         print(f"Sleeping for {SLEEP_INTERVAL} seconds between queue checks.")
 
@@ -139,13 +138,10 @@ def main():
         while True:
             # ctrl-c to exit
             try:
-                # req = tcclient.queue_object.taskQueueCounts(args.queue)
-                # import pprint
-                # pprint.pprint(req)
                 queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
-                print(f"queue_count: {queue_count}")
+                print(f"{args.queue} pending tasks: {queue_count}")
                 if queue_count < args.continuous_mode_limit:
-                    print(f"starting {args.count} tasks...")
+                    print(f"Below limit {args.continuous_mode_limit}, starting {args.count} tasks...")
                     for i in range(args.count):
                         tcclient.create_task()
                 time.sleep(SLEEP_INTERVAL)
