@@ -43,14 +43,7 @@ class TCClient:
             raise RuntimeError(f"Error reading ~/.tc_token: {e}")
         try:
             creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
-        except KeyError as e:
-            print(f"Missing key in ~/.tc_token: {e}")
-            # mention format
-            print("Expected format:")
-            print('{"clientId": "<CLIENT_ID>", "accessToken": "<ACCESS_TOKEN>"}')
-            print("")
-            print("*** See notes in the header of this script for credential details.")
-            return
+            raise RuntimeError(f"Missing key in ~/.tc_token: {e}")
         self.queue = queue
         self.dry_run = dry_run
         self.bash_command = bash_command
