@@ -168,12 +168,19 @@ def main():
         while True:
             # ctrl-c to exit
             try:
-                queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
-                print(f"{args.queue} pending tasks: {queue_count}")
-                if queue_count < args.continuous_mode_limit:
-                    print(f"Below limit {args.continuous_mode_limit}, starting {args.count} tasks...")
-                    for i in range(args.count):
-                        tcclient.create_task()
+                try:
+                    queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
+                    print(f"{args.queue} pending tasks: {queue_count}")
+                    if queue_count < args.continuous_mode_limit:
+                        print(f"Below limit {args.continuous_mode_limit}, starting {args.count} tasks...")
+                        for i in range(args.count):
+                            tcclient.create_task()
+                except Exception as e:
+                    if TaskclusterRestFailure and isinstance(e, TaskclusterRestFailure):
+                        print(f"Taskcluster API error: {e}")
+                    else:
+                        print(f"Error fetching queue counts: {e}")
+                    print(f"Will retry after {args.continuous_mode_check_interval} seconds.")
                 time.sleep(args.continuous_mode_check_interval)
             except KeyboardInterrupt:
                 break
