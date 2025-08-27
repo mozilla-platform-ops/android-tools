@@ -80,8 +80,11 @@ class TCClient:
             },
         }
         if not self.dry_run:
-            self.queue_object.createTask(task_id, create_task_args)
-            print(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
+            try:
+                self.queue_object.createTask(task_id, create_task_args)
+                print(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
+            except Exception as e:
+                print(f"Failed to create task: {e}")
         else:
             time.sleep(0.1)
             print(f"[Dry Run] Task ID would be: {task_id}")
