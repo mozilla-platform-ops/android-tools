@@ -91,7 +91,9 @@ class TCClient:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Create a Taskcluster task using the Taskcluster Python client library.")
+    parser = argparse.ArgumentParser(
+        description="Create a Taskcluster task using the Taskcluster Python client library.",
+    )
     parser.add_argument(
         "--queue",
         "-q",
@@ -176,7 +178,7 @@ def main():
                         for i in range(args.count):
                             tcclient.create_task()
                 except Exception as e:
-                    if TaskclusterRestFailure and isinstance(e, TaskclusterRestFailure):
+                    if taskcluster.TaskclusterRestFailure and isinstance(e, taskcluster.TaskclusterRestFailure):
                         print(f"Taskcluster API error: {e}")
                     else:
                         print(f"Error fetching queue counts: {e}")
