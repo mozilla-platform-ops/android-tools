@@ -91,7 +91,7 @@ class TCClient:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Create a Taskcluster task via Taskcluster REST API.")
+    parser = argparse.ArgumentParser(description="Create a Taskcluster task using the Taskcluster Python client library.")
     parser.add_argument(
         "--queue",
         "-q",
