@@ -88,7 +88,6 @@ class TCClient:
 
 
 def parse_args():
-    default_bash_command = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
     parser = argparse.ArgumentParser(description="Create a Taskcluster task via GraphQL API.")
     parser.add_argument(
         "--queue",
@@ -100,8 +99,8 @@ def parse_args():
     parser.add_argument(
         "--bash-command",
         "-b",
-        default=default_bash_command,
-        help=f"Command to run in the task (default: {default_bash_command})",
+        default=DEFAULT_BASH_COMMAND,
+        help=f"Command to run in the task (default: {DEFAULT_BASH_COMMAND})",
     )
     parser.add_argument(
         "--command-timeout",
