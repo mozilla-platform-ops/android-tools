@@ -27,6 +27,7 @@ import os
 import json
 import rstr
 import time
+import logging
 
 import alive_progress
 import taskcluster
@@ -82,12 +83,12 @@ class TCClient:
         if not self.dry_run:
             try:
                 self.queue_object.createTask(task_id, create_task_args)
-                print(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
+                logging.info(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
             except Exception as e:
-                print(f"Failed to create task: {e}")
+                logging.error(f"Failed to create task: {e}")
         else:
             time.sleep(0.1)
-            print(f"[Dry Run] Task ID would be: {task_id}")
+            logging.info(f"[Dry Run] Task ID would be: {task_id}")
 
 
 def parse_args():
@@ -151,6 +152,7 @@ def gen_task_id():
 
 def main():
     args = parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     tcclient = TCClient(
         args.queue,
         dry_run=args.dry_run,
@@ -158,12 +160,11 @@ def main():
         command_timeout_seconds=args.command_timeout,
     )
     if args.dry_run:
-        print("Dry Run mode is enabled. No tasks will be created.")
+        logging.info("Dry Run mode is enabled. No tasks will be created.")
 
     if args.continuous_mode:
-        print(
-            f"Starting in continuous mode with job count {args.count} and limit {args.continuous_mode_limit}. "
-            f"Sleeping for {args.continuous_mode_check_interval} seconds between queue checks.",
+        logging.info(
+            f"Starting in continuous mode. Job count: {args.count}, job limit: {args.continuous_mode_limit}, check interval: {args.continuous_mode_check_interval}s.",
         )
 
         # continuous mode
@@ -172,17 +173,17 @@ def main():
             try:
                 try:
                     queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
-                    print(f"{args.queue} pending tasks: {queue_count}")
+                    logging.info(f"{args.queue} pending tasks: {queue_count}")
                     if queue_count < args.continuous_mode_limit:
-                        print(f"Below limit {args.continuous_mode_limit}, starting {args.count} tasks...")
+                        logging.info(f"Below limit {args.continuous_mode_limit}, starting {args.count} tasks...")
                         for i in range(args.count):
                             tcclient.create_task()
                 except Exception as e:
                     if taskcluster.TaskclusterRestFailure and isinstance(e, taskcluster.TaskclusterRestFailure):
-                        print(f"Taskcluster API error: {e}")
+                        logging.error(f"Taskcluster API error: {e}")
                     else:
-                        print(f"Error fetching queue counts: {e}")
-                    print(f"Will retry after {args.continuous_mode_check_interval} seconds.")
+                        logging.error(f"Error fetching queue counts: {e}")
+                    logging.warning(f"Will retry after {args.continuous_mode_check_interval} seconds.")
                 time.sleep(args.continuous_mode_check_interval)
             except KeyboardInterrupt:
                 break
