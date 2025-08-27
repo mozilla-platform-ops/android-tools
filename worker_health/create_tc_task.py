@@ -40,9 +40,11 @@ class TCClient:
         try:
             with open(os.path.expanduser("~/.tc_token")) as json_file:
                 data = json.load(json_file)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
             raise RuntimeError(f"Error reading ~/.tc_token: {e}")
         try:
             creds = {"clientId": data["clientId"], "accessToken": data["accessToken"]}
+        except KeyError as e:
             raise RuntimeError(f"Missing key in ~/.tc_token: {e}")
         self.queue = queue
         self.dry_run = dry_run
