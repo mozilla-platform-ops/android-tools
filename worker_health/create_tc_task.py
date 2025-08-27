@@ -177,16 +177,16 @@ def main():
             try:
                 try:
                     queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
-                    logging.info(f"{args.queue} pending tasks: {queue_count}")
+                    logging.info(f"{args.queue} pending tasks/jobs: {queue_count}")
                     if queue_count < args.continuous_mode_limit:
-                        logging.info(f"Below limit {args.continuous_mode_limit}, starting {args.count} tasks...")
+                        logging.info(f"Below job limit of {args.continuous_mode_limit}, starting {args.count} jobs...")
                         for i in range(args.count):
                             tcclient.create_task()
                 except Exception as e:
                     if taskcluster.TaskclusterRestFailure and isinstance(e, taskcluster.TaskclusterRestFailure):
                         logging.error(f"Taskcluster API error: {e}")
                     else:
-                        logging.error(f"Error fetching queue counts: {e}")
+                        logging.error(f"Error fetching queue task/job counts: {e}")
                     logging.warning(f"Will retry after {args.continuous_mode_check_interval} seconds.")
                 time.sleep(args.continuous_mode_check_interval)
             except KeyboardInterrupt:
