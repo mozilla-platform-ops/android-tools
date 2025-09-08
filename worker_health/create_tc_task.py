@@ -36,7 +36,14 @@ DEFAULT_BASH_COMMAND = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
 
 
 class TCClient:
-    def __init__(self, queue, dry_run=False, bash_command=DEFAULT_BASH_COMMAND, command_timeout_seconds=90):
+    def __init__(
+        self,
+        queue,
+        dry_run=False,
+        bash_command=DEFAULT_BASH_COMMAND,
+        command_timeout_seconds=90,
+        requests_timeout=60,
+    ):
         self.root_url = "https://firefox-ci-tc.services.mozilla.com"
         try:
             with open(os.path.expanduser("~/.tc_token")) as json_file:
@@ -52,7 +59,7 @@ class TCClient:
         self.bash_command = bash_command
         self.command_timeout_seconds = command_timeout_seconds
         self.queue_object = taskcluster.Queue(
-            {"rootUrl": self.root_url, "credentials": creds},
+            {"rootUrl": self.root_url, "credentials": creds, "timeout": requests_timeout},
         )
 
     def create_task(self):
@@ -135,6 +142,13 @@ def parse_args():
         help="The minimum number of jobs to keep in the queue (default: 30)",
     )
     parser.add_argument(
+        "--requests-timeout",
+        "-R",
+        type=int,
+        default=60,
+        help="Requests timeout in seconds (default: 60)",
+    )
+    parser.add_argument(
         "--continuous-mode-check-interval",
         "-I",
         type=int,
@@ -162,6 +176,7 @@ def main():
         dry_run=args.dry_run,
         bash_command=args.bash_command,
         command_timeout_seconds=args.command_timeout,
+        requests_timeout=args.requests_timeout,
     )
     if args.dry_run:
         logging.info("Dry Run mode is enabled. No tasks will be created.")
