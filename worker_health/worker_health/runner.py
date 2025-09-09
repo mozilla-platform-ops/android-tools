@@ -564,7 +564,7 @@ def handler(_signum, _frame):
     if terminate >= 2:
         print("*** double ctrl-c detected. exiting immediately!")
         sys.exit(0)
-    print("*** ctrl-c detected. will exit as soon as safely possible " "(one more to exit immediately).")
+    print("*** ctrl-c detected. will exit as soon as safely possible (one more to exit immediately).")
 
 
 # given a string hostname, returns True if sshable, else False.
@@ -784,7 +784,7 @@ def main(args, safe_mode=False):
     host_counts = sr.get_host_counts()
     # host_total = host_counts["total"]
 
-    with alive_progress.alive_bar(total=host_counts["remaining"], enrich_print=False, stats=False) as bar:
+    with alive_progress.alive_bar(total=host_counts["remaining"], enrich_print=False, stats=True) as bar:
         while remaining_hosts:
             remaining_hosts = list(sr.remaining_hosts)
 
