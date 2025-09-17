@@ -314,6 +314,8 @@ def main_continuous_mode(tcclient, args, main_layout, bar_state):
                     # Update pending count after adding tasks
                     updated_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
                     bar_state["pending"] = updated_count
+                else:
+                    logging.info(f"At or above job limit of {args.continuous_mode_limit}, not creating tasks.")
             except Exception as e:
                 if taskcluster.TaskclusterRestFailure and isinstance(e, taskcluster.TaskclusterRestFailure):
                     logging.error(f"Taskcluster API error: {e}")
