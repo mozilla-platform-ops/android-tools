@@ -293,6 +293,7 @@ def run_curses_mode(main_func, *args, **kwargs):
 # --- Update main_continuous_mode to update bar_state ---
 def main_continuous_mode(tcclient, args, main_layout, bar_state):
     check_interval = args.continuous_mode_check_interval
+    logging.info("Entering continuous mode loop. Press Ctrl-C to exit.")
     while True:
         try:
             try:
