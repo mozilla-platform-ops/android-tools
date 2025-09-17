@@ -38,6 +38,7 @@ import datetime
 import alive_progress
 import taskcluster
 import math
+from rich.table import Table
 
 DEFAULT_BASH_COMMAND = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
 
@@ -253,15 +254,22 @@ def run_curses_mode(main_func, *args, **kwargs):
         last_check_str = human_delta((now - last_check).total_seconds()) if last_check else "--"
         next_check_str = human_delta((next_check - now).total_seconds()) if next_check else "--"
         last_created_str = human_delta((now - last_created).total_seconds()) if last_created else "--"
-        bar_text = (
-            f"[black]{os.path.basename(__file__)} | {time_str} | "
-            f"QUEUE: {queue} | "
+
+        left_text = f"[black]{os.path.basename(__file__)} | {time_str}[/black]"
+        right_text = (
+            f"[black]QUEUE: {queue} | "
             f"PENDING: {pending} | "
             f"LAST_CHECK: {last_check_str} ago | "
             f"NEXT_CHECK: in {next_check_str} | "
             f"LAST_CREATED: {last_created_str} ago[/black]"
         )
-        layout["bar"].update(Panel(Text.from_markup(bar_text, justify="left"), style="on blue"))
+
+        table = Table.grid(expand=True)
+        table.add_column(justify="left")
+        table.add_column(justify="right")
+        table.add_row(left_text, right_text)
+
+        layout["bar"].update(Panel(table, style="on blue"))
 
     def update_main():
         layout["main"].update(Panel(Text("\n".join(log_buffer), justify="left")))
