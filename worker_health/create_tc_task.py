@@ -175,16 +175,25 @@ def is_interactive_terminal():
 
 
 class UILogHandler(logging.Handler):
-    def __init__(self, buffer, max_lines=20):
+    def __init__(self, buffer, layout, bar_size=3):
         super().__init__()
         self.buffer = buffer
-        self.max_lines = max_lines
+        self.layout = layout
+        self.bar_size = bar_size
+
+    def get_max_lines(self):
+        # Get the current terminal height and subtract bar size
+        import shutil
+
+        height = shutil.get_terminal_size((80, 24)).lines
+        return max(1, height - self.bar_size)
 
     def emit(self, record):
         msg = self.format(record)
         self.buffer.append(msg)
-        if len(self.buffer) > self.max_lines:
-            del self.buffer[0 : len(self.buffer) - self.max_lines]
+        max_lines = self.get_max_lines()
+        if len(self.buffer) > max_lines:
+            del self.buffer[0 : len(self.buffer) - max_lines]
 
 
 def run_curses_mode(main_func, *args, **kwargs):
@@ -198,7 +207,7 @@ def run_curses_mode(main_func, *args, **kwargs):
     import traceback
 
     log_buffer = []
-    log_handler = UILogHandler(log_buffer, max_lines=20)
+    log_handler = UILogHandler(log_buffer, layout, bar_size=3)
     log_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     root_logger = logging.getLogger()
     root_logger.addHandler(log_handler)
