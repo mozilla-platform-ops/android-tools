@@ -240,6 +240,7 @@ def run_curses_mode(main_func, *args, **kwargs):
         else:
             return f"{int(dt // 3600)}h {int((dt % 3600) // 60)}m"
 
+    # TODO: show when queue last did work (any worker ran a task)
     def update_bar():
         now = datetime.datetime.now()
         time_str = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -252,14 +253,14 @@ def run_curses_mode(main_func, *args, **kwargs):
         next_check_str = human_delta((next_check - now).total_seconds()) if next_check else "--"
         last_created_str = human_delta((now - last_created).total_seconds()) if last_created else "--"
         bar_text = (
-            f"TIME: {time_str} | "
+            f"[black]TIME: {time_str} | "
             f"QUEUE: {queue} | "
             f"PENDING: {pending} | "
             f"LAST_CHECK: {last_check_str} ago | "
             f"NEXT_CHECK: in {next_check_str} | "
-            f"LAST_CREATED: {last_created_str} ago"
+            f"LAST_CREATED: {last_created_str} ago[/black]"
         )
-        layout["bar"].update(Panel(Text(bar_text, justify="center")))
+        layout["bar"].update(Panel(Text.from_markup(bar_text, justify="left"), style="on blue"))
 
     def update_main():
         layout["main"].update(Panel(Text("\n".join(log_buffer), justify="left")))
