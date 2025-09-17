@@ -211,16 +211,53 @@ def run_curses_mode(main_func, *args, **kwargs):
     stop_flag = threading.Event()
     thread_exception = [None]
 
+    # --- Add state for bar ---
+    bar_state = {
+        "queue": getattr(args[0], "queue", None) if args else None,
+        "pending": None,
+        "last_check": None,
+        "next_check": None,
+        "last_created": None,  # <-- NEW
+    }
+
+    def human_delta(dt):
+        # dt: seconds
+        if dt is None:
+            return "--"
+        if dt < 60:
+            return f"{int(dt)}s"
+        elif dt < 3600:
+            return f"{int(dt // 60)}m {int(dt % 60)}s"
+        else:
+            return f"{int(dt // 3600)}h {int((dt % 3600) // 60)}m"
+
     def update_bar():
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        layout["bar"].update(Panel(Text(f"Current time: {now}", justify="center")))
+        now = datetime.datetime.now()
+        time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        queue = bar_state.get("queue", "--")
+        pending = bar_state.get("pending", "--")
+        last_check = bar_state.get("last_check", None)
+        next_check = bar_state.get("next_check", None)
+        last_created = bar_state.get("last_created", None)
+        last_check_str = human_delta((now - last_check).total_seconds()) if last_check else "--"
+        next_check_str = human_delta((next_check - now).total_seconds()) if next_check else "--"
+        last_created_str = human_delta((now - last_created).total_seconds()) if last_created else "--"
+        bar_text = (
+            f"TIME: {time_str} | "
+            f"QUEUE: {queue} | "
+            f"PENDING: {pending} | "
+            f"LAST_CHECK: {last_check_str} ago | "
+            f"NEXT_CHECK: in {next_check_str} | "
+            f"LAST_CREATED: {last_created_str} ago"
+        )
+        layout["bar"].update(Panel(Text(bar_text, justify="center")))
 
     def update_main():
         layout["main"].update(Panel(Text("\n".join(log_buffer), justify="left")))
 
     def run_main():
         try:
-            main_func(*args, layout["main"], **kwargs)
+            main_func(*args, layout["main"], bar_state, **kwargs)
         except Exception:
             exc_type, exc_value, exc_tb = sys.exc_info()
             thread_exception[0] = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
@@ -244,36 +281,42 @@ def run_curses_mode(main_func, *args, **kwargs):
             time.sleep(10)
 
 
+# --- Update main_continuous_mode to update bar_state ---
+def main_continuous_mode(tcclient, args, main_layout, bar_state):
+    # This function is used for curses mode main content in continuous mode
+    check_interval = args.continuous_mode_check_interval
+    while True:
+        try:
+            try:
+                now = datetime.datetime.now()
+                bar_state["last_check"] = now
+                bar_state["next_check"] = now + datetime.timedelta(seconds=check_interval)
+                queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
+                bar_state["pending"] = queue_count
+                main_layout.update(Panel(Text(f"{args.queue} pending tasks/jobs: {queue_count}", justify="center")))
+                if queue_count < args.continuous_mode_limit:
+                    logging.info(f"Below job limit of {args.continuous_mode_limit}, starting {args.count} jobs...")
+                    for i in range(args.count):
+                        tcclient.create_task()
+                        bar_state["last_created"] = datetime.datetime.now()  # <-- NEW
+            except Exception as e:
+                if taskcluster.TaskclusterRestFailure and isinstance(e, taskcluster.TaskclusterRestFailure):
+                    logging.error(f"Taskcluster API error: {e}")
+                else:
+                    logging.error(f"Error fetching queue task/job counts: {e}")
+                logging.warning(f"Will retry after {check_interval} seconds.")
+                main_layout.update(Panel(Text(f"Error: {e}", justify="center", style="red")))
+            time.sleep(check_interval)
+        except KeyboardInterrupt:
+            break
+
+
 def main_one_off_mode(tcclient, args):
     # This function is used for curses mode main content
     with alive_progress.alive_bar(args.count, unit=" jobs", enrich_print=False) as bar:
         for i in range(args.count):
             tcclient.create_task()
             bar()
-
-
-def main_continuous_mode(tcclient, args, main_layout):
-    # This function is used for curses mode main content in continuous mode
-    while True:
-        try:
-            try:
-                queue_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
-                logging.info(f"{args.queue} pending tasks/jobs: {queue_count}")
-                main_layout.update(Panel(Text(f"{args.queue} pending tasks/jobs: {queue_count}", justify="center")))
-                if queue_count < args.continuous_mode_limit:
-                    logging.info(f"Below job limit of {args.continuous_mode_limit}, starting {args.count} jobs...")
-                    for i in range(args.count):
-                        tcclient.create_task()
-            except Exception as e:
-                if taskcluster.TaskclusterRestFailure and isinstance(e, taskcluster.TaskclusterRestFailure):
-                    logging.error(f"Taskcluster API error: {e}")
-                else:
-                    logging.error(f"Error fetching queue task/job counts: {e}")
-                logging.warning(f"Will retry after {args.continuous_mode_check_interval} seconds.")
-                main_layout.update(Panel(Text(f"Error: {e}", justify="center", style="red")))
-            time.sleep(args.continuous_mode_check_interval)
-        except KeyboardInterrupt:
-            break
 
 
 def main():
