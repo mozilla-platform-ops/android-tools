@@ -292,7 +292,6 @@ def run_curses_mode(main_func, *args, **kwargs):
 
 # --- Update main_continuous_mode to update bar_state ---
 def main_continuous_mode(tcclient, args, main_layout, bar_state):
-    # This function is used for curses mode main content in continuous mode
     check_interval = args.continuous_mode_check_interval
     while True:
         try:
@@ -305,9 +304,16 @@ def main_continuous_mode(tcclient, args, main_layout, bar_state):
                 main_layout.update(Panel(Text(f"{args.queue} pending tasks/jobs: {queue_count}", justify="center")))
                 if queue_count < args.continuous_mode_limit:
                     logging.info(f"Below job limit of {args.continuous_mode_limit}, starting {args.count} jobs...")
+                    logging.info(f"About to create {args.count} tasks...")
+                    created = 0
                     for i in range(args.count):
                         tcclient.create_task()
-                        bar_state["last_created"] = datetime.datetime.now()  # <-- NEW
+                        bar_state["last_created"] = datetime.datetime.now()
+                        created += 1
+                    logging.info(f"Done creating {created} tasks.")
+                    # Update pending count after adding tasks
+                    updated_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
+                    bar_state["pending"] = updated_count
             except Exception as e:
                 if taskcluster.TaskclusterRestFailure and isinstance(e, taskcluster.TaskclusterRestFailure):
                     logging.error(f"Taskcluster API error: {e}")
