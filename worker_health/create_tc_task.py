@@ -303,8 +303,8 @@ def main_continuous_mode(tcclient, args, main_layout, bar_state):
                 bar_state["pending"] = queue_count
                 main_layout.update(Panel(Text(f"{args.queue} pending tasks/jobs: {queue_count}", justify="center")))
                 if queue_count < args.continuous_mode_limit:
-                    logging.info(f"Below job limit of {args.continuous_mode_limit}, starting {args.count} jobs...")
-                    logging.info(f"About to create {args.count} tasks...")
+                    logging.info(f"Below job limit of {args.continuous_mode_limit}.")
+                    logging.info(f"Creating {args.count} tasks...")
                     created = 0
                     for i in range(args.count):
                         tcclient.create_task()
