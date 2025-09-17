@@ -37,6 +37,7 @@ import datetime
 
 import alive_progress
 import taskcluster
+import math
 
 DEFAULT_BASH_COMMAND = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
 
@@ -267,7 +268,10 @@ def run_curses_mode(main_func, *args, **kwargs):
 
     def run_main():
         try:
-            main_func(*args, layout["main"], bar_state, **kwargs)
+            # Pass stop_flag to main_func
+            main_func(*args, layout["main"], bar_state, stop_flag=stop_flag, **kwargs)
+        except KeyboardInterrupt:
+            stop_flag.set()
         except Exception:
             exc_type, exc_value, exc_tb = sys.exc_info()
             thread_exception[0] = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
@@ -277,10 +281,13 @@ def run_curses_mode(main_func, *args, **kwargs):
     t = threading.Thread(target=run_main)
     t.start()
     with Live(layout, refresh_per_second=2, screen=True):
-        while not stop_flag.is_set():
-            update_bar()
-            update_main()
-            time.sleep(1)
+        try:
+            while not stop_flag.is_set():
+                update_bar()
+                update_main()
+                time.sleep(1)
+        except KeyboardInterrupt:
+            stop_flag.set()
     t.join()
     logging.getLogger().removeHandler(log_handler)
     if thread_exception[0]:
@@ -292,10 +299,10 @@ def run_curses_mode(main_func, *args, **kwargs):
 
 
 # --- Update main_continuous_mode to update bar_state ---
-def main_continuous_mode(tcclient, args, main_layout, bar_state):
+def main_continuous_mode(tcclient, args, main_layout, bar_state, stop_flag=None):
     check_interval = args.continuous_mode_check_interval
     logging.info("Entering continuous mode loop. Press Ctrl-C to exit.")
-    while True:
+    while not (stop_flag and stop_flag.is_set()):
         try:
             try:
                 now = datetime.datetime.now()
@@ -313,7 +320,6 @@ def main_continuous_mode(tcclient, args, main_layout, bar_state):
                         bar_state["last_created"] = datetime.datetime.now()
                         created += 1
                     logging.info(f"Done creating {created} tasks.")
-                    # Update pending count after adding tasks
                     updated_count = tcclient.queue_object.taskQueueCounts(args.queue).get("pendingTasks", 0)
                     bar_state["pending"] = updated_count
                 else:
@@ -325,8 +331,16 @@ def main_continuous_mode(tcclient, args, main_layout, bar_state):
                     logging.error(f"Error fetching queue task/job counts: {e}")
                 logging.warning(f"Will retry after {check_interval} seconds.")
                 main_layout.update(Panel(Text(f"Error: {e}", justify="center", style="red")))
-            time.sleep(check_interval)
+            # Replace time.sleep(check_interval) with a responsive sleep
+            sleep_step = 0.1
+            steps = math.ceil(check_interval / sleep_step)
+            for _ in range(steps):
+                if stop_flag and stop_flag.is_set():
+                    break
+                time.sleep(sleep_step)
         except KeyboardInterrupt:
+            if stop_flag:
+                stop_flag.set()
             break
 
 
