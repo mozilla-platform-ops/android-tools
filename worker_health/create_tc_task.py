@@ -254,7 +254,7 @@ def run_curses_mode(main_func, *args, **kwargs):
         next_check_str = human_delta((next_check - now).total_seconds()) if next_check else "--"
         last_created_str = human_delta((now - last_created).total_seconds()) if last_created else "--"
         bar_text = (
-            f"[black]TIME: {time_str} | "
+            f"[black]{os.path.basename(__file__)} | {time_str} | "
             f"QUEUE: {queue} | "
             f"PENDING: {pending} | "
             f"LAST_CHECK: {last_check_str} ago | "
