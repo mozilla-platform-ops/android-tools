@@ -257,7 +257,7 @@ def run_curses_mode(main_func, *args, **kwargs):
 
         left_text = f"[black][bold]{os.path.basename(__file__)}[/bold] | {time_str}[/black]"
         right_text = (
-            f"[black]QUEUE: {queue} | "
+            f"[black] {queue} | "
             f"PENDING: {pending} | "
             f"LAST_CHECK: {last_check_str} ago | "
             f"NEXT_CHECK: in {next_check_str} | "
