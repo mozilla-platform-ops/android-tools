@@ -104,6 +104,8 @@ if __name__ == "__main__":
         else:
             q.lift_quarantine(args.provisioner, args.worker_type, host_arr)
     elif args.action == "show":
+        # TODO: check that the worker_type is valid
+        # TODO: -v shows reason, -vv shows full json
         q = quarantine.Quarantine()
         # results = q.get_quarantined_workers(provisioner=args.provisioner, worker_type=args.worker_type)
         results = q.get_quarantined_workers_with_details(
@@ -125,6 +127,7 @@ if __name__ == "__main__":
             else:
                 print(",".join(formatted_workers))
     elif args.action == "show-all":
+        # TODO: check that the worker_type is valid
         results = tc.get_workers(args.provisioner, args.worker_type)
         output = ""
 
