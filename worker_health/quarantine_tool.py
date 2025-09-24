@@ -125,17 +125,7 @@ if __name__ == "__main__":
             else:
                 print(",".join(formatted_workers))
     elif args.action == "show-all":
-        # import pprint
-        # import sys
         results = tc.get_workers(args.provisioner, args.worker_type)
-        # pprint.pprint(results)
-        # sys.exit(0)
-
-        q = quarantine.Quarantine()
-        # results = q.get_workers(args.provisioner, args.worker_type)
-        # import pprint
-        # pprint.pprint(results)
-        # single-line csv
         output = ""
 
         # sort just based on the numerical element of the workerId
