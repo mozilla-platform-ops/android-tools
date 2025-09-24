@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     parser.add_argument("provisioner")
     # don't make it required in argparse, require below (so we can list the available worker types)
-    # parser.add_argument("worker_type")
+    parser.add_argument("worker_type", nargs="?")
 
     sub_parsers = parser.add_subparsers(help="action to take:", dest="action")
 
@@ -125,8 +125,16 @@ if __name__ == "__main__":
             else:
                 print(",".join(formatted_workers))
     elif args.action == "show-all":
+        # import pprint
+        # import sys
+        results = tc.get_workers(args.provisioner, args.worker_type)
+        # pprint.pprint(results)
+        # sys.exit(0)
+
         q = quarantine.Quarantine()
-        results = q.get_workers(args.provisioner, args.worker_type)
+        # results = q.get_workers(args.provisioner, args.worker_type)
+        # import pprint
+        # pprint.pprint(results)
         # single-line csv
         output = ""
 
