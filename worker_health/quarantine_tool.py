@@ -5,6 +5,7 @@ import re
 import pprint
 
 from worker_health import quarantine
+from worker_health import tc
 
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
@@ -15,7 +16,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("provisioner")
-    parser.add_argument("worker_type")
+    # don't make it required in argparse, require below (so we can list the available worker types)
+    # parser.add_argument("worker_type")
 
     sub_parsers = parser.add_subparsers(help="action to take:", dest="action")
 
@@ -61,6 +63,17 @@ if __name__ == "__main__":
     # import sys
     # pprint.pprint(args)
     # sys.exit(1)
+
+    if args.provisioner is not None and ("worker_type" not in args or args.worker_type is None):
+        results = tc.get_worker_types(args.provisioner, 0)
+        # worker_types = [item['workerType'] for item in results['workerTypes']]
+        worker_types_string = ""
+        for item in results["workerTypes"]:
+            worker_types_string += "  " + item["workerType"] + "\n"
+        parser.error(
+            f"you must specify a worker_type.\n\nvalid worker types for provisioner {args.provisioner}:\n{worker_types_string[:-2]}",
+        )
+        # show worker_types in provisioner
 
     if args.action == "quarantine":
         if args.hosts is None:
