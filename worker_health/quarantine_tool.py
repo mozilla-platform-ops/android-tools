@@ -71,7 +71,7 @@ if __name__ == "__main__":
         for item in results["workerTypes"]:
             worker_types_string += "  " + item["workerType"] + "\n"
         parser.error(
-            f"you must specify a worker_type.\n\nvalid worker types for provisioner {args.provisioner}:\n{worker_types_string[:-2]}",
+            f"you must specify a worker_type.\n\nvalid worker types for provisioner {args.provisioner}:\n{worker_types_string.rstrip()}",
         )
         # show worker_types in provisioner
 
