@@ -141,6 +141,8 @@ class Quarantine:
             quarantined_workers.append(hostname)
         return quarantined_workers
 
+    # TODO: make this run faster by only getting details when needed
+    #   - passing in details=False and only doing first query?
     def get_quarantined_workers_with_details(self, provisioner, worker_type):
         result_dict = {}
 

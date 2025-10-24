@@ -7,7 +7,7 @@ import pendulum
 
 from worker_health import quarantine
 from worker_health import tc
-from worker_health.utils import date_in_past
+from worker_health.utils import date_in_past, human_delta
 
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
@@ -128,8 +128,6 @@ if __name__ == "__main__":
                 print(",".join(formatted_workers))
                 pprint.pprint(quarantine_info)
             if args.verbose == 1:
-                print(",".join(formatted_workers))
-                #
                 for device in quarantine_info:
                     print(f"{device}:")
                     for entry in quarantine_info[device]:
@@ -138,12 +136,13 @@ if __name__ == "__main__":
                         date_obj = pendulum.parse(date)
                         date_until = entry["quarantineUntil"]
                         in_past = date_in_past(date_until)
+                        time_diff = pendulum.now() - date_obj
                         if in_past:
                             # lifting
-                            print(f"  L reason: {reason}  {pendulum.now().subtract(date_obj).diff_for_humans()}")
+                            print(f"  L reason: {reason}  date: {date} {human_delta(time_diff.total_seconds())} ago")
                         else:
                             # quarantining
-                            print(f"  Q reason: {reason}  {pendulum.now().subtract(date_obj).diff_for_humans()}")
+                            print(f"  Q reason: {reason}  date: {date} {human_delta(time_diff.total_seconds())} ago")
             else:
                 print(",".join(formatted_workers))
     elif args.action == "show-all":

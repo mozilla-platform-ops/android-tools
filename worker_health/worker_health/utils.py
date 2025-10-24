@@ -15,6 +15,24 @@ logger = logging.getLogger(__name__)
 USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-tools/tree/master/worker_health)"
 
 
+def human_delta(dt):
+    # dt: seconds
+    if dt is None:
+        return "--"
+    if dt < 60:
+        return f"{int(dt)}s"
+    elif dt < 3600:
+        return f"{int(dt // 60)}m {int(dt % 60)}s"
+    elif dt < 86400:
+        return f"{int(dt // 3600)}h"
+    elif dt < 604800:
+        return f"{int(dt // 86400)}d {int((dt % 86400) // 3600)}h"
+    elif dt < 2592000:
+        return f"{int(dt // 604800)}w {int((dt % 604800) // 86400)}d"
+    else:
+        return f"{int(dt)}s HUGE"
+
+
 def humanize_time_period(seconds):
     periods = [
         ("year", 60 * 60 * 24 * 365),
