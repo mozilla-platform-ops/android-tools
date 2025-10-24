@@ -111,7 +111,7 @@ if __name__ == "__main__":
         # TODO: -v shows reason, -vv shows full json
         q = quarantine.Quarantine()
         # results = q.get_quarantined_workers(provisioner=args.provisioner, worker_type=args.worker_type)
-        results = q.get_quarantined_workers_with_details(
+        results = q.get_quarantined_workers_structured(
             provisioner=args.provisioner,
             worker_type=args.worker_type,
         )

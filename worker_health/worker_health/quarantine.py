@@ -144,8 +144,7 @@ class Quarantine:
     # TODO: make this run faster by only getting details when needed
     #   - passing in details=False and only doing first query?
     # TODO: replace all usages of get_quarantined_workers() with this
-    #    and rename this to get_quarantined_workers()
-    def get_quarantined_workers_with_details(self, provisioner, worker_type, skip_details=False):
+    def get_quarantined_workers_structured(self, provisioner, worker_type, skip_details=False):
         result_dict = {}
 
         # import ipdb
@@ -208,7 +207,7 @@ if __name__ == "__main__":
     q = Quarantine()
     prov = "proj-autophone"
     wt = "gecko-t-bitbar-gw-perf-a55"
-    results = q.get_quarantined_workers_with_details(provisioner=prov, worker_type=wt)
+    results = q.get_quarantined_workers_structured(provisioner=prov, worker_type=wt)
     devices = results["quarantined_workers"]
     print("quarantined workers (%s): %s" % (len(devices), devices))
 
