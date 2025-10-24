@@ -3,4 +3,7 @@
 set -e
 set -x
 
-pipenv run ./quarantine_tool.py releng-hardware gecko-t-linux-talos-1804 "$@"
+PROV="releng-hardware"
+WTYPE="gecko-t-linux-talos-1804"
+
+pipenv run ./quarantine_tool.py "$PROV" "$WTYPE" "$@"
