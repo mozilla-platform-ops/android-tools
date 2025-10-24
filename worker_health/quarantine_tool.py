@@ -124,10 +124,10 @@ if __name__ == "__main__":
                 quarantined_workers,
                 key=lambda d: "{0:0>8}".format(d.replace("macmini-r8-", "")),
             )
-            if args.verbose == 2:
+            if args.verbose == 3:
                 print(",".join(formatted_workers))
                 pprint.pprint(quarantine_info)
-            if args.verbose == 1:
+            if args.verbose == 1 or args.verbose == 2:
                 for device in quarantine_info:
                     print(f"{device}:")
                     for entry in quarantine_info[device]:
@@ -135,14 +135,18 @@ if __name__ == "__main__":
                         date = entry["updatedAt"]
                         date_obj = pendulum.parse(date)
                         date_until = entry["quarantineUntil"]
+                        user = entry["clientId"].split("|")[2]
                         in_past = date_in_past(date_until)
                         time_diff = pendulum.now() - date_obj
                         if in_past:
                             # lifting
-                            print(f"  L reason: {reason}  date: {date} {human_delta(time_diff.total_seconds())} ago")
+                            print(f"  L/{user}: {reason},  {human_delta(time_diff.total_seconds())} ago")
                         else:
                             # quarantining
-                            print(f"  Q reason: {reason}  date: {date} {human_delta(time_diff.total_seconds())} ago")
+                            print(f"  Q/{user}: {reason},  {human_delta(time_diff.total_seconds())} ago")
+                        if args.verbose == 1:
+                            break  # only show latest event at -v/1
+
             else:
                 print(",".join(formatted_workers))
     elif args.action == "show-all":
