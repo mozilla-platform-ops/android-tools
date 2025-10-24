@@ -4,6 +4,7 @@ import pprint
 import shutil
 import subprocess
 from urllib.request import urlopen
+from datetime import datetime
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -12,6 +13,31 @@ from urllib3.util import Retry
 logger = logging.getLogger(__name__)
 
 USER_AGENT_STRING = "Python (https://github.com/mozilla-platform-ops/android-tools/tree/master/worker_health)"
+
+
+def humanize_time_period(seconds):
+    periods = [
+        ("year", 60 * 60 * 24 * 365),
+        ("month", 60 * 60 * 24 * 30),
+        ("hour", 60 * 60),
+        ("minute", 60),
+        ("second", 1),
+    ]
+
+    for period, period_seconds in periods:
+        if seconds >= period_seconds:
+            count = seconds // period_seconds
+            return f"{count} {period}{'s' if count > 1 else ''} ago"
+    return "just now"
+
+
+def date_in_past(date_str):
+    from datetime import timezone
+
+    if date_str is None:
+        return False
+    date_obj = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    return date_obj < datetime.now(timezone.utc)
 
 
 def run_cmd(cmd):
