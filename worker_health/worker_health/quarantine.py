@@ -143,7 +143,9 @@ class Quarantine:
 
     # TODO: make this run faster by only getting details when needed
     #   - passing in details=False and only doing first query?
-    def get_quarantined_workers_with_details(self, provisioner, worker_type):
+    # TODO: replace all usages of get_quarantined_workers() with this
+    #    and rename this to get_quarantined_workers()
+    def get_quarantined_workers_with_details(self, provisioner, worker_type, skip_details=False):
         result_dict = {}
 
         # import ipdb
@@ -173,13 +175,16 @@ class Quarantine:
         for item in outcome["workers"]:
             hostname = item["workerId"]
             workerPoolId = f"{provisioner}/{worker_type}"
-            quarantine_info = quarantine_graphql.view_quarantined_worker_details(
-                provisionerId=provisioner,
-                workerType=worker_type,
-                workerGroup=item["workerGroup"],
-                workerId=hostname,
-                workerPoolId=workerPoolId,
-            )
+            if not skip_details:
+                quarantine_info = quarantine_graphql.view_quarantined_worker_details(
+                    provisionerId=provisioner,
+                    workerType=worker_type,
+                    workerGroup=item["workerGroup"],
+                    workerId=hostname,
+                    workerPoolId=workerPoolId,
+                )
+            else:
+                quarantine_info = []
 
             # print(hostname)
             # pprint.pprint(item)
