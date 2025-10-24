@@ -21,7 +21,7 @@ jobs:
           app-dir: worker_health
           pkg-manager: pipenv
       - run: cd worker_health && pipenv install --dev
-      - run: cd worker_health && pipenv run pytest --cov=worker_health -vv
+      - run: cd worker_health && pipenv run pytest --cov=worker_health -vv tests/
   test_last_started:
     docker:
       - image: cimg/python:3.11.4
