@@ -3,9 +3,11 @@
 import argparse
 import re
 import pprint
+import pendulum
 
 from worker_health import quarantine
 from worker_health import tc
+from worker_health.utils import date_in_past
 
 
 def natural_sort_key(s, _nsre=re.compile("([0-9]+)")):
@@ -26,8 +28,9 @@ if __name__ == "__main__":
     parser_show.add_argument(
         "-v",
         "--verbose",
-        action="store_true",
-        help="enable verbose output",
+        action="count",
+        default=0,
+        help="enable verbose output (can be used multiple times for increased verbosity)",
     )
     # show-all
     parser_show_all = sub_parsers.add_parser(
@@ -121,9 +124,26 @@ if __name__ == "__main__":
                 quarantined_workers,
                 key=lambda d: "{0:0>8}".format(d.replace("macmini-r8-", "")),
             )
-            if args.verbose:
+            if args.verbose == 2:
                 print(",".join(formatted_workers))
                 pprint.pprint(quarantine_info)
+            if args.verbose == 1:
+                print(",".join(formatted_workers))
+                #
+                for device in quarantine_info:
+                    print(f"{device}:")
+                    for entry in quarantine_info[device]:
+                        reason = entry["quarantineInfo"]
+                        date = entry["updatedAt"]
+                        date_obj = pendulum.parse(date)
+                        date_until = entry["quarantineUntil"]
+                        in_past = date_in_past(date_until)
+                        if in_past:
+                            # lifting
+                            print(f"  L reason: {reason}  {pendulum.now().subtract(date_obj).diff_for_humans()}")
+                        else:
+                            # quarantining
+                            print(f"  Q reason: {reason}  {pendulum.now().subtract(date_obj).diff_for_humans()}")
             else:
                 print(",".join(formatted_workers))
     elif args.action == "show-all":
