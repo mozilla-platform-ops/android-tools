@@ -138,15 +138,17 @@ if __name__ == "__main__":
                         user = entry["clientId"].split("|")[2]
                         in_past = date_in_past(date_until)
                         time_diff = pendulum.now() - date_obj
+                        output_line = ""
                         if in_past:
                             # lifting
-                            print(f"  L/{user}: {reason},  {human_delta(time_diff.total_seconds())} ago")
+                            output_line = f"  L/{user}: {reason},  {human_delta(time_diff.total_seconds())} ago"
                         else:
                             # quarantining
-                            print(f"  Q/{user}: {reason},  {human_delta(time_diff.total_seconds())} ago")
-                        if args.verbose == 1:
-                            break  # only show latest event at -v/1
-
+                            output_line = f"  Q/{user}: {reason},  {human_delta(time_diff.total_seconds())} ago"
+                        if args.verbose == 2:
+                            print(output_line)
+                    if args.verbose == 1:
+                        print(output_line)  # only show latest event at -v/1
             else:
                 print(",".join(formatted_workers))
     elif args.action == "show-all":
