@@ -29,6 +29,8 @@ def human_delta(dt):
         return f"{int(dt // 86400)}d {int((dt % 86400) // 3600)}h"
     elif dt < 2592000:
         return f"{int(dt // 604800)}w {int((dt % 604800) // 86400)}d"
+    elif dt < 31536000:
+        return f"{int(dt // 2592000)}mo {int((dt % 2592000) // 86400)}d"
     else:
         return f"{int(dt)}s HUGE"
 
