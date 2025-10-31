@@ -34,7 +34,7 @@ def human_delta(dt):
     elif dt < 315360000:
         return f"{int(dt // 31536000)}y {int((dt % 31536000) // 2592000)}mo"
     elif dt < 3153600000:
-        return f"{int(dt // 315360000)}m {int((dt % 315360000) // 31536000)}y"
+        return f"{int(dt // 315360000)}mo {int((dt % 315360000) // 31536000)}y"
     else:
         return f"{int(dt)}s HUGE"
 
