@@ -26,6 +26,7 @@ import argparse
 import os
 import json
 import rstr
+import shlex
 import time
 import logging
 import sys
@@ -40,7 +41,54 @@ import taskcluster
 import math
 from rich.table import Table
 
-DEFAULT_BASH_COMMAND = "for ((i=1;i<=60;i++)); do echo $i; sleep 1; done"
+DEFAULT_COMMAND_TIMEOUT = 70
+DEFAULT_COMMAND_TIMEOUT_BUFFER = 10
+DEFAULT_DOCKER_IMAGE = "ubuntu:24.04"
+BITBAR_DASHBOARD_URL = "https://mozilla-v3.bitbar.com//#testing/device-session"
+BITBAR_SCRIPTVARS_PATH = "/builds/taskcluster/scriptvars.json"
+
+
+def default_bash_command(command_timeout_seconds):
+    duration = max(1, command_timeout_seconds - DEFAULT_COMMAND_TIMEOUT_BUFFER)
+    return f'for ((i=1;i<={duration};i++)); do echo "$i"; sleep 1; done'
+
+
+def prepend_bitbar_dashboard_link(queue, bash_command):
+    """Print the Bitbar dashboard URL before commands run on Bitbar workers."""
+    if "bitbar" not in queue.lower():
+        return bash_command
+
+    testdroid_ids = (
+        "$(python3 -c 'import json; "
+        f'values=json.load(open("{BITBAR_SCRIPTVARS_PATH}")); '
+        'print("/".join(values[f"TESTDROID_{key}_ID"] for key in ("PROJECT", "BUILD", "RUN")))'
+        "')"
+    )
+    dashboard_url = f"{BITBAR_DASHBOARD_URL}/{testdroid_ids}"
+    return f'echo "Bitbar test run: {dashboard_url}"; {bash_command}'
+
+
+def build_payload(payload_format, bash_command, command_timeout_seconds, env, docker_image):
+    if payload_format == "docker-worker":
+        return {
+            "image": docker_image,
+            "command": ["/bin/bash", "-lc", bash_command],
+            "maxRunTime": command_timeout_seconds,
+            **({"env": env} if env else {}),
+        }
+
+    return {
+        "command": [["/bin/bash", "-c", f"mkdir -p out; {bash_command}"]],
+        "maxRunTime": command_timeout_seconds,
+        "artifacts": [
+            {
+                "type": "directory",
+                "name": "public/out",
+                "path": "out",
+            },
+        ],
+        **({"env": env} if env else {}),
+    }
 
 
 class TCClient:
@@ -48,9 +96,12 @@ class TCClient:
         self,
         queue,
         dry_run=False,
-        bash_command=DEFAULT_BASH_COMMAND,
-        command_timeout_seconds=90,
+        bash_command=None,
+        command_timeout_seconds=DEFAULT_COMMAND_TIMEOUT,
         requests_timeout=60,
+        env=None,
+        payload_format="generic-worker",
+        docker_image=None,
     ):
         self.root_url = "https://firefox-ci-tc.services.mozilla.com"
         try:
@@ -64,8 +115,14 @@ class TCClient:
             raise RuntimeError(f"Missing key in ~/.tc_token: {e}")
         self.queue = queue
         self.dry_run = dry_run
-        self.bash_command = bash_command
         self.command_timeout_seconds = command_timeout_seconds
+        self.bash_command = prepend_bitbar_dashboard_link(
+            queue,
+            bash_command or default_bash_command(command_timeout_seconds),
+        )
+        self.env = env or {}
+        self.payload_format = payload_format
+        self.docker_image = docker_image
         self.queue_object = taskcluster.Queue(
             {"rootUrl": self.root_url, "credentials": creds, "timeout": requests_timeout},
         )
@@ -76,18 +133,22 @@ class TCClient:
         # format: "2025-08-22T18:18:05.351Z"
         datetime_string_format = "%Y-%m-%dT%H:%M:%S.000Z"
         current_time = time.strftime(datetime_string_format, time.gmtime())
-        three_hours_from_now = time.strftime(datetime_string_format, time.gmtime(time.time() + 3 * 60 * 60))
+        # Allow time for diagnostic tasks to wait in a busy worker queue.
+        deadline = time.strftime(datetime_string_format, time.gmtime(time.time() + 24 * 60 * 60))
         task_id = gen_task_id()
 
         create_task_args = {
             "taskQueueId": self.queue,
             # "schedulerId": "taskcluster-ui",
             "created": current_time,
-            "deadline": three_hours_from_now,
-            "payload": {
-                "command": [["/bin/bash", "-c", self.bash_command]],
-                "maxRunTime": self.command_timeout_seconds,
-            },
+            "deadline": deadline,
+            "payload": build_payload(
+                self.payload_format,
+                self.bash_command,
+                self.command_timeout_seconds,
+                self.env,
+                self.docker_image,
+            ),
             "metadata": {
                 "name": "test-task",
                 "description": "An **example** test task",
@@ -117,18 +178,44 @@ def parse_args():
         help="Taskcluster queue id (e.g. proj-autophone/gecko-t-bitbar-gw-test-2)",
     )
     parser.add_argument("--count", "-c", type=int, default=1, help="Number of tasks to create (default: 1)")
-    parser.add_argument(
+    cmd_group = parser.add_mutually_exclusive_group()
+    cmd_group.add_argument(
         "--bash-command",
         "-b",
-        default=DEFAULT_BASH_COMMAND,
-        help=f"Command to run in the task (default: {DEFAULT_BASH_COMMAND})",
+        default=None,
+        help=(
+            "Command to run in the task "
+            f"(default: print once per second for --command-timeout minus {DEFAULT_COMMAND_TIMEOUT_BUFFER}s)"
+        ),
+    )
+    cmd_group.add_argument(
+        "--script-file",
+        "-s",
+        metavar="FILE",
+        help="Shell script file to use as the task command (mutually exclusive with --bash-command)",
+    )
+    parser.add_argument(
+        "--script-args",
+        metavar="ARGS",
+        help="Shell-style arguments to append to --script-file (for example: '--configuration bitbar-docker-with-robustcheckout').",
     )
     parser.add_argument(
         "--command-timeout",
         "-t",
         type=int,
-        default=90,
-        help="Command timeout in seconds (default: 90)",
+        default=DEFAULT_COMMAND_TIMEOUT,
+        help=f"Command timeout in seconds (default: {DEFAULT_COMMAND_TIMEOUT})",
+    )
+    parser.add_argument(
+        "--payload-format",
+        choices=("generic-worker", "docker-worker"),
+        default="generic-worker",
+        help="Task payload schema (default: generic-worker)",
+    )
+    parser.add_argument(
+        "--docker-image",
+        default=None,
+        help=f"Docker image for --payload-format docker-worker (default: {DEFAULT_DOCKER_IMAGE})",
     )
     parser.add_argument(
         "--dry-run",
@@ -155,6 +242,14 @@ def parse_args():
         type=int,
         default=60,
         help="Requests timeout in seconds (default: 60)",
+    )
+    parser.add_argument(
+        "--env",
+        "-e",
+        action="append",
+        default=[],
+        metavar="KEY=VAL",
+        help="Set a payload env var (repeatable). Example: --env FLEETBENCH_ARGS='adb --serial X --json'",
     )
     parser.add_argument(
         "--continuous-mode-check-interval",
@@ -362,19 +457,66 @@ def main_one_off_mode(tcclient, args):
             bar()
 
 
+def _build_command_from_script(script_path, script_args=None):
+    with open(script_path) as f:
+        content = f.read().strip()
+    arguments = shlex.split(script_args) if script_args else []
+
+    # Detect interpreter from shebang or file extension
+    first_line = content.splitlines()[0] if content else ""
+    if first_line.startswith("#!"):
+        shebang = first_line[2:].strip()
+        # e.g. "/usr/bin/env python3" -> "python3", "/bin/bash" -> "bash"
+        interpreter = shebang.split()[-1] if shebang else "bash"
+    elif script_path.endswith(".py"):
+        interpreter = "python3"
+    else:
+        interpreter = "bash"
+
+    if "bash" in interpreter or "sh" in interpreter:
+        if arguments:
+            raise ValueError("--script-args is supported only for non-shell --script-file inputs")
+        return content
+
+    # For non-bash interpreters, wrap in a heredoc so bash feeds the script correctly
+    command = "{} - {} << 'SCRIPT_EOF'\n{}\nSCRIPT_EOF".format(
+        interpreter,
+        " ".join(shlex.quote(argument) for argument in arguments),
+        content,
+    )
+    return command
+
+
 def main():
     args = parse_args()
+    if args.payload_format == "docker-worker" and args.docker_image is None:
+        args.docker_image = DEFAULT_DOCKER_IMAGE
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s.%(msecs)03d - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    if args.script_file:
+        bash_command = _build_command_from_script(args.script_file, args.script_args)
+    else:
+        bash_command = args.bash_command or default_bash_command(args.command_timeout)
+
+    env = {}
+    for pair in args.env:
+        if "=" not in pair:
+            sys.exit(f"--env expects KEY=VAL, got: {pair!r}")
+        k, v = pair.split("=", 1)
+        env[k] = v
+
     tcclient = TCClient(
         args.queue,
         dry_run=args.dry_run,
-        bash_command=args.bash_command,
+        bash_command=bash_command,
         command_timeout_seconds=args.command_timeout,
         requests_timeout=args.requests_timeout,
+        env=env,
+        payload_format=args.payload_format,
+        docker_image=args.docker_image,
     )
     if args.dry_run:
         logging.info("Dry Run mode is enabled. No tasks will be created.")
