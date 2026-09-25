@@ -48,3 +48,30 @@ def test_build_shell_script_command_rejects_arguments(tmp_path):
         assert str(exc) == "--script-args is supported only for non-shell --script-file inputs"
     else:
         raise AssertionError("expected shell script arguments to be rejected")
+
+
+def test_wait_for_tasks_reports_result_and_worker(mocker):
+    tcclient = object.__new__(create_tc_task.TCClient)
+    tcclient.queue_object = mocker.Mock()
+    tcclient.queue_object.status.return_value = {
+        "status": {
+            "state": "completed",
+            "runs": [
+                {
+                    "state": "completed",
+                    "reasonResolved": "completed",
+                    "workerId": "worker-194",
+                },
+            ],
+        },
+    }
+
+    details = tcclient.wait_for_tasks(["task-1"], poll_interval=0.01)
+
+    assert details == {
+        "task-1": {
+            "state": "completed",
+            "result": "completed",
+            "worker_id": "worker-194",
+        },
+    }

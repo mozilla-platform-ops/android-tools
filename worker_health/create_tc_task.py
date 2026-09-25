@@ -44,6 +44,7 @@ from rich.table import Table
 DEFAULT_COMMAND_TIMEOUT = 70
 DEFAULT_COMMAND_TIMEOUT_BUFFER = 10
 DEFAULT_DOCKER_IMAGE = "ubuntu:24.04"
+TERMINAL_TASK_STATES = {"completed", "failed", "exception"}
 BITBAR_DASHBOARD_URL = "https://mozilla-v3.bitbar.com//#testing/device-session"
 BITBAR_SCRIPTVARS_PATH = "/builds/taskcluster/scriptvars.json"
 
@@ -160,11 +161,60 @@ class TCClient:
             try:
                 self.queue_object.createTask(task_id, create_task_args)
                 logging.info(f"Task created successfully (https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}).")
+                return task_id
             except Exception as e:
                 logging.error(f"Failed to create task: {e}")
         else:
             time.sleep(0.5)
             logging.info(f"[Dry Run] Task ID would be: {task_id}")
+
+        return None
+
+    def wait_for_tasks(self, task_ids, poll_interval):
+        """Wait for submitted tasks and return their terminal details."""
+        remaining = set(task_ids)
+        last_states = {}
+        final_details = {}
+
+        while remaining:
+            for task_id in list(remaining):
+                try:
+                    task_status = self.queue_object.status(task_id)["status"]
+                    task_state = task_status["state"]
+                except Exception as e:
+                    logging.warning(f"Unable to get status for {task_id}: {e}")
+                    continue
+
+                if last_states.get(task_id) != task_state:
+                    logging.info(
+                        f"Task {task_id} status: {task_state} "
+                        f"(https://firefox-ci-tc.services.mozilla.com/tasks/{task_id})",
+                    )
+                    last_states[task_id] = task_state
+
+                if task_state in TERMINAL_TASK_STATES:
+                    runs = task_status.get("runs", [])
+                    latest_run = runs[-1] if runs else {}
+                    worker_id = next(
+                        (run.get("workerId") for run in reversed(runs) if run.get("workerId")),
+                        "unknown",
+                    )
+                    result = latest_run.get("result", latest_run.get("reasonResolved", task_state))
+                    final_details[task_id] = {
+                        "state": task_state,
+                        "result": result,
+                        "worker_id": worker_id,
+                    }
+                    logging.info(
+                        f"Task {task_id} finished: state={task_state}, result={result}, worker={worker_id} "
+                        f"(https://firefox-ci-tc.services.mozilla.com/tasks/{task_id})",
+                    )
+                    remaining.remove(task_id)
+
+            if remaining:
+                time.sleep(poll_interval)
+
+        return final_details
 
 
 def parse_args():
@@ -230,6 +280,18 @@ def parse_args():
         help="Enable continuous mode (ensures a continuous load in a queue by monitoring and launching more jobs when the queue is below the limit).",
     )
     parser.add_argument(
+        "--wait-for-completion",
+        "--wait",
+        action="store_true",
+        help="Wait for submitted tasks to finish and show each task's result and worker.",
+    )
+    parser.add_argument(
+        "--poll-interval",
+        type=float,
+        default=5,
+        help="Seconds between task status checks when waiting (default: 5).",
+    )
+    parser.add_argument(
         "--continuous-mode-limit",
         "-L",
         type=int,
@@ -258,7 +320,12 @@ def parse_args():
         default=15,
         help="Continuous mode check interval in seconds (default: 15)",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.continuous_mode and args.wait_for_completion:
+        parser.error("--wait-for-completion cannot be used with --continuous-mode")
+    if args.poll_interval <= 0:
+        parser.error("--poll-interval must be greater than zero")
+    return args
 
 
 # generate strings that match regex
@@ -550,10 +617,21 @@ def main():
                 except KeyboardInterrupt:
                     break
     else:
+        task_ids = []
         with alive_progress.alive_bar(args.count, unit=" jobs", enrich_print=False) as bar:
             for i in range(args.count):
-                tcclient.create_task()
+                task_id = tcclient.create_task()
+                if task_id:
+                    task_ids.append(task_id)
                 bar()
+
+        if args.wait_for_completion:
+            if not task_ids:
+                logging.warning("No tasks were submitted; nothing to wait for.")
+            else:
+                final_details = tcclient.wait_for_tasks(task_ids, args.poll_interval)
+                if any(details["state"] != "completed" for details in final_details.values()):
+                    sys.exit(1)
 
 
 if __name__ == "__main__":
