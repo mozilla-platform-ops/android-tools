@@ -4,8 +4,10 @@ from datetime import datetime, timedelta, timezone
 import json
 import logging
 from pathlib import Path
+import re
 
 import pytest
+from rich.console import Console
 
 import replay_tc_task as replay
 
@@ -214,6 +216,15 @@ def test_dry_run_is_json_and_never_submits(mocker, queue, capsys, caplog):
     assert all(entry["task"]["taskGroupId"] == CLONE_IDS[0] for entry in plan["tasks"])
     queue.createTask.assert_not_called()
     replay.queue_client.assert_called_once_with(authenticated=False)
+
+
+def test_dry_run_terminal_preview_is_dim_and_preserves_json(mocker, queue, capsys):
+    mocker.patch.object(replay, "Console", side_effect=lambda **kwargs: Console(force_terminal=True, **kwargs))
+    assert run_cli(mocker, "--dry-run") == 0
+    output = capsys.readouterr().out
+    assert "\x1b[2m" in output
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", output)
+    assert json.loads(plain)["dry_run"] is True
 
 
 def test_submit_defaults_to_original_pool(mocker, queue, capsys):

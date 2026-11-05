@@ -13,6 +13,9 @@ import sys
 from urllib.parse import unquote, urlsplit
 
 import taskcluster
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.text import Text
 
 from create_tc_task import TaskMonitor, gen_task_id, wait_for_task_results
 
@@ -65,7 +68,10 @@ def parse_args():
         epilog=(
             "The source payload and scopes are preserved; destination compatibility must be checked by the operator. "
             "Original routes, tags, and reporting metadata are removed. Dependencies are reused, not rerun. "
-            "A source URL ending in /runs/N selects the task definition, not a historical run's inputs."
+            "A source URL ending in /runs/N selects the task definition, not a historical run's inputs. "
+            "Submission uses ~/.tc_token and requires the source payload's scopes plus destination creation permissions. "
+            "Use level-1 sources with a level-1-only client; see README.md, Replay client scopes. "
+            "A successful dry run does not validate submission permissions."
         ),
     )
     parser.add_argument("source_task", type=task_id_argument, help="Completed task ID or Firefox CI task/run URL")
@@ -224,9 +230,16 @@ def check_inputs(queue, source, source_id, now):
 
 def main():
     args = parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[RichHandler(console=Console(stderr=True), show_time=False, show_path=False, highlighter=None)],
+    )
     if args.dry_run:
-        logging.info("DRY RUN: checking inputs and preparing a preview; no tasks will be submitted")
+        logging.info(
+            "[bold yellow]DRY RUN: checking inputs and preparing a preview; no tasks will be submitted[/]",
+            extra={"markup": True},
+        )
     submitted = []
     try:
         queue = queue_client(authenticated=not args.dry_run)
@@ -251,21 +264,28 @@ def main():
             "Preserving payload and scopes; using a new group, no reporting routes, lowest priority, and no retries",
         )
         if args.dry_run:
-            print(
-                json.dumps(
-                    {
-                        "dry_run": True,
-                        "tasks_submitted": 0,
-                        "source_task_id": args.source_task,
-                        "source_queue": source_queue(source),
-                        "destination_queue": destination,
-                        "artifact_references_checked": artifact_count,
-                        "tasks": tasks,
-                    },
-                    indent=2,
+            Console().print(
+                Text(
+                    json.dumps(
+                        {
+                            "dry_run": True,
+                            "tasks_submitted": 0,
+                            "source_task_id": args.source_task,
+                            "source_queue": source_queue(source),
+                            "destination_queue": destination,
+                            "artifact_references_checked": artifact_count,
+                            "tasks": tasks,
+                        },
+                        indent=2,
+                    ),
+                    style="dim",
                 ),
+                soft_wrap=True,
             )
-            logging.info("DRY RUN complete: no tasks submitted; listed task IDs are proposed IDs only")
+            logging.info(
+                "[bold yellow]DRY RUN complete: no tasks submitted; listed task IDs are proposed IDs only[/]",
+                extra={"markup": True},
+            )
             return 0
 
         submission_failed = False

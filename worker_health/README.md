@@ -46,11 +46,56 @@ Many of the tools make calls against Taskcluster. We use a token stored in ~/.tc
 
 You can create a client token at https://firefox-ci-tc.services.mozilla.com/auth/clients.
 
-Make the expiration 100 years or similar. The only scope currently required is:
+For worker quarantine operations, the required scope is:
 
 ```bash
 queue:quarantine-worker:*
 ```
+
+### Replay client scopes
+
+`replay_tc_task.py` reads `clientId` and `accessToken` from `~/.tc_token` when
+submitting jobs. Configure the client at the
+[Taskcluster clients page](https://firefox-ci-tc.services.mozilla.com/auth/clients).
+For level-1 Talos/Browsertime replays into the `tc-v115` pool, use:
+
+```text
+queue:create-task:lowest:releng-hardware/gecko-t-linux-talos-2404-tc-v115
+queue:create-task:project:none
+queue:scheduler-id:-
+secrets:get:project/perftest/gecko/level-1/*
+generic-worker:cache:gecko-level-1-*
+```
+
+The first three scopes allow submission at lowest priority, in project `none`,
+with scheduler `-`. Replace the destination pool in the first scope when
+targeting another pool. Existing `queue:create-task:*` and
+`queue:scheduler-id:*` grants already cover those three requirements.
+
+The secret wildcard covers level-1 perftest secrets, including `perftest-login`.
+The cache wildcard covers level-1 pip and uv caches, including versioned and
+hashed names, without updating the client for each new cache name. Both cache
+and secret permissions are needed for jobs that request them; granting secret
+access alone does not authorize cache use. These scopes covered all payload
+requirements in a sample of 62 level-1 jobs from the source Talos pool.
+
+Keep this client limited to level 1. Do not grant level-3 secret or cache scopes,
+or broader wildcards that include level 3. Select a completed level-1 source
+task, such as one from try. The tool preserves source scopes and resource
+references; it does not downgrade a level-3 task to level 1 or currently reject
+tasks based on their SCM level before submission.
+
+Other workloads may request additional scopes, including access to private
+artifacts. Add only the specific scope required by the chosen level-1 workload.
+The `queue:get-artifact:project/gecko/talos-pdfs/*` scope seen on level-3 jobs
+was not needed for the sampled level-1 jobs.
+
+A public `--dry-run` can run without a token; an existing token is used when
+available. A successful preview checks task state and explicit artifact inputs,
+but does not verify that the client can delegate every source scope or submit
+the clone. Task creation enforces those permissions and reports missing scopes
+as `InsufficientScopes` (HTTP 403). Compare the preview's `tasks[].task.scopes`
+with the client's configured scopes when diagnosing a failure.
 
 ## overview
 
@@ -93,20 +138,22 @@ Clone a completed real job under a fresh task ID. The destination defaults to
 the source pool; `--queue` selects another compatible pool. Both task/run URLs
 and worker pool URLs are accepted as well as IDs.
 
-Preview the example Browsertime Google Docs job on the `tc-v115` pool:
+Preview a completed level-1 Talos job on the `tc-v115` pool (see
+[Replay client scopes](#replay-client-scopes) for client permissions):
 
 ```bash
-pipenv run python ./replay_tc_task.py ICHaZTMDTx2YY-fM3qlVXA \
+pipenv run python ./replay_tc_task.py RuTU-6ofSBqIdd6-CQqv4g \
   --queue releng-hardware/gecko-t-linux-talos-2404-tc-v115 --dry-run
 ```
 
-`--dry-run` prints a `DRY RUN` banner to stderr, checks the source and reused
+`--dry-run` prints a yellow `DRY RUN` banner to stderr, checks the source and reused
 inputs, then prints a JSON plan with `"dry_run": true`, `"tasks_submitted": 0`,
 and the full proposed task definitions. The listed task IDs have not been
-submitted. To submit two copies with live task status:
+submitted. Preview JSON is dimmed in a terminal; redirected output stays plain
+JSON. To submit two copies with live task status:
 
 ```bash
-pipenv run python ./replay_tc_task.py ICHaZTMDTx2YY-fM3qlVXA \
+pipenv run python ./replay_tc_task.py RuTU-6ofSBqIdd6-CQqv4g \
   --queue releng-hardware/gecko-t-linux-talos-2404-tc-v115 --count 2 --wait
 ```
 
