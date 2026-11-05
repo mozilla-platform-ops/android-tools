@@ -114,7 +114,7 @@ def parse_args():
         help="Refresh picker history and client scopes (requires --from-pool)",
     )
     parser.add_argument("-q", "--queue", type=queue_argument, help="Destination pool ID or URL (default: source pool)")
-    parser.add_argument("-c", "--count", type=positive_int, default=1, help="Number of clones (default: 1)")
+    parser.add_argument("-c", "--count", type=positive_int, default=1, help="Clones per selected job (default: 1)")
     parser.add_argument(
         "-D",
         "--dry-run",
@@ -255,7 +255,7 @@ def source_runtime(status):
     return None
 
 
-def check_inputs(queue, source, source_id, now, status=None):
+def check_inputs(queue, source, source_id, now, status=None, progress=lambda message: None):
     problem = level_one_problem(source)
     if problem:
         raise ValueError(f"Replay requires a level-1 source: {problem}")
@@ -263,7 +263,9 @@ def check_inputs(queue, source, source_id, now, status=None):
     if status["state"] != "completed":
         raise ValueError(f"Source task must be completed; it is {status['state']}")
 
-    for dependency in source.get("dependencies", []):
+    dependencies = source.get("dependencies", [])
+    for index, dependency in enumerate(dependencies, 1):
+        progress(f"dependency {index}/{len(dependencies)}: {dependency}")
         state = queue.status(dependency)["status"]["state"]
         allowed = {"completed", "failed", "exception"} if source.get("requires") == "all-resolved" else {"completed"}
         if state not in allowed:
@@ -271,7 +273,11 @@ def check_inputs(queue, source, source_id, now, status=None):
 
     references = artifact_references(source["payload"])
     inventories = {}
-    for task_id, run_id, name in sorted(references, key=lambda ref: (ref[0], -1 if ref[1] is None else ref[1], ref[2])):
+    for index, (task_id, run_id, name) in enumerate(
+        sorted(references, key=lambda ref: (ref[0], -1 if ref[1] is None else ref[1], ref[2])),
+        1,
+    ):
+        progress(f"artifact {index}/{len(references)}: {task_id}/{name}")
         key = (task_id, run_id)
         if key not in inventories:
             artifacts = []
@@ -312,6 +318,7 @@ def main():
             console = Console(stderr=True)
             refresh = args.refresh
             query = args.filter
+            selected_ids = ()
             while True:
                 discovery = None if refresh else load_discovery(args.from_pool, args.cache_minutes)
                 if discovery is None:
@@ -329,6 +336,15 @@ def main():
                         "Using cached worker history (maximum age %s minutes); Ctrl+R refreshes",
                         args.cache_minutes,
                     )
+                available_ids = {job.task_id for job in discovery.jobs}
+                for task_id in selected_ids:
+                    if task_id not in available_ids:
+                        logging.warning(
+                            "Selected task disappeared from refreshed history; removed: %s/tasks/%s",
+                            ROOT_URL,
+                            task_id,
+                        )
+                selected_ids = tuple(task_id for task_id in selected_ids if task_id in available_ids)
                 if not discovery.jobs:
                     raise ValueError(f"No completed level-1 jobs found in recent worker history for {args.from_pool}")
                 granted = (
@@ -355,54 +371,114 @@ def main():
                     granted,
                     preview=args.dry_run,
                     coverage=coverage,
+                    selected_ids=selected_ids,
                 )
                 if isinstance(selected, RefreshPicker):
                     refresh = True
                     query = selected.query
+                    selected_ids = selected.selected_ids
                     continue
                 break
             if selected is None:
                 logging.info("Picker cancelled; no tasks submitted")
                 return 0
-            args.source_task = selected.task_id
-            logging.info("Selected job: %s", selected.name)
-            logging.info("Selected task: %s/tasks/%s", ROOT_URL, selected.task_id)
-            logging.info("Selected worker: %s | Completed: %s", selected.worker, selected.completed)
-        source = queue.task(args.source_task)
-        if args.from_pool and source_queue(source) != args.from_pool:
-            raise ValueError("Selected task does not belong to the requested source pool")
+            source_ids = [job.task_id for job in selected]
+            for job in selected:
+                logging.info("Selected job: %s", job.name)
+                logging.info("Selected task: %s/tasks/%s", ROOT_URL, job.task_id)
+                logging.info("Selected worker: %s | Completed: %s", job.worker, job.completed)
+        else:
+            source_ids = [args.source_task]
         now = datetime.now(timezone.utc)
-        source_status = queue.status(args.source_task)["status"]
-        artifact_count = check_inputs(queue, source, args.source_task, now, status=source_status)
-        expected_runtime = source_runtime(source_status)
-        destination = args.queue or source_queue(source)
+        with Console(stderr=True).status(Text("Checking replay permissions and inputs")) as preflight:
+            granted = (
+                taskcluster.Auth(queue.options).currentScopes()["scopes"]
+                if args.from_pool and not args.dry_run
+                else None
+            )
+            prepared = []
+            for index, source_id in enumerate(source_ids, 1):
+                source = None
+                preflight.update(Text(f"Checking job {index}/{len(source_ids)}: fetching {source_id}"))
+                try:
+                    source = queue.task(source_id)
+                    if args.from_pool and source_queue(source) != args.from_pool:
+                        raise ValueError("Selected task does not belong to the requested source pool")
+                    label = f"Checking job {index}/{len(source_ids)}: {source['metadata']['name']}"
+
+                    def progress(message):
+                        preflight.update(Text(f"{label} | {message}"))
+
+                    progress("source status")
+                    source_status = queue.status(source_id)["status"]
+                    artifact_count = check_inputs(
+                        queue,
+                        source,
+                        source_id,
+                        now,
+                        status=source_status,
+                        progress=progress,
+                    )
+                    destination = args.queue or source_queue(source)
+                    if granted is not None:
+                        missing = missing_scopes(source, destination, granted)
+                        if missing:
+                            raise ValueError("Client lacks required replay scopes: " + ", ".join(missing))
+                except (ValueError, KeyError, taskcluster.exceptions.TaskclusterFailure) as exc:
+                    name = source.get("metadata", {}).get("name", "unknown") if source else "unknown"
+                    raise ValueError(f"{name} ({source_id}): {exc}") from exc
+                prepared.append(
+                    {
+                        "source_task_id": source_id,
+                        "source": source,
+                        "source_queue": source_queue(source),
+                        "destination_queue": destination,
+                        "artifact_references_checked": artifact_count,
+                        "expected_runtime": source_runtime(source_status),
+                    },
+                )
+        # Build every definition before confirmation or submission.
+        now = datetime.now(timezone.utc)
+        tasks = []
+        origins = {}
+        group_id = None
+        for item in prepared:
+            for _ in range(args.count):
+                task_id = gen_task_id()
+                group_id = group_id or task_id
+                try:
+                    definition = clone_task(
+                        item["source"],
+                        item["source_task_id"],
+                        group_id,
+                        item["destination_queue"],
+                        now,
+                    )
+                except (ValueError, KeyError) as exc:
+                    raise ValueError(f"{item['source']['metadata']['name']} ({item['source_task_id']}): {exc}") from exc
+                tasks.append(
+                    {
+                        "task_id": task_id,
+                        "task": definition,
+                    },
+                )
+                origins[task_id] = item
         if args.from_pool and not args.dry_run:
-            granted = taskcluster.Auth(queue.options).currentScopes()["scopes"]
-            missing = missing_scopes(source, destination, granted)
-            if missing:
-                raise ValueError("Client lacks required replay scopes: " + ", ".join(missing))
+            for item in prepared:
+                console.print(
+                    Text(
+                        f"Source: {item['source']['metadata']['name']}\nTask: {item['source_task_id']}\n"
+                        f"From: {item['source_queue']}\nTo: {item['destination_queue']}\nCopies: {args.count}\n"
+                        f"Artifact references checked: {item['artifact_references_checked']}",
+                    ),
+                )
             console.print(
-                Text(
-                    f"Source: {source['metadata']['name']}\nTask: {args.source_task}\nFrom: {source_queue(source)}\nTo: {destination}\nCopies: {args.count}\nArtifact references checked: {artifact_count}",
-                ),
+                Text(f"Total: {len(prepared)} workload(s), {len(tasks)} replay task(s)"),
             )
             if not Confirm.ask("Submit these replay tasks?", default=False, console=console):
                 logging.info("Replay cancelled; no tasks submitted")
                 return 0
-        now = datetime.now(timezone.utc)
-        ids = [gen_task_id() for _ in range(args.count)]
-        tasks = [
-            {"task_id": task_id, "task": clone_task(source, args.source_task, ids[0], destination, now)}
-            for task_id in ids
-        ]
-        logging.info(
-            "Replay %s: %s -> %s (%s clone(s), %s artifact references checked)",
-            source["metadata"]["name"],
-            source_queue(source),
-            destination,
-            args.count,
-            artifact_count,
-        )
+        logging.info("Replay batch: %s workload(s), %s task(s)", len(prepared), len(tasks))
         logging.info(
             "Preserving payload and scopes; using a new group, no reporting routes, lowest priority, and no retries",
         )
@@ -413,10 +489,23 @@ def main():
                         {
                             "dry_run": True,
                             "tasks_submitted": 0,
-                            "source_task_id": args.source_task,
-                            "source_queue": source_queue(source),
-                            "destination_queue": destination,
-                            "artifact_references_checked": artifact_count,
+                            # Preserve the single-source preview fields for existing callers.
+                            **(
+                                {
+                                    key: prepared[0][key]
+                                    for key in (
+                                        "source_task_id",
+                                        "source_queue",
+                                        "destination_queue",
+                                        "artifact_references_checked",
+                                    )
+                                }
+                                if len(prepared) == 1
+                                else {}
+                            ),
+                            "sources": [
+                                {key: value for key, value in item.items() if key != "source"} for item in prepared
+                            ],
                             "tasks": tasks,
                         },
                         indent=2,
@@ -436,19 +525,24 @@ def main():
             try:
                 queue.createTask(entry["task_id"], entry["task"])
                 submitted.append(entry["task_id"])
-                if destination != source_queue(source):
-                    remember_submission(destination, entry["task_id"], source)
+                item = origins[entry["task_id"]]
+                if item["destination_queue"] != item["source_queue"]:
+                    remember_submission(item["destination_queue"], entry["task_id"], item["source"])
                 logging.info("Task created: %s/tasks/%s", ROOT_URL, entry["task_id"])
             except Exception as exc:
                 logging.error("Could not create %s: %s", entry["task_id"], exc)
                 submission_failed = True
 
         if args.wait and submitted:
-            if expected_runtime is not None:
-                logging.info(
-                    "Last source run took %s; ETA estimates exclude queue time",
-                    format_elapsed(expected_runtime),
-                )
+            runtimes = {task_id: origins[task_id]["expected_runtime"] for task_id in submitted}
+            expected_runtime = prepared[0]["expected_runtime"] if len(prepared) == 1 else runtimes
+            for item in prepared:
+                if item["expected_runtime"] is not None:
+                    logging.info(
+                        "%s: last source run took %s; ETA estimates exclude queue time",
+                        item["source"]["metadata"]["name"],
+                        format_elapsed(item["expected_runtime"]),
+                    )
             results = wait_for_task_results(
                 TaskMonitor(queue),
                 submitted,
@@ -456,7 +550,9 @@ def main():
                 args.output,
                 expected_runtime=expected_runtime,
             )
-            if destination != source_queue(source):
+            for destination in {
+                item["destination_queue"] for item in prepared if item["destination_queue"] != item["source_queue"]
+            }:
                 remember_results(destination, results)
             return int(submission_failed or any(result["state"] != "completed" for result in results.values()))
         if args.output == "json":

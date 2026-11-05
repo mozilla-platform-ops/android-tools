@@ -601,6 +601,25 @@ def eta_label(details, expected_runtime, now):
     return f"~{format_elapsed(remaining)} left" if remaining > 0 else f"over estimate by {format_elapsed(-remaining)}"
 
 
+def runtime_for_task(expected_runtime, task_id):
+    """Accept either one shared runtime or per-task replay estimates."""
+    return expected_runtime.get(task_id) if isinstance(expected_runtime, dict) else expected_runtime
+
+
+def total_runtime_label(task_ids, expected_runtime):
+    """Sum submitted tasks' estimates, counting copies and identifying partial totals."""
+    if len(task_ids) < 2 or expected_runtime is None:
+        return None
+    estimates = [runtime_for_task(expected_runtime, task_id) for task_id in task_ids]
+    known = [seconds for seconds in estimates if seconds is not None]
+    if not known:
+        return f"Total estimated task time: unknown ({len(task_ids)} missing estimates)"
+    label = f"Total estimated task time: ~{format_elapsed(sum(known))} (sum; excludes queue time)"
+    if len(known) < len(estimates):
+        label += f" | {len(estimates) - len(known)} missing estimates"
+    return label
+
+
 def render_task_progress(task_ids, task_states, elapsed_seconds=0, expected_runtime=None, can_quit=False):
     table = Table(
         title=f"Waiting for tasks ({sum(state['state'] in TERMINAL_TASK_STATES for state in task_states.values())}/{len(task_ids)} finished) | Elapsed {format_elapsed(elapsed_seconds)}",
@@ -611,12 +630,15 @@ def render_task_progress(task_ids, task_states, elapsed_seconds=0, expected_runt
     table.add_column("Worker")
     if expected_runtime is not None:
         table.add_column("ETA (last run)")
-    table.caption = "Q / Esc / Ctrl+C: stop watching; tasks keep running" if can_quit else None
+    captions = [total_runtime_label(task_ids, expected_runtime)]
+    if can_quit:
+        captions.append("Q / Esc / Ctrl+C: stop watching; tasks keep running")
+    table.caption = "\n".join(caption for caption in captions if caption) or None
     for index, task_id in enumerate(task_ids, start=1):
         details = task_states[task_id]
         row = [str(index), _task_id_text(task_id), _task_state_text(details["state"]), details["worker_id"]]
         if expected_runtime is not None:
-            row.append(eta_label(details, expected_runtime, time.time()))
+            row.append(eta_label(details, runtime_for_task(expected_runtime, task_id), time.time()))
         table.add_row(*row)
     return table
 
@@ -648,9 +670,12 @@ def render_summary(final_details):
 
 
 def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table", expected_runtime=None):
-    """Monitor tasks, render the selected output format, and return final details."""
+    """Monitor tasks; expected_runtime may be seconds or a task-ID-to-seconds mapping."""
     task_states = {task_id: {"state": "pending", "result": "-", "worker_id": "-"} for task_id in task_ids}
     started = time.monotonic()
+    total_runtime = total_runtime_label(task_ids, expected_runtime)
+    if total_runtime:
+        logging.info("%s", total_runtime)
 
     def log_progress(current_states, _final_details, changed_ids):
         for task_id in changed_ids:
@@ -658,7 +683,11 @@ def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table", e
             logging.info(
                 f"{details['state']:<9} result={details['result']:<11} "
                 f"worker={details['worker_id']:<18} task={task_id} elapsed={format_elapsed(time.monotonic() - started)}"
-                + (f" eta={eta_label(details, expected_runtime, time.time())}" if expected_runtime is not None else ""),
+                + (
+                    f" eta={eta_label(details, runtime_for_task(expected_runtime, task_id), time.time())}"
+                    if expected_runtime is not None
+                    else ""
+                ),
             )
 
     interactive_table = output == "table" and is_interactive_terminal()

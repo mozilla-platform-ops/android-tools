@@ -267,6 +267,64 @@ def test_eta_uses_actual_run_start(state, started, now, expected):
     assert create_tc_task.eta_label({"state": state, "started": started}, 480, now) == expected
 
 
+def test_batch_progress_uses_each_tasks_runtime():
+    from rich.console import Console
+
+    states = {task_id: {"state": "pending", "worker_id": "-"} for task_id in ("fast", "slow", "unknown")}
+    table = create_tc_task.render_task_progress(
+        list(states),
+        states,
+        expected_runtime={"fast": 60, "slow": 600, "unknown": None},
+    )
+    console = Console(width=160)
+    with console.capture() as capture:
+        console.print(table)
+    rows = capture.get().splitlines()
+    assert any("fast" in row and "00:01:00 once running" in row for row in rows)
+    assert any("slow" in row and "00:10:00 once running" in row for row in rows)
+    assert any("unknown" in row and "unknown" in row.split("unknown", 1)[1] for row in rows)
+    assert "Total estimated task time: ~00:11:00" in table.caption
+    assert "1 missing estimates" in table.caption
+
+
+@pytest.mark.parametrize(
+    "task_ids, estimates, expected",
+    [
+        (["a", "b"], {"a": 60, "b": 600, "unsubmitted": 900}, "~00:11:00"),
+        (["a", "b", "c"], 60, "~00:03:00"),
+        (["a", "b"], {"a": 0, "b": 0}, "~00:00:00"),
+        (["a", "b"], {"a": None}, "unknown (2 missing estimates)"),
+    ],
+)
+def test_batch_total_counts_only_submitted_tasks(task_ids, estimates, expected):
+    assert expected in create_tc_task.total_runtime_label(task_ids, estimates)
+
+
+def test_total_omitted_without_estimates_or_for_single_task():
+    assert create_tc_task.total_runtime_label(["a", "b"], None) is None
+    assert create_tc_task.total_runtime_label(["a"], 60) is None
+
+
+def test_batch_log_and_json_use_per_task_estimates(mocker, caplog, capsys):
+    client = mocker.Mock()
+    states = {task_id: {"state": "pending", "result": "-", "worker_id": "-"} for task_id in ("fast", "slow")}
+
+    def wait(task_ids, poll_interval, progress_callback):
+        if progress_callback:
+            progress_callback(states, {}, task_ids)
+        return {task_id: {**details, "state": "completed"} for task_id, details in states.items()}
+
+    client.wait_for_tasks.side_effect = wait
+    estimates = {"fast": 60, "slow": 600}
+    with caplog.at_level(logging.INFO):
+        create_tc_task.wait_for_task_results(client, list(states), output="log", expected_runtime=estimates)
+    assert any("task=fast" in line and "00:01:00 once running" in line for line in caplog.messages)
+    assert any("task=slow" in line and "00:10:00 once running" in line for line in caplog.messages)
+    assert "Total estimated task time: ~00:11:00" in caplog.text
+    create_tc_task.wait_for_task_results(client, list(states), output="json", expected_runtime=estimates)
+    assert json.loads(capsys.readouterr().out)["expected_runtime_seconds"] == estimates
+
+
 def test_monitor_provides_latest_run_start_for_eta(mocker):
     client = create_tc_task.TaskMonitor(mocker.Mock())
     client.queue_object.status.return_value = {

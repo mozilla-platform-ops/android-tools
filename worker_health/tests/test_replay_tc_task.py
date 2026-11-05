@@ -316,7 +316,7 @@ def run_picker(mocker, source, **kwargs):
     mocker.patch.object(replay, "discover_jobs", return_value=Discovery([job], 120, 2400, 80, 0))
     mocker.patch.object(replay, "load_discovery", return_value=None)
     mocker.patch.object(replay, "save_discovery")
-    mocker.patch.object(replay, "pick_job", return_value=job)
+    mocker.patch.object(replay, "pick_job", return_value=[job])
     mocker.patch.object(replay.Confirm, "ask", return_value=kwargs.get("confirm", False))
     mocker.patch(
         "sys.argv",
@@ -419,11 +419,108 @@ def test_picker_ctrl_r_refreshes_history_and_client_scopes(mocker, queue, source
     from worker_health.replay_picker import RefreshPicker
 
     job = run_picker(mocker, source)
-    replay.pick_job.side_effect = [RefreshPicker("pdf"), job]
+    replay.pick_job.side_effect = [RefreshPicker("pdf"), [job]]
     assert replay.main() == 0
     assert replay.discover_jobs.call_count == 2
     assert replay.pick_job.call_args.args[3] == "pdf"
     assert replay.taskcluster.Auth.return_value.currentScopes.call_count >= 2
+
+
+def test_picker_refresh_restores_present_selections_and_reports_missing(mocker, queue, source, caplog):
+    from worker_health.replay_picker import RefreshPicker
+
+    job = run_picker(mocker, source)
+    replay.pick_job.side_effect = [RefreshPicker("pdf", (SOURCE_ID, "disappeared")), [job]]
+    assert replay.main() == 0
+    assert replay.pick_job.call_args.kwargs["selected_ids"] == (SOURCE_ID,)
+    assert "Selected task disappeared" in caplog.text
+    assert "disappeared" in caplog.text
+
+
+def select_two_jobs(mocker, source, **kwargs):
+    first = run_picker(mocker, source, **kwargs)
+    second_source = deepcopy(source)
+    second_source["metadata"]["name"] = "Second workload"
+    second = ReplayJob("B" * 22, second_source, first.completed, 300, "other-host")
+    replay.pick_job.return_value = [first, second]
+    return first, second
+
+
+def test_multi_job_count_confirmation_and_shared_monitoring(mocker, queue, source, capsys):
+    jobs = select_two_jobs(mocker, source, confirm=True, options=["-q", DESTINATION, "-c", "2"])
+    clone_ids = [*CLONE_IDS, "C" * 22, "D" * 22]
+    replay.gen_task_id.side_effect = clone_ids
+    sources = {job.task_id: job.task for job in jobs}
+    queue.task.side_effect = sources.__getitem__
+    monitor = mocker.patch.object(
+        replay,
+        "wait_for_task_results",
+        return_value={task_id: {"state": "completed"} for task_id in clone_ids},
+    )
+    assert replay.main() == 0
+    replay.Confirm.ask.assert_called_once()
+    assert "2 workload(s), 4 replay task(s)" in capsys.readouterr().err
+    assert monitor.call_args.args[1] == clone_ids
+    assert queue.createTask.call_count == 4
+    definitions = [call.args[1] for call in queue.createTask.call_args_list]
+    assert [task["extra"]["replay"]["sourceTaskId"] for task in definitions] == [jobs[0].task_id] * 2 + [
+        jobs[1].task_id,
+    ] * 2
+    assert all(task["taskGroupId"] == clone_ids[0] for task in definitions)
+    replay.remember_submission.assert_any_call(DESTINATION, clone_ids[-1], jobs[1].task)
+
+
+@pytest.mark.parametrize("failure", ["inputs", "scopes", "pool"])
+def test_multi_job_validation_failure_submits_nothing(mocker, queue, source, capsys, failure):
+    jobs = select_two_jobs(mocker, source, confirm=True)
+    queue.task.side_effect = lambda task_id: jobs[1].task if task_id == jobs[1].task_id else source
+    if failure == "inputs":
+        check = mocker.patch.object(replay, "check_inputs", side_effect=[19, ValueError("expired artifact")])
+    elif failure == "scopes":
+        mocker.patch.object(replay, "missing_scopes", side_effect=[[], ["secrets:get:private"]])
+    else:
+        jobs[1].task["taskQueueId"] = DESTINATION
+    assert replay.main() == 1
+    error = json.loads(capsys.readouterr().out)["error"]
+    assert "Second workload" in error
+    assert jobs[1].task_id in error
+    if failure == "inputs":
+        assert check.call_count == 2
+    replay.Confirm.ask.assert_not_called()
+    queue.createTask.assert_not_called()
+
+
+def test_multi_job_dry_run_contains_all_sources(mocker, queue, source, capsys):
+    jobs = select_two_jobs(mocker, source, options=["--dry-run", "-q", DESTINATION])
+    queue.task.side_effect = lambda task_id: jobs[1].task if task_id == jobs[1].task_id else source
+    assert replay.main() == 0
+    plan = json.loads(capsys.readouterr().out)
+    assert [item["source_task_id"] for item in plan["sources"]] == [job.task_id for job in jobs]
+    assert len(plan["tasks"]) == 2
+    assert all(item["destination_queue"] == DESTINATION for item in plan["sources"])
+    replay.Confirm.ask.assert_not_called()
+    queue.createTask.assert_not_called()
+
+
+def test_multi_job_partial_failure_monitors_created_task_with_own_runtime(mocker, queue, source):
+    jobs = select_two_jobs(mocker, source, confirm=True)
+    queue.task.side_effect = lambda task_id: jobs[1].task if task_id == jobs[1].task_id else source
+    check = mocker.patch.object(replay, "check_inputs", return_value=19)
+    queue.status.side_effect = [
+        {
+            "status": {
+                "state": "completed",
+                "runs": [{"state": "completed", "started": "2026-11-05T01:00:00Z", "resolved": end}],
+            },
+        }
+        for end in ["2026-11-05T01:10:00Z", "2026-11-05T01:05:00Z"]
+    ]
+    queue.createTask.side_effect = [RuntimeError("denied"), {}]
+    monitor = mocker.patch.object(replay, "wait_for_task_results", return_value={CLONE_IDS[1]: {"state": "completed"}})
+    assert replay.main() == 1
+    assert check.call_count == 2
+    assert monitor.call_args.args[1] == [CLONE_IDS[1]]
+    assert monitor.call_args.kwargs["expected_runtime"] == {CLONE_IDS[1]: 300}
 
 
 def test_picker_no_wait_returns_immediately_after_submission(mocker, queue, source, capsys):

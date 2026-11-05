@@ -181,9 +181,9 @@ def test_picker_filtering_navigation_and_cancellation(mocker):
     screen = mocker.Mock()
     screen.getmaxyx.return_value = (24, 120)
     screen.get_wch.side_effect = [curses.KEY_DOWN, "\n"]
-    assert _picker_screen(screen, discovery, POOL, POOL, "") == jobs[1]
+    assert _picker_screen(screen, discovery, POOL, POOL, "") == [jobs[1]]
     screen.get_wch.side_effect = ["p", "d", "f", "\n"]
-    assert _picker_screen(screen, discovery, POOL, POOL, "") == jobs[0]
+    assert _picker_screen(screen, discovery, POOL, POOL, "") == [jobs[0]]
     screen.get_wch.side_effect = ["\x1b"]
     assert _picker_screen(screen, discovery, POOL, POOL, "") is None
 
@@ -207,7 +207,7 @@ def test_picker_disables_missing_permissions_but_keeps_jobs_inspectable(mocker):
     screen.getmaxyx.return_value = (30, 160)
     screen.get_wch.side_effect = ["\n", curses.KEY_DOWN, "\n"]
     granted = ["queue:create-task:*", "queue:scheduler-id:*"]
-    assert _picker_screen(screen, discovery, POOL, POOL, "", granted) == jobs[1]
+    assert _picker_screen(screen, discovery, POOL, POOL, "", granted) == [jobs[1]]
     text = "\n".join(call.args[2] for call in screen.addnstr.call_args_list)
     assert "conditioned-profiles" in text
     assert "Selection disabled" in text
@@ -218,7 +218,7 @@ def test_picker_allows_preview_without_missing_permissions(mocker):
     screen = mocker.Mock()
     screen.getmaxyx.return_value = (24, 120)
     screen.get_wch.return_value = "\n"
-    assert _picker_screen(screen, discovery, POOL, POOL, "", [], preview=True) == discovery.jobs[0]
+    assert _picker_screen(screen, discovery, POOL, POOL, "", [], preview=True) == [discovery.jobs[0]]
 
 
 def test_picker_ctrl_r_returns_refresh_request_with_filter(mocker):
@@ -228,6 +228,80 @@ def test_picker_ctrl_r_returns_refresh_request_with_filter(mocker):
     screen.getmaxyx.return_value = (24, 120)
     screen.get_wch.return_value = "\x12"
     assert _picker_screen(screen, Discovery([job()], 1, 1, 1, 0), POOL, POOL, "pdf") == RefreshPicker("pdf")
+
+
+def test_picker_selects_across_filters_and_submits_when_no_rows_match(mocker):
+    jobs = [job("a", "Talos PDF"), job("b", "Speedometer")]
+    screen = mocker.Mock()
+    screen.getmaxyx.return_value = (30, 160)
+    screen.get_wch.side_effect = ["\t", "s", "p", "e", "\t", "z", "\n"]
+    assert _picker_screen(screen, Discovery(jobs, 2, 40, 4, 0), POOL, POOL, "") == jobs
+    text = "\n".join(call.args[2] for call in screen.addnstr.call_args_list)
+    assert "2 selected" in text
+    assert "[x]" in text
+
+
+def test_picker_toggle_off_and_spaces_still_filter(mocker):
+    jobs = [job("a", "Talos PDF"), job("b", "Speedometer")]
+    screen = mocker.Mock()
+    screen.getmaxyx.return_value = (30, 160)
+    screen.get_wch.side_effect = ["\t", "\t", "t", "a", "l", "o", "s", " ", "p", "\n"]
+    assert _picker_screen(screen, Discovery(jobs, 2, 40, 4, 0), POOL, POOL, "") == [jobs[0]]
+    text = "\n".join(call.args[2] for call in screen.addnstr.call_args_list)
+    assert "Filter: talos p" in text
+    assert "0 selected" in text
+
+
+def test_picker_refresh_carries_selection(mocker):
+    from worker_health.replay_picker import RefreshPicker
+
+    screen = mocker.Mock()
+    screen.getmaxyx.return_value = (30, 160)
+    screen.get_wch.side_effect = ["\t", "p", "\x12"]
+    assert _picker_screen(screen, Discovery([job("a")], 1, 1, 1, 0), POOL, POOL, "") == RefreshPicker("p", ("a",))
+
+
+def test_picker_rechecks_permissions_on_restored_hidden_selections(mocker):
+    jobs = [job("a", "Private"), job("b", "Public")]
+    jobs[0].task["scopes"] = ["secrets:get:private"]
+    screen = mocker.Mock()
+    screen.getmaxyx.return_value = (30, 160)
+    # Enter must reject a hidden selected job whose permissions changed on refresh.
+    screen.get_wch.side_effect = ["\n", "\x1b"]
+    granted = ["queue:create-task:*", "queue:scheduler-id:*"]
+    assert (
+        _picker_screen(
+            screen,
+            Discovery(jobs, 2, 40, 4, 0),
+            POOL,
+            POOL,
+            "Public",
+            granted,
+            selected_ids=("a",),
+        )
+        is None
+    )
+    text = "\n".join(call.args[2] for call in screen.addnstr.call_args_list)
+    assert "Selection disabled" in text
+
+
+def test_picker_cannot_mark_denied_jobs_but_can_remove_restored_selection(mocker):
+    jobs = [job("a", "Private"), job("b", "Public")]
+    jobs[0].task["scopes"] = ["secrets:get:private"]
+    screen = mocker.Mock()
+    screen.getmaxyx.return_value = (30, 160)
+    granted = ["queue:create-task:*", "queue:scheduler-id:*"]
+    for selected_ids in [(), ("a",)]:
+        screen.get_wch.side_effect = ["\t", curses.KEY_DOWN, "\t", "\n"]
+        assert _picker_screen(
+            screen,
+            Discovery(jobs, 2, 40, 4, 0),
+            POOL,
+            POOL,
+            "",
+            granted,
+            selected_ids=selected_ids,
+        ) == [jobs[1]]
 
 
 def test_copy_picker_shows_target_badges_and_filters_unseen_jobs(mocker):

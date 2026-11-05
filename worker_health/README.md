@@ -235,8 +235,9 @@ pipenv run python ./replay_tc_task.py \
 Omit `--queue` to replay into the source pool. `--from-pool` and an explicit
 source task are mutually exclusive; picker mode requires an interactive
 terminal. `--filter speedometer` pre-filters the list, and `--count 2` submits
-two copies of the selected task. `--dry-run` opens the picker and prints the
-selected task's preview without submitting.
+two copies of each selected job. `--dry-run` opens the picker and prints the
+whole batch's preview without submitting. Batch previews include a `sources`
+list and each clone's source in `extra.replay.sourceTaskId`.
 
 Picker submissions wait for results by default. Use `--no-wait` to return
 immediately after submission, or press Q, Escape, or Ctrl+C during monitoring to exit while
@@ -248,17 +249,28 @@ completed run. It counts down from each replay's actual run start, excluding
 queue time. Pending tasks show the expected runtime once running, and runs
 that exceed the estimate show how far over they are. No estimate is shown when
 the source lacks completed-run timestamps. Wait-mode JSON includes
-`expected_runtime_seconds` when available; log updates include the estimate.
+`expected_runtime_seconds` when available (a task-ID-to-seconds mapping for
+multiple workloads); log updates include each task's estimate.
+When waiting for multiple tasks, the table and logs also show their summed
+estimated task time, counting each copy and flagging missing estimates. This
+excludes queue time; parallel tasks can finish in less wall-clock time.
 
 Discovery reads recent history from every worker in the pool (currently up to
 20 tasks per worker), deduplicates task IDs, and keeps completed level-1 jobs.
 Repeated jobs with the same name and scopes are grouped together; selection
 uses the most recently completed task in each group. The picker shows runtime,
 completion time, client access, secret requirements, and the number of observed tasks per
-group. Type to filter, use arrows or Page Up/Down to move, Enter to select, and
-Escape to cancel. Task inputs and effective client scopes are checked after
-selection, then source, destination, and copy count are shown for confirmation
-before submission. Confirmation defaults to no.
+group. Type to filter, use arrows or Page Up/Down to move, and Tab to toggle
+jobs. Checkboxes and a selected count show your choices, which persist across
+filters. Enter proceeds with all checked jobs, or the highlighted job when none
+are checked; Escape cancels. Ctrl+R preserves selections by task ID and reports
+any selected tasks no longer present in refreshed history.
+Task inputs and effective client scopes are checked for the whole batch before
+submission. A validation failure identifies the affected job and submits nothing.
+One confirmation shows each source, destination, copies per job, and the total
+task count. Confirmation defaults to no. All clones share a new task group and
+are monitored together; submission failures still report and monitor tasks
+already created.
 The selected job name, task URL, worker, and completion time are logged before
 input and permission checks so failures can be traced back to the selection.
 
@@ -308,8 +320,6 @@ invalidate the target scan cache.
 The picker lists recent observed workloads, not the complete pool history.
 Workers whose history is unavailable are reported and skipped. TODO: integrate
 Pool Classifier's task-ID history to discover older jobs beyond this window.
-TODO: support selecting multiple workloads in one picker session; currently
-`--count` repeats a single selected workload.
 
 `--wait --output log` and `--wait --output json` use the same monitoring formats
 as `create_tc_task.py`. When monitoring is disabled, JSON output lists submitted

@@ -1,4 +1,4 @@
-"""Discover recent replay workloads and select one in a terminal."""
+"""Discover recent replay workloads and select them in a terminal."""
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import curses
@@ -83,6 +83,7 @@ class Discovery:
 @dataclass(frozen=True)
 class RefreshPicker:
     query: str
+    selected_ids: tuple[str, ...] = ()
 
 
 def batch_results(method, ids, key):
@@ -192,16 +193,44 @@ def runtime_label(seconds):
     return "-" if seconds is None else f"{int(seconds) // 60}m {int(seconds) % 60:02d}s"
 
 
-def pick_job(discovery, source_pool, destination, query="", granted=None, preview=False, coverage=None):
-    """Run the curses picker; cancellation returns None without submitting anything."""
-    # TODO: Support selecting multiple workloads in one picker session.
+def pick_job(
+    discovery,
+    source_pool,
+    destination,
+    query="",
+    granted=None,
+    preview=False,
+    coverage=None,
+    selected_ids=(),
+):
+    """Return selected jobs, a refresh request, or None on cancellation."""
     try:
-        return curses.wrapper(_picker_screen, discovery, source_pool, destination, query, granted, preview, coverage)
+        return curses.wrapper(
+            _picker_screen,
+            discovery,
+            source_pool,
+            destination,
+            query,
+            granted,
+            preview,
+            coverage,
+            selected_ids,
+        )
     except curses.error as exc:
         raise ValueError("Cannot open terminal picker; use a task ID or a supported terminal") from exc
 
 
-def _picker_screen(screen, discovery, source_pool, destination, query, granted=None, preview=False, coverage=None):
+def _picker_screen(
+    screen,
+    discovery,
+    source_pool,
+    destination,
+    query,
+    granted=None,
+    preview=False,
+    coverage=None,
+    selected_ids=(),
+):
     try:
         curses.curs_set(0)
     except curses.error:
@@ -218,6 +247,7 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
     except curses.error:
         pass
     selected = 0
+    marked = {task_id: None for task_id in selected_ids if any(job.task_id == task_id for job in discovery.jobs)}
     blocked = False
     permissions = (
         {job.task_id: missing_scopes(job.task, destination, granted) for job in discovery.jobs}
@@ -257,7 +287,7 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
         details_height = min(10, len(details), max(3, height - list_start - 3))
         page_size = max(1, height - list_start - 3 - details_height)
         top = (selected // page_size) * page_size
-        line(0, "Replay a completed level-1 job", curses.A_BOLD)
+        line(0, f"Replay completed level-1 jobs | {len(marked)} selected", curses.A_BOLD)
         line(1, f"From: {source_pool}")
         line(2, f"To:   {destination}")
         line(
@@ -270,7 +300,7 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
         line(list_start - 2, f"Filter: {query}   ({len(jobs)}/{len(discovery.jobs)} workloads)", curses.A_BOLD)
         line(
             list_start - 1,
-            "  Runtime  Access    Runs  "
+            "    Runtime  Access    Runs  "
             + ("Target     " if coverage is not None else "")
             + "Completed UTC         Workload",
             curses.A_UNDERLINE,
@@ -280,7 +310,8 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
             denied = permissions.get(job.task_id, [])
             access = f"need {len(denied)}" if denied else "ready" if granted is not None else "unknown"
             target = f"{coverage.badge(job.task):<10} " if coverage is not None else ""
-            label = f"{'>' if index == selected else ' '} {runtime_label(job.seconds):>7}  {access:>8} {job.observed:>4}  {target}{job.completed[:19].replace('T', ' ')}  {job.name}"
+            check = "[x]" if job.task_id in marked else "[ ]"
+            label = f"{check} {runtime_label(job.seconds):>7}  {access:>8} {job.observed:>4}  {target}{job.completed[:19].replace('T', ' ')}  {job.name}"
             style = curses.A_REVERSE if index == selected else 0
             if coverage is not None:
                 badge = coverage.badge(job.task)
@@ -312,10 +343,10 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
             height - 2,
             "Arrows / PgUp / PgDn: move | Type: filter"
             + (" (unseen / passed)" if coverage is not None else "")
-            + " | Backspace: erase",
+            + " | Tab: toggle | Backspace: erase",
         )
         footer = (
-            "Selection disabled: client lacks scopes. Choose another job or Ctrl+R to refresh."
+            "Selection disabled: client lacks scopes. Uncheck affected jobs or Ctrl+R to refresh."
             if blocked
             else "Enter: preview"
             if preview
@@ -327,12 +358,22 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
         if key in ("\x1b", "\x03"):
             return None
         if key == "\x12":
-            return RefreshPicker(query)
-        if key in ("\n", "\r", curses.KEY_ENTER) and jobs:
-            if missing and not preview:
+            return RefreshPicker(query, tuple(marked))
+        if key in ("\n", "\r", curses.KEY_ENTER) and (jobs or marked):
+            choices = [job for job in discovery.jobs if job.task_id in marked] if marked else [jobs[selected]]
+            if not preview and any(permissions.get(job.task_id) for job in choices):
                 blocked = True
                 continue
-            return jobs[selected]
+            return choices
+        if key == "\t" and jobs:
+            task_id = jobs[selected].task_id
+            if task_id in marked:
+                del marked[task_id]
+            elif missing and not preview:
+                blocked = True
+                continue
+            else:
+                marked[task_id] = None
         blocked = False
         if key == curses.KEY_UP:
             selected = max(0, selected - 1)
