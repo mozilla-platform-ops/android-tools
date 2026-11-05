@@ -141,17 +141,22 @@ def test_scope_variants_are_separate_workloads(mocker):
     assert len(discover_jobs(queue, manager, POOL).jobs) == 2
 
 
-def test_expired_worker_history_keeps_latest_task_and_reports_partial_results(mocker):
+def test_expired_worker_history_keeps_latest_task_and_reports_partial_results(mocker, caplog):
     manager, queue = mocker.Mock(), mocker.Mock()
     manager.listWorkers.return_value = {
         "workers": [{"workerGroup": "g", "workerId": "gone", "latestTask": {"taskId": "a"}}],
     }
-    manager.getWorker.side_effect = taskcluster.exceptions.TaskclusterFailure("worker expired")
+    manager.getWorker.side_effect = taskcluster.exceptions.TaskclusterRestFailure(
+        "Worker not found.\n\n---\n* method: getWorker\n* statusCode: 404",
+        None,
+        status_code=404,
+    )
     queue.statuses.return_value = {"statuses": []}
     result = discover_jobs(queue, manager, POOL)
     assert result.unavailable_workers == 1
     assert result.task_ids == 1
     assert result.jobs == []
+    assert caplog.messages == ["Skipping history for g/gone: worker no longer available (HTTP 404)"]
 
 
 def test_empty_pool_does_not_fetch_tasks(mocker):

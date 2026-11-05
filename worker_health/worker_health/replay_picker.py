@@ -123,7 +123,12 @@ def pool_task_ids(manager, pool, progress=lambda message: None):
                 ids.update(task["taskId"] for task in future.result().get("recentTasks", []))
             except taskcluster.exceptions.TaskclusterFailure as exc:
                 unavailable += 1
-                logging.warning("Could not read history for %s/%s: %s", *futures[future], exc)
+                code = getattr(exc, "status_code", None)
+                reason = (
+                    "worker no longer available" if code == 404 else (str(exc).partition("\n")[0] or type(exc).__name__)
+                )
+                http = f" (HTTP {code})" if code else ""
+                logging.warning("Skipping history for %s/%s: %s%s", *futures[future], reason, http)
             progress(f"Reading worker history: {index}/{len(workers)} workers; {len(ids)} unique task IDs")
     return ids, len(workers), unavailable
 
