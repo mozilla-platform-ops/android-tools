@@ -573,9 +573,14 @@ def _task_id_text(task_id):
     return text
 
 
-def render_task_progress(task_ids, task_states):
+def format_elapsed(seconds):
+    seconds = max(0, int(seconds))
+    return f"{seconds // 3600:02d}:{seconds // 60 % 60:02d}:{seconds % 60:02d}"
+
+
+def render_task_progress(task_ids, task_states, elapsed_seconds=0):
     table = Table(
-        title=f"Waiting for tasks ({sum(state['state'] in TERMINAL_TASK_STATES for state in task_states.values())}/{len(task_ids)} finished)",
+        title=f"Waiting for tasks ({sum(state['state'] in TERMINAL_TASK_STATES for state in task_states.values())}/{len(task_ids)} finished) | Elapsed {format_elapsed(elapsed_seconds)}",
     )
     table.add_column("#", justify="right", style="dim")
     table.add_column("Task ID")
@@ -587,8 +592,8 @@ def render_task_progress(task_ids, task_states):
     return table
 
 
-def render_final_table(task_ids, final_details):
-    table = Table(title="Task results")
+def render_final_table(task_ids, final_details, elapsed_seconds=0):
+    table = Table(title="Task results", caption=f"Elapsed {format_elapsed(elapsed_seconds)}")
     table.add_column("#", justify="right", style="dim")
     table.add_column("Task ID")
     table.add_column("Status")
@@ -616,27 +621,41 @@ def render_summary(final_details):
 def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
     """Monitor tasks, render the selected output format, and return final details."""
     task_states = {task_id: {"state": "pending", "result": "-", "worker_id": "-"} for task_id in task_ids}
+    started = time.monotonic()
 
     def log_progress(current_states, _final_details, changed_ids):
         for task_id in changed_ids:
             details = current_states[task_id]
             logging.info(
                 f"{details['state']:<9} result={details['result']:<11} "
-                f"worker={details['worker_id']:<18} task={task_id}",
+                f"worker={details['worker_id']:<18} task={task_id} elapsed={format_elapsed(time.monotonic() - started)}",
             )
 
     interactive_table = output == "table" and is_interactive_terminal()
     if interactive_table:
-        live = Live(render_task_progress(task_ids, task_states), refresh_per_second=4)
+        final_table = None
+
+        def current_table():
+            return (
+                final_table
+                if final_table is not None
+                else render_task_progress(
+                    task_ids,
+                    task_states,
+                    time.monotonic() - started,
+                )
+            )
+
+        live = Live(get_renderable=current_table, refresh_per_second=4)
         with live:
             final_details = tcclient.wait_for_tasks(
                 task_ids,
                 poll_interval,
-                progress_callback=lambda current_states, _final, _changed: live.update(
-                    render_task_progress(task_ids, current_states),
-                ),
+                progress_callback=lambda current_states, _final, _changed: task_states.update(current_states),
             )
-            live.update(render_final_table(task_ids, final_details))
+            elapsed_seconds = round(time.monotonic() - started, 3)
+            final_table = render_final_table(task_ids, final_details, elapsed_seconds)
+            live.refresh()
     else:
         callback = log_progress if output == "log" else None
         final_details = tcclient.wait_for_tasks(
@@ -644,11 +663,13 @@ def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
             poll_interval,
             progress_callback=callback,
         )
+        elapsed_seconds = round(time.monotonic() - started, 3)
 
     if output == "json":
         print(
             json.dumps(
                 {
+                    "elapsed_seconds": elapsed_seconds,
                     "tasks": [
                         {
                             "task_id": task_id,
@@ -663,10 +684,10 @@ def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
         )
     elif output == "table":
         if not interactive_table:
-            Console().print(render_final_table(task_ids, final_details))
+            Console().print(render_final_table(task_ids, final_details, elapsed_seconds))
         Console().print(render_summary(final_details))
     else:
-        logging.info(render_summary(final_details))
+        logging.info("%s | Elapsed %s", render_summary(final_details), format_elapsed(elapsed_seconds))
     return final_details
 
 

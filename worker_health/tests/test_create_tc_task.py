@@ -219,3 +219,35 @@ def test_task_links_and_status_colors():
     task_id = create_tc_task._task_id_text("task-1")
     assert task_id.spans[0].style == "link https://firefox-ci-tc.services.mozilla.com/tasks/task-1"
     assert create_tc_task._task_state_text("failed").style == "red"
+
+
+@pytest.mark.parametrize("seconds, expected", [(0, "00:00:00"), (65, "00:01:05"), (3661, "01:01:01")])
+def test_elapsed_display(seconds, expected):
+    assert create_tc_task.format_elapsed(seconds) == expected
+
+
+def test_live_timer_refreshes_without_state_changes(mocker, cli_client):
+    clock = mocker.patch.object(create_tc_task.time, "monotonic", return_value=100.0)
+    mocker.patch.object(create_tc_task, "is_interactive_terminal", return_value=True)
+    live = mocker.patch.object(create_tc_task, "Live")
+    titles = []
+
+    def wait(task_ids, poll_interval, progress_callback):
+        render = live.call_args.kwargs["get_renderable"]
+        titles.append(render().title)
+        clock.return_value = 165.0
+        titles.append(render().title)
+        return {task_id: {"state": "completed", "result": "completed", "worker_id": "host"} for task_id in task_ids}
+
+    cli_client.wait_for_tasks = wait
+    create_tc_task.wait_for_task_results(cli_client, ["task-1"])
+    assert "Elapsed 00:00:00" in titles[0]
+    assert "Elapsed 00:01:05" in titles[1]
+    clock.return_value = 200.0
+    assert live.call_args.kwargs["get_renderable"]().caption == "Elapsed 00:01:05"
+
+
+def test_json_wait_reports_elapsed_seconds(mocker, cli_client, capsys):
+    mocker.patch.object(create_tc_task.time, "monotonic", side_effect=[100.0, 165.5])
+    create_tc_task.wait_for_task_results(cli_client, ["task-1"], output="json")
+    assert json.loads(capsys.readouterr().out)["elapsed_seconds"] == 65.5

@@ -82,11 +82,17 @@ requirements in a sample of 62 level-1 jobs from the source Talos pool.
 Keep this client limited to level 1. Do not grant level-3 secret or cache scopes,
 or broader wildcards that include level 3. Select a completed level-1 source
 task, such as one from try. The tool preserves source scopes and resource
-references; it does not downgrade a level-3 task to level 1 or currently reject
-tasks based on their SCM level before submission.
+references. Replay rejects sources with non-level-1 SCM markers, resource scopes,
+or cache names, and sources without an explicit level-1 marker. Wildcard source
+scopes that cover level-3 perftest secrets or Gecko caches are also rejected.
+There is no level-3 override or automatic downgrade.
 
 Other workloads may request additional scopes, including access to private
 artifacts. Add only the specific scope required by the chosen level-1 workload.
+For example, conditioned-profile workloads can additionally require
+`secrets:get:project/releng/gecko/build/level-1/*`. The perftest secret wildcard
+does not cover this separate namespace. Keep wildcard prefixes inside each
+`level-1/` subtree to retain the level-1 boundary.
 The `queue:get-artifact:project/gecko/talos-pdfs/*` scope seen on level-3 jobs
 was not needed for the sampled level-1 jobs.
 
@@ -95,7 +101,12 @@ available. A successful preview checks task state and explicit artifact inputs,
 but does not verify that the client can delegate every source scope or submit
 the clone. Task creation enforces those permissions and reports missing scopes
 as `InsufficientScopes` (HTTP 403). Compare the preview's `tasks[].task.scopes`
-with the client's configured scopes when diagnosing a failure.
+with the client's configured scopes when diagnosing a failure. Interactive
+picker submissions additionally check the client's effective scopes before
+asking for confirmation. The picker fetches current client scopes before
+displaying jobs, dims entries with missing permissions, and prevents selecting
+those entries for submission. Missing scopes appear in the selected row's
+details. Dry-run mode allows inspecting their previews.
 
 ## overview
 
@@ -125,6 +136,11 @@ With `--wait`, an interactive terminal shows a live table with task status and
 worker names, followed by results and a summary. Task IDs link to Taskcluster
 in terminals that support links. Redirected table output shows the final table
 and summary.
+
+The live table shows elapsed time as `HH:MM:SS`, refreshed while waiting even
+when task status does not change. This measures time since monitoring began,
+including time pending in the queue. The final table and log summary retain the
+elapsed time; wait-mode JSON adds a top-level `elapsed_seconds` value.
 
 Use `--wait --output log` for status updates in logs, or
 `--wait --output json` for a JSON object containing a `tasks` list with each
@@ -157,7 +173,7 @@ pipenv run python ./replay_tc_task.py RuTU-6ofSBqIdd6-CQqv4g \
   --queue releng-hardware/gecko-t-linux-talos-2404-tc-v115 --count 2 --wait
 ```
 
-The source must have state `completed`. Its command, environment, mounts,
+The source must have state `completed` and be a level-1 task. Its command, environment, mounts,
 runtime limit, scopes, and dependency references are preserved. Dependencies
 are checked for usable states; explicit artifact references in mounts, task
 images, `MOZ_FETCHES`, and Firefox CI artifact URLs are checked for existence,
@@ -170,7 +186,8 @@ Original routes, tags, and reporting metadata are removed, so these jobs do
 not report into the source Treeherder push. They use lowest priority, zero
 queue retries, a 24-hour deadline, and seven-day task/output artifact retention.
 The operator becomes the task owner, and the source task is linked in the
-description and recorded in `extra.replay`.
+description alongside the full test name and source pool, and recorded in
+`extra.replay`.
 
 Revision environment variables such as `GECKO_HEAD_REV` and
 `MOZ_SOURCE_CHANGESET` remain intact so the workload uses the original source
@@ -184,12 +201,58 @@ the destination needs a compatible worker implementation, OS, tools, features,
 and permissions. Submission uses `~/.tc_token` and requires the source payload's
 scopes plus permission to create tasks on the destination with scheduler `-`
 and project `none`. A public preview can run without a token. Selecting a task
-from a particular worker does not target that same host. Pool-history discovery
-is not implemented yet.
+from a particular worker does not target that same host.
+
+To choose a workload interactively from a source pool:
+
+```bash
+pipenv run python ./replay_tc_task.py \
+  --from-pool releng-hardware/gecko-t-linux-talos-2404 \
+  --queue releng-hardware/gecko-t-linux-talos-2404-tc-v115
+```
+
+Omit `--queue` to replay into the source pool. `--from-pool` and an explicit
+source task are mutually exclusive; picker mode requires an interactive
+terminal. `--filter speedometer` pre-filters the list, and `--count 2` submits
+two copies of the selected task. `--dry-run` opens the picker and prints the
+selected task's preview without submitting.
+
+Picker submissions wait for results by default. Use `--no-wait` to return
+immediately after submission, or press Ctrl+C during monitoring to exit while
+the submitted jobs continue running. Explicit task-ID invocations still require
+`--wait` to enable monitoring.
+
+Discovery reads recent history from every worker in the pool (currently up to
+20 tasks per worker), deduplicates task IDs, and keeps completed level-1 jobs.
+Repeated jobs with the same name and scopes are grouped together; selection
+uses the most recently completed task in each group. The picker shows runtime,
+completion time, client access, secret requirements, and the number of observed tasks per
+group. Type to filter, use arrows or Page Up/Down to move, Enter to select, and
+Escape to cancel. Task inputs and effective client scopes are checked after
+selection, then source, destination, and copy count are shown for confirmation
+before submission. Confirmation defaults to no.
+The selected job name, task URL, worker, and completion time are logged before
+input and permission checks so failures can be traced back to the selection.
+
+Discovery results are cached for 10 minutes under
+`$XDG_CACHE_HOME/worker-health/replay-picker` (default:
+`~/.cache/worker-health/replay-picker`). Cache files are private to the user and
+contain task definitions and history, with no client credentials or effective
+scope snapshots. Use `--cache-minutes N` to change the lifetime or
+`--cache-minutes 0` to disable caching. Use `--refresh` when starting the command,
+or Ctrl+R inside the picker, to fetch fresh worker history and client scopes.
+The filter is preserved on Ctrl+R. Effective client scopes and selected task
+inputs are checked live before submission, including when history is cached.
+
+The picker lists recent observed workloads, not the complete pool history.
+Workers whose history is unavailable are reported and skipped. TODO: integrate
+Pool Classifier's task-ID history to discover older jobs beyond this window.
+TODO: support selecting multiple workloads in one picker session; currently
+`--count` repeats a single selected workload.
 
 `--wait --output log` and `--wait --output json` use the same monitoring formats
-as `create_tc_task.py`. Without `--wait`, JSON output lists submitted task IDs
-and URLs. Diagnostics go to stderr. A run URL selects the task definition;
+as `create_tc_task.py`. When monitoring is disabled, JSON output lists submitted
+task IDs and URLs. Diagnostics go to stderr. A run URL selects the task definition;
 artifact references without an explicit run ID still resolve to the latest
 dependency run.
 

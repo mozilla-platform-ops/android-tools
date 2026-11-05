@@ -10,6 +10,7 @@ import pytest
 from rich.console import Console
 
 import replay_tc_task as replay
+from worker_health.replay_picker import Discovery, ReplayJob
 
 
 SOURCE_ID = "ICHaZTMDTx2YY-fM3qlVXA"
@@ -21,12 +22,21 @@ NOW = datetime(2026, 11, 5, tzinfo=timezone.utc)
 
 @pytest.fixture
 def source():
-    return json.loads((Path(__file__).parent / "fixtures/replay_browsertime_task.json").read_text())
+    # Adapt the captured level-3 payload to a level-1 source for replay-policy tests.
+    task = json.loads(
+        (Path(__file__).parent / "fixtures/replay_browsertime_task.json").read_text().replace("level-3", "level-1"),
+    )
+    task["payload"]["env"]["MOZ_SCM_LEVEL"] = "1"
+    return task
 
 
 @pytest.fixture
 def queue(mocker, source):
     queue = mocker.Mock()
+    queue.options = {
+        "rootUrl": replay.ROOT_URL,
+        "credentials": {"clientId": "test-client", "accessToken": "not-a-real-token"},
+    }
     queue.task.return_value = source
     queue.status.return_value = {"status": {"state": "completed"}}
     inventories = {}
@@ -101,6 +111,7 @@ def test_clone_preserves_workload_and_isolates_reporting(source, mocker):
     assert clone["retries"] == 0
     assert clone["metadata"]["owner"] == "operator@mozilla.com"
     assert SOURCE_ID in clone["metadata"]["description"]
+    assert source["metadata"]["name"] in clone["metadata"]["description"]
     assert clone["scopes"] == source["scopes"]
     assert clone["dependencies"] == source["dependencies"]
     assert clone["requires"] == source["requires"]
@@ -292,3 +303,147 @@ def test_public_preview_without_token(mocker, tmp_path):
     assert "credentials" not in factory.call_args.args[0]
     with pytest.raises(ValueError, match="Cannot read Taskcluster credentials"):
         replay.queue_client(authenticated=True)
+
+
+def run_picker(mocker, source, **kwargs):
+    job = ReplayJob(SOURCE_ID, source, "2026-11-05T01:00:00Z", 600, "host")
+    mocker.patch.object(replay, "picker_terminal", return_value=True)
+    mocker.patch.object(replay.taskcluster, "WorkerManager")
+    mocker.patch.object(replay.taskcluster, "Auth").return_value.currentScopes.return_value = {"scopes": ["*"]}
+    mocker.patch.object(replay, "discover_jobs", return_value=Discovery([job], 120, 2400, 80, 0))
+    mocker.patch.object(replay, "load_discovery", return_value=None)
+    mocker.patch.object(replay, "save_discovery")
+    mocker.patch.object(replay, "pick_job", return_value=job)
+    mocker.patch.object(replay.Confirm, "ask", return_value=kwargs.get("confirm", False))
+    mocker.patch(
+        "sys.argv",
+        ["replay_tc_task.py", "--from-pool", SOURCE_QUEUE, "--output", "json", *kwargs.get("options", [])],
+    )
+    return job
+
+
+def test_picker_submit_requires_confirmation(mocker, queue, source, capsys):
+    run_picker(mocker, source, confirm=True, options=["-q", DESTINATION, "-c", "2"])
+    assert replay.main() == 0
+    assert queue.createTask.call_count == 2
+    assert all(call.args[1]["taskQueueId"] == DESTINATION for call in queue.createTask.call_args_list)
+    replay.Confirm.ask.assert_called_once()
+    assert len(json.loads(capsys.readouterr().out)["tasks"]) == 2
+
+
+def test_picker_declining_confirmation_submits_nothing(mocker, queue, source):
+    run_picker(mocker, source)
+    assert replay.main() == 0
+    queue.createTask.assert_not_called()
+
+
+def test_picker_escape_exits_before_preflight(mocker, queue, source):
+    run_picker(mocker, source)
+    replay.pick_job.return_value = None
+    assert replay.main() == 0
+    queue.task.assert_not_called()
+    queue.createTask.assert_not_called()
+
+
+def test_picker_missing_scopes_prevents_confirmation_and_submission(mocker, queue, source, capsys, caplog):
+    run_picker(mocker, source, confirm=True)
+    replay.taskcluster.Auth.return_value.currentScopes.return_value = {"scopes": []}
+    with caplog.at_level(logging.INFO):
+        assert replay.main() == 1
+    assert "Client lacks required replay scopes" in json.loads(capsys.readouterr().out)["error"]
+    assert f"Selected job: {source['metadata']['name']}" in caplog.text
+    assert f"Selected task: {replay.ROOT_URL}/tasks/{SOURCE_ID}" in caplog.text
+    assert caplog.text.index("Selected job:") < caplog.text.index("Client lacks required replay scopes")
+    replay.Confirm.ask.assert_not_called()
+    queue.createTask.assert_not_called()
+
+
+def test_picker_dry_run_previews_without_confirmation(mocker, queue, source, capsys):
+    run_picker(mocker, source, options=["--dry-run"])
+    queue.options.pop("credentials")
+    assert replay.main() == 0
+    assert json.loads(capsys.readouterr().out)["dry_run"] is True
+    replay.Confirm.ask.assert_not_called()
+    replay.taskcluster.Auth.assert_not_called()
+    queue.createTask.assert_not_called()
+
+
+def test_picker_empty_history(mocker, queue, source, capsys):
+    run_picker(mocker, source)
+    replay.discover_jobs.return_value = Discovery([], 0, 0, 0, 0)
+    assert replay.main() == 1
+    assert "No completed level-1 jobs" in json.loads(capsys.readouterr().out)["error"]
+    replay.pick_job.assert_not_called()
+    queue.createTask.assert_not_called()
+
+
+def test_picker_reuses_history_cache_but_checks_permissions_live(mocker, queue, source):
+    run_picker(mocker, source)
+    discovery = replay.discover_jobs.return_value
+    replay.load_discovery.return_value = discovery
+    assert replay.main() == 0
+    replay.discover_jobs.assert_not_called()
+    replay.taskcluster.Auth.return_value.currentScopes.assert_called()
+    replay.save_discovery.assert_not_called()
+
+
+def test_picker_explicit_refresh_bypasses_cache(mocker, queue, source):
+    run_picker(mocker, source, options=["--refresh"])
+    assert replay.main() == 0
+    replay.load_discovery.assert_not_called()
+    replay.discover_jobs.assert_called_once()
+
+
+def test_picker_ctrl_r_refreshes_history_and_client_scopes(mocker, queue, source):
+    from worker_health.replay_picker import RefreshPicker
+
+    job = run_picker(mocker, source)
+    replay.pick_job.side_effect = [RefreshPicker("pdf"), job]
+    assert replay.main() == 0
+    assert replay.discover_jobs.call_count == 2
+    assert replay.pick_job.call_args.args[3] == "pdf"
+    assert replay.taskcluster.Auth.return_value.currentScopes.call_count >= 2
+
+
+def test_picker_no_wait_returns_immediately_after_submission(mocker, queue, source, capsys):
+    run_picker(mocker, source, confirm=True, options=["--no-wait"])
+    wait = mocker.patch.object(replay, "wait_for_task_results")
+    assert replay.main() == 0
+    assert json.loads(capsys.readouterr().out)["tasks"][0]["task_id"] == CLONE_IDS[0]
+    wait.assert_not_called()
+
+
+def test_picker_defaults_to_wait(mocker, queue, source, capsys):
+    run_picker(mocker, source, confirm=True)
+    assert replay.main() == 0
+    result = json.loads(capsys.readouterr().out)
+    assert "elapsed_seconds" in result
+    assert result["tasks"][0]["state"] == "completed"
+
+
+def test_ctrl_c_leaves_submitted_jobs_running(mocker, queue, source):
+    run_picker(mocker, source, confirm=True)
+    mocker.patch.object(replay, "wait_for_task_results", side_effect=KeyboardInterrupt)
+    assert replay.main() == 130
+    queue.createTask.assert_called_once()
+    queue.cancelTask.assert_not_called()
+
+
+def test_explicit_level_three_source_rejected(mocker, queue, source, capsys):
+    source["payload"]["env"]["MOZ_SCM_LEVEL"] = "3"
+    assert run_cli(mocker, "--output", "json") == 1
+    assert "level-1 source" in json.loads(capsys.readouterr().out)["error"]
+    queue.createTask.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "options",
+    [[], [SOURCE_ID, "--from-pool", SOURCE_QUEUE], [SOURCE_ID, "--filter", "pdf"], ["--from-pool", SOURCE_QUEUE]],
+)
+def test_invalid_source_modes_fail_before_network(mocker, queue, options):
+    mocker.patch.object(replay, "picker_terminal", return_value=False)
+    mocker.patch("sys.argv", ["replay_tc_task.py", *options])
+    with pytest.raises(SystemExit) as exc:
+        replay.main()
+    assert exc.value.code == 2
+    replay.queue_client.assert_not_called()

@@ -16,8 +16,11 @@ import taskcluster
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.text import Text
+from rich.prompt import Confirm
 
 from create_tc_task import TaskMonitor, gen_task_id, wait_for_task_results
+from worker_health.replay_picker import RefreshPicker, discover_jobs, level_one_problem, missing_scopes, pick_job
+from worker_health.replay_cache import load_discovery, save_discovery
 
 
 ROOT_URL = "https://firefox-ci-tc.services.mozilla.com"
@@ -62,6 +65,17 @@ def positive_int(value):
     return number
 
 
+def picker_terminal():
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def nonnegative_int(value):
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("Must be zero or greater")
+    return number
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Replay a completed Firefox CI task using a new task ID and diagnostic task group.",
@@ -70,11 +84,33 @@ def parse_args():
             "Original routes, tags, and reporting metadata are removed. Dependencies are reused, not rerun. "
             "A source URL ending in /runs/N selects the task definition, not a historical run's inputs. "
             "Submission uses ~/.tc_token and requires the source payload's scopes plus destination creation permissions. "
-            "Use level-1 sources with a level-1-only client; see README.md, Replay client scopes. "
+            "Only level-1 sources are allowed; see README.md, Replay client scopes. "
             "A successful dry run does not validate submission permissions."
         ),
     )
-    parser.add_argument("source_task", type=task_id_argument, help="Completed task ID or Firefox CI task/run URL")
+    parser.add_argument(
+        "source_task",
+        nargs="?",
+        type=task_id_argument,
+        help="Completed level-1 task ID or Firefox CI task/run URL",
+    )
+    parser.add_argument(
+        "--from-pool",
+        type=queue_argument,
+        help="Open an interactive picker using this source pool's worker history",
+    )
+    parser.add_argument("--filter", default="", help="Initial picker search (requires --from-pool)")
+    parser.add_argument(
+        "--cache-minutes",
+        type=nonnegative_int,
+        default=10,
+        help="Reuse picker history for this many minutes; 0 disables caching (default: 10)",
+    )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Refresh picker history and client scopes (requires --from-pool)",
+    )
     parser.add_argument("-q", "--queue", type=queue_argument, help="Destination pool ID or URL (default: source pool)")
     parser.add_argument("-c", "--count", type=positive_int, default=1, help="Number of clones (default: 1)")
     parser.add_argument(
@@ -83,11 +119,19 @@ def parse_args():
         action="store_true",
         help="Check inputs and print full replay plan as JSON without submitting",
     )
-    parser.add_argument(
+    wait_options = parser.add_mutually_exclusive_group()
+    wait_options.add_argument(
         "--wait",
         "--wait-for-completion",
         action="store_true",
-        help="Wait for submitted tasks to finish",
+        default=None,
+        help="Wait for submitted tasks to finish (default with --from-pool)",
+    )
+    wait_options.add_argument(
+        "--no-wait",
+        dest="wait",
+        action="store_false",
+        help="Return after submission without monitoring",
     )
     parser.add_argument(
         "--output",
@@ -101,7 +145,16 @@ def parse_args():
         default=5,
         help="Status polling interval in seconds (default: 5)",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.wait is None:
+        args.wait = bool(args.from_pool)
+    if bool(args.source_task) == bool(args.from_pool):
+        parser.error("Provide either a source task or --from-pool")
+    if (args.filter or args.refresh or args.cache_minutes != 10) and not args.from_pool:
+        parser.error("--filter, --refresh, and --cache-minutes require --from-pool")
+    if args.from_pool and not picker_terminal():
+        parser.error("--from-pool requires an interactive terminal; use a task ID for scripted replays")
+    return args
 
 
 def queue_client(authenticated):
@@ -154,7 +207,7 @@ def clone_task(source, source_id, task_group_id, destination, now):
         "payload": payload,
         "metadata": {
             "name": f"Replay: {metadata['name']}",
-            "description": f"Diagnostic replay of [{source_id}]({ROOT_URL}/tasks/{source_id}) from {source_queue(source)}.",
+            "description": f"Diagnostic replay of `{metadata['name']}` ([{source_id}]({ROOT_URL}/tasks/{source_id})) from `{source_queue(source)}`.",
             "owner": f"{getpass.getuser()}@mozilla.com",
             "source": metadata["source"],
         },
@@ -194,6 +247,9 @@ def artifact_references(payload):
 
 
 def check_inputs(queue, source, source_id, now):
+    problem = level_one_problem(source)
+    if problem:
+        raise ValueError(f"Replay requires a level-1 source: {problem}")
     status = queue.status(source_id)["status"]
     if status["state"] != "completed":
         raise ValueError(f"Source task must be completed; it is {status['state']}")
@@ -243,10 +299,74 @@ def main():
     submitted = []
     try:
         queue = queue_client(authenticated=not args.dry_run)
+        if args.from_pool:
+            console = Console(stderr=True)
+            refresh = args.refresh
+            query = args.filter
+            while True:
+                discovery = None if refresh else load_discovery(args.from_pool, args.cache_minutes)
+                if discovery is None:
+                    with console.status("Reading recent worker history") as status:
+                        discovery = discover_jobs(
+                            queue,
+                            taskcluster.WorkerManager(queue.options),
+                            args.from_pool,
+                            progress=lambda message: status.update(Text(message)),
+                        )
+                    if args.cache_minutes:
+                        save_discovery(args.from_pool, discovery)
+                else:
+                    logging.info(
+                        "Using cached worker history (maximum age %s minutes); Ctrl+R refreshes",
+                        args.cache_minutes,
+                    )
+                if not discovery.jobs:
+                    raise ValueError(f"No completed level-1 jobs found in recent worker history for {args.from_pool}")
+                granted = (
+                    taskcluster.Auth(queue.options).currentScopes()["scopes"]
+                    if queue.options.get("credentials")
+                    else None
+                )
+                selected = pick_job(
+                    discovery,
+                    args.from_pool,
+                    args.queue or args.from_pool,
+                    query,
+                    granted,
+                    preview=args.dry_run,
+                )
+                if isinstance(selected, RefreshPicker):
+                    refresh = True
+                    query = selected.query
+                    continue
+                break
+            if selected is None:
+                logging.info("Picker cancelled; no tasks submitted")
+                return 0
+            args.source_task = selected.task_id
+            logging.info("Selected job: %s", selected.name)
+            logging.info("Selected task: %s/tasks/%s", ROOT_URL, selected.task_id)
+            logging.info("Selected worker: %s | Completed: %s", selected.worker, selected.completed)
         source = queue.task(args.source_task)
+        if args.from_pool and source_queue(source) != args.from_pool:
+            raise ValueError("Selected task does not belong to the requested source pool")
         now = datetime.now(timezone.utc)
         artifact_count = check_inputs(queue, source, args.source_task, now)
         destination = args.queue or source_queue(source)
+        if args.from_pool and not args.dry_run:
+            granted = taskcluster.Auth(queue.options).currentScopes()["scopes"]
+            missing = missing_scopes(source, destination, granted)
+            if missing:
+                raise ValueError("Client lacks required replay scopes: " + ", ".join(missing))
+            console.print(
+                Text(
+                    f"Source: {source['metadata']['name']}\nTask: {args.source_task}\nFrom: {source_queue(source)}\nTo: {destination}\nCopies: {args.count}\nArtifact references checked: {artifact_count}",
+                ),
+            )
+            if not Confirm.ask("Submit these replay tasks?", default=False, console=console):
+                logging.info("Replay cancelled; no tasks submitted")
+                return 0
+        now = datetime.now(timezone.utc)
         ids = [gen_task_id() for _ in range(args.count)]
         tasks = [
             {"task_id": task_id, "task": clone_task(source, args.source_task, ids[0], destination, now)}
