@@ -76,6 +76,17 @@ Add `--wait` to monitor task status in the CLI; the per-second counter appears
 in the task's live log. Use `pipenv run python ./create_tc_task.py --help` for
 all options.
 
+With `--wait`, an interactive terminal shows a live table with task status and
+worker names, followed by results and a summary. Task IDs link to Taskcluster
+in terminals that support links. Redirected table output shows the final table
+and summary.
+
+Use `--wait --output log` for status updates in logs, or
+`--wait --output json` for a JSON object containing a `tasks` list with each
+task's ID, state, result, worker ID, and URL. JSON results go to stdout;
+submission progress and diagnostics go to stderr. Wait mode exits nonzero if
+any submission fails or any task finishes as failed or exception.
+
 ### fitness.py
 
 Shows each worker's success rate and various concerning conditions like, consecutive failures, lack of work.

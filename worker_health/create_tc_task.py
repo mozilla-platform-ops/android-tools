@@ -33,6 +33,7 @@ import sys
 from rich.live import Live
 from rich.layout import Layout
 from rich.panel import Panel
+from rich.console import Console
 from rich.text import Text
 import datetime
 
@@ -45,6 +46,13 @@ DEFAULT_COMMAND_TIMEOUT = 70
 DEFAULT_COMMAND_TIMEOUT_BUFFER = 10
 DEFAULT_DOCKER_IMAGE = "ubuntu:24.04"
 TERMINAL_TASK_STATES = {"completed", "failed", "exception"}
+TASK_STATE_STYLES = {
+    "pending": "cyan",
+    "running": "yellow",
+    "completed": "green",
+    "failed": "red",
+    "exception": "magenta",
+}
 BITBAR_DASHBOARD_URL = "https://mozilla-v3.bitbar.com//#testing/device-session"
 BITBAR_SCRIPTVARS_PATH = "/builds/taskcluster/scriptvars.json"
 
@@ -170,10 +178,11 @@ class TCClient:
 
         return None
 
-    def wait_for_tasks(self, task_ids, poll_interval):
+    def wait_for_tasks(self, task_ids, poll_interval, progress_callback=None):
         """Wait for submitted tasks and return their terminal details."""
-        remaining = set(task_ids)
-        last_states = {}
+        remaining = list(task_ids)
+        last_details = {}
+        task_states = {task_id: {"state": "pending", "worker_id": "-", "result": "-"} for task_id in task_ids}
         final_details = {}
 
         while remaining:
@@ -185,31 +194,33 @@ class TCClient:
                     logging.warning(f"Unable to get status for {task_id}: {e}")
                     continue
 
-                if last_states.get(task_id) != task_state:
-                    logging.info(
-                        f"Task {task_id} status: {task_state} "
-                        f"(https://firefox-ci-tc.services.mozilla.com/tasks/{task_id})",
-                    )
-                    last_states[task_id] = task_state
+                runs = task_status.get("runs", [])
+                worker_id = next(
+                    (run.get("workerId") for run in reversed(runs) if run.get("workerId")),
+                    "-",
+                )
+                latest_run = runs[-1] if runs else {}
+                result = (
+                    latest_run.get("result")
+                    or latest_run.get("reasonResolved")
+                    or (task_state if task_state in TERMINAL_TASK_STATES else "-")
+                )
+                task_states[task_id] = {"state": task_state, "result": result, "worker_id": worker_id}
+                changed_ids = []
+                if last_details.get(task_id) != task_states[task_id]:
+                    last_details[task_id] = task_states[task_id].copy()
+                    changed_ids.append(task_id)
 
                 if task_state in TERMINAL_TASK_STATES:
-                    runs = task_status.get("runs", [])
-                    latest_run = runs[-1] if runs else {}
-                    worker_id = next(
-                        (run.get("workerId") for run in reversed(runs) if run.get("workerId")),
-                        "unknown",
-                    )
-                    result = latest_run.get("result", latest_run.get("reasonResolved", task_state))
                     final_details[task_id] = {
                         "state": task_state,
                         "result": result,
                         "worker_id": worker_id,
                     }
-                    logging.info(
-                        f"Task {task_id} finished: state={task_state}, result={result}, worker={worker_id} "
-                        f"(https://firefox-ci-tc.services.mozilla.com/tasks/{task_id})",
-                    )
                     remaining.remove(task_id)
+
+                if changed_ids and progress_callback:
+                    progress_callback(task_states, final_details, changed_ids)
 
             if remaining:
                 time.sleep(poll_interval)
@@ -301,6 +312,12 @@ def parse_args():
         type=float,
         default=5,
         help="Seconds between task status checks when waiting (default: 5).",
+    )
+    parser.add_argument(
+        "--output",
+        choices=("table", "log", "json"),
+        default="table",
+        help="Output format with --wait (default: table). JSON writes results to stdout and diagnostics to stderr.",
     )
     parser.add_argument(
         "--continuous-mode-limit",
@@ -535,6 +552,60 @@ def main_one_off_mode(tcclient, args):
             bar()
 
 
+def _task_url(task_id):
+    return f"https://firefox-ci-tc.services.mozilla.com/tasks/{task_id}"
+
+
+def _task_state_text(state):
+    return Text(state, style=TASK_STATE_STYLES.get(state, "white"))
+
+
+def _task_id_text(task_id):
+    text = Text(task_id)
+    text.stylize(f"link {_task_url(task_id)}")
+    return text
+
+
+def render_task_progress(task_ids, task_states):
+    table = Table(
+        title=f"Waiting for tasks ({sum(state['state'] in TERMINAL_TASK_STATES for state in task_states.values())}/{len(task_ids)} finished)",
+    )
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Task ID")
+    table.add_column("Status")
+    table.add_column("Worker")
+    for index, task_id in enumerate(task_ids, start=1):
+        details = task_states[task_id]
+        table.add_row(str(index), _task_id_text(task_id), _task_state_text(details["state"]), details["worker_id"])
+    return table
+
+
+def render_final_table(task_ids, final_details):
+    table = Table(title="Task results")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Task ID")
+    table.add_column("Status")
+    table.add_column("Result")
+    table.add_column("Worker")
+    for index, task_id in enumerate(task_ids, start=1):
+        details = final_details[task_id]
+        table.add_row(
+            str(index),
+            _task_id_text(task_id),
+            _task_state_text(details["state"]),
+            details["result"],
+            details["worker_id"],
+        )
+    return table
+
+
+def render_summary(final_details):
+    counts = {state: 0 for state in TERMINAL_TASK_STATES}
+    for details in final_details.values():
+        counts[details["state"]] += 1
+    return f"Summary: {counts['completed']} completed, {counts['failed']} failed, {counts['exception']} exception"
+
+
 def _build_command_from_script(script_path, script_args=None):
     with open(script_path) as f:
         content = f.read().strip()
@@ -629,7 +700,7 @@ def main():
                     break
     else:
         task_ids = []
-        with alive_progress.alive_bar(args.count, unit=" jobs", enrich_print=False) as bar:
+        with alive_progress.alive_bar(args.count, unit=" jobs", enrich_print=False, file=sys.stderr) as bar:
             for i in range(args.count):
                 task_id = tcclient.create_task()
                 if task_id:
@@ -639,9 +710,67 @@ def main():
         if args.wait_for_completion:
             if not task_ids:
                 logging.warning("No tasks were submitted; nothing to wait for.")
+                if args.output == "json":
+                    print(json.dumps({"tasks": []}))
+                if not args.dry_run:
+                    sys.exit(1)
             else:
-                final_details = tcclient.wait_for_tasks(task_ids, args.poll_interval)
-                if any(details["state"] != "completed" for details in final_details.values()):
+                task_states = {task_id: {"state": "pending", "result": "-", "worker_id": "-"} for task_id in task_ids}
+
+                def log_progress(current_states, _final_details, changed_ids):
+                    for task_id in changed_ids:
+                        details = current_states[task_id]
+                        logging.info(
+                            f"{details['state']:<9} result={details['result']:<11} "
+                            f"worker={details['worker_id']:<18} task={task_id}",
+                        )
+
+                interactive_table = args.output == "table" and is_interactive_terminal()
+                if interactive_table:
+                    live = Live(render_task_progress(task_ids, task_states), refresh_per_second=4)
+                    with live:
+                        final_details = tcclient.wait_for_tasks(
+                            task_ids,
+                            args.poll_interval,
+                            progress_callback=lambda current_states, _final, _changed: live.update(
+                                render_task_progress(task_ids, current_states),
+                            ),
+                        )
+                        live.update(render_final_table(task_ids, final_details))
+                else:
+                    callback = log_progress if args.output == "log" else None
+                    final_details = tcclient.wait_for_tasks(
+                        task_ids,
+                        args.poll_interval,
+                        progress_callback=callback,
+                    )
+
+                if args.output == "json":
+                    print(
+                        json.dumps(
+                            {
+                                "tasks": [
+                                    {
+                                        "task_id": task_id,
+                                        **final_details[task_id],
+                                        "url": _task_url(task_id),
+                                    }
+                                    for task_id in task_ids
+                                ],
+                            },
+                            indent=2,
+                        ),
+                    )
+                elif args.output == "table":
+                    if not interactive_table:
+                        Console().print(render_final_table(task_ids, final_details))
+                    Console().print(render_summary(final_details))
+                else:
+                    logging.info(render_summary(final_details))
+
+                if len(task_ids) != args.count or any(
+                    details["state"] != "completed" for details in final_details.values()
+                ):
                     sys.exit(1)
 
 
