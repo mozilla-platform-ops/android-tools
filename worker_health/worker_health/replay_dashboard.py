@@ -61,6 +61,18 @@ class PaneCursor:
         elif index >= self.top + height:
             self.top = max(0, index - height + 1)
 
+    def position_label(self, height):
+        total = len(self.keys)
+        if not total:
+            return "[0 of 0]"
+        end = min(total, self.top + height)
+        label = f"[{self.top + 1}–{end} of {total}]"
+        if self.top:
+            label += " ↑ earlier"
+        if end < total:
+            label += " ↓ more"
+        return label
+
     def move(self, command, height, logs=False):
         if not self.keys:
             return
@@ -178,7 +190,8 @@ class Dashboard:
         self.order = list(by_key)
         self.tasks.sync(self.order, task_height)
         task_style = self.colors.get(3, 0) | curses.A_BOLD if self.focus == 0 else curses.A_DIM
-        line(2, f"{'━' * 3} Tasks [{len(self.order)}] {'━' * max(0, width - 20)}", task_style)
+        task_header = f"━━━ Tasks {self.tasks.position_label(task_height)}"
+        line(2, task_header + " " + "━" * max(0, width - len(task_header) - 3), task_style)
         name_width = max(12, width - 58)
         line(
             3,
@@ -211,7 +224,8 @@ class Dashboard:
         log_start = 4 + task_height
         log_style = self.colors.get(3, 0) | curses.A_BOLD if self.focus == 1 else curses.A_DIM
         label = "following" if self.log_cursor.follow else f"paused · {new} new lines · End to follow"
-        line(log_start, f"━━━ Logs [{label}] {'━' * max(0, width - len(label) - 18)}", log_style)
+        log_header = f"━━━ Logs {self.log_cursor.position_label(log_height)} · {label}"
+        line(log_start, log_header + " " + "━" * max(0, width - len(log_header) - 3), log_style)
         for y, (sequence, level, text) in enumerate(
             logs[self.log_cursor.top : self.log_cursor.top + log_height],
             log_start + 1,

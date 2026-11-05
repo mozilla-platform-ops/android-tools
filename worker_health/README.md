@@ -221,6 +221,8 @@ scrollable task table, and a log pane below it. The table continuously prioritiz
 in-flight types, types with failures, and covered types, preserving the selected
 workload's cursor identity as statuses change. All workloads remain accessible through
 scrolling. Scheduling and API calls run independently of keyboard navigation.
+Both pane headers show the visible row range and total, with `↑ earlier` and
+`↓ more` when content is offscreen. Log positions refer to the retained buffer.
 
 - Tab switches between task and log panes; the focused pane is highlighted.
 - Up/Down moves the cursor one row and scrolls as needed.
