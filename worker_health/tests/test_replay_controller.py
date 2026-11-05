@@ -152,6 +152,18 @@ def test_dry_run_validates_without_reserving_or_submitting(setup):
     assert "DRY RUN" in instance.message
 
 
+def test_quitting_during_preflight_prevents_new_submission(setup):
+    import threading
+
+    instance, _ = setup
+    stop = threading.Event()
+    instance.stop_requested = stop.is_set
+    controller.check_inputs.side_effect = lambda *args, **kwargs: stop.set()
+    instance.tick()
+    instance.queue.createTask.assert_not_called()
+    assert not instance.state.active()
+
+
 def test_fair_rotation_across_restart_and_rate_limit(setup):
     instance, jobs = setup
     instance.tick()

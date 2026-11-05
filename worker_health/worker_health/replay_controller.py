@@ -33,6 +33,10 @@ TERMINAL = ("completed", "failed", "exception")
 logger = logging.getLogger(__name__)
 
 
+class SchedulingStopped(Exception):
+    """Stop before further API work when the fullscreen UI exits."""
+
+
 def workload_key(source_pool, job):
     return json.dumps([source_pool, job.name, sorted(set(job.task.get("scopes", [])))])
 
@@ -162,7 +166,7 @@ class ControllerState:
 
 
 class ReplayController:
-    def __init__(self, queue, manager, auth, state, args, clock=None):
+    def __init__(self, queue, manager, auth, state, args, clock=None, stop_requested=None):
         self.queue, self.manager, self.auth, self.state, self.args = queue, manager, auth, state, args
         self.jobs = []
         self.granted = []
@@ -174,6 +178,7 @@ class ReplayController:
         self.active_types = set()
         self.active_tasks = {}
         self.observed_statuses = {}
+        self.stop_requested = stop_requested or (lambda: False)
 
     def refresh_view(self):
         # Rich refreshes in another thread; render only snapshots, never SQLite queries.
@@ -189,6 +194,8 @@ class ReplayController:
         self.active_types = set(self.active_tasks)
 
     def progress(self, message):
+        if self.stop_requested():
+            raise SchedulingStopped
         self.message = message
 
     def capacity(self, now):
@@ -225,6 +232,9 @@ class ReplayController:
                 remember_results(self.args.queue, {row["task_id"]: {"state": state}})
 
     def submit(self, row, now):
+        if self.stop_requested():
+            self.message = "Stopped scheduling; submitted tasks keep running"
+            return
         definition = json.loads(row["definition"])
         self.state.mark_submission(now.timestamp())
         try:
@@ -240,6 +250,8 @@ class ReplayController:
         logger.info("%s", self.message)
 
     def tick(self, now=None):
+        if self.stop_requested():
+            return
         now = now or self.clock()
         self.progress("Checking submitted tasks")
         self.reconcile(now)
@@ -345,6 +357,9 @@ class ReplayController:
             if self.outstanding >= self.limit:
                 self.message = "Capacity changed during input validation; no task submitted"
                 return
+            if self.stop_requested():
+                self.message = "Stopped scheduling; submitted tasks keep running"
+                return
             if self.args.dry_run:
                 self.message = f"DRY RUN: would submit {job.name}"
                 logger.info("%s", self.message)
@@ -356,14 +371,7 @@ class ReplayController:
             return  # At most one submission each cycle, even after long preflight checks.
         self.message = "No eligible workload ready (permissions, in-flight work, or backoff)"
 
-    def render(self, max_rows=None):
-        table = Table(title=f"Continuous replay: {self.args.from_pool} → {self.args.queue}")
-        table.add_column("Workload", no_wrap=True, overflow="ellipsis", ratio=1)
-        table.add_column("Coverage", no_wrap=True)
-        table.add_column("Succeeded", justify="right", style="green")
-        table.add_column("Attempts", justify="right")
-        table.add_column("Status", no_wrap=True)
-        table.add_column("Elapsed", no_wrap=True, justify="right")
+    def display_rows(self):
         passed = eligible = 0
         now = self.clock().timestamp()
         rows = []
@@ -415,6 +423,7 @@ class ReplayController:
             rows.append(
                 (
                     priority,
+                    key,
                     Text(job.name),
                     coverage,
                     str(history["successes"]),
@@ -424,8 +433,43 @@ class ReplayController:
                 ),
             )
         rows.sort(key=lambda row: row[0])
+        return passed, eligible, rows
+
+    def snapshot(self):
+        passed, eligible, rows = self.display_rows()
+        return {
+            "workers": self.workers,
+            "outstanding": self.outstanding,
+            "limit": self.limit,
+            "passed": passed,
+            "eligible": eligible,
+            "message": self.message,
+            "rows": [
+                {
+                    "key": key,
+                    "name": name.plain,
+                    "coverage": coverage.plain,
+                    "successes": successes,
+                    "attempts": attempts,
+                    "status": status.plain,
+                    "elapsed": elapsed.plain,
+                    "observed_at": self.clock().timestamp(),
+                }
+                for _, key, name, coverage, successes, attempts, status, elapsed in rows
+            ],
+        }
+
+    def render(self, max_rows=None):
+        table = Table(title=f"Continuous replay: {self.args.from_pool} → {self.args.queue}")
+        table.add_column("Workload", no_wrap=True, overflow="ellipsis", ratio=1)
+        table.add_column("Coverage", no_wrap=True)
+        table.add_column("Succeeded", justify="right", style="green")
+        table.add_column("Attempts", justify="right")
+        table.add_column("Status", no_wrap=True)
+        table.add_column("Elapsed", no_wrap=True, justify="right")
+        passed, eligible, rows = self.display_rows()
         visible = rows if max_rows is None else rows[:max_rows]
-        for _, *cells in visible:
+        for _, _key, *cells in visible:
             table.add_row(*cells)
         if len(visible) < len(rows):
             table.caption = f"Showing {len(visible)}/{len(rows)} types; active, unsuccessful, and covered types first"

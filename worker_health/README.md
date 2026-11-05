@@ -214,9 +214,25 @@ scheduling readiness independently, so a passed type can still be ready to run
 again. In-flight rows show running or queued status and an Elapsed column:
 running time uses the current run's actual start timestamp, while queued time
 is measured from submission. Timers update between API polls, and restarting
-recovers running start timestamps from Taskcluster. The live table fits the terminal height and prioritizes in-flight types,
-types with failures, and covered types. `--output log` provides cycle summaries for unattended
-runs. Ctrl+C stops scheduling while submitted tasks continue running.
+recovers running start timestamps from Taskcluster.
+
+Interactive table mode uses a fullscreen dashboard with a fixed summary,
+scrollable task table, and a log pane below it. The table initially prioritizes
+in-flight types, types with failures, and covered types, then preserves row order
+and cursor identity as statuses change. All workloads remain accessible through
+scrolling. Scheduling and API calls run independently of keyboard navigation.
+
+- Tab switches between task and log panes; the focused pane is highlighted.
+- Up/Down moves the cursor one row and scrolls as needed.
+- Page Up/Left and Page Down/Right move one screen.
+- Home/End jumps to the first/last row.
+- Logs follow new messages until you scroll back. End resumes following; a new
+  lines counter shows arrivals while paused. The log buffer retains 2,000 lines.
+- Q or Ctrl+C exits and restores the terminal. Submitted tasks keep running;
+  an already-issued API request may complete after exit.
+
+Terminal resizing adjusts both panes. `--once` and non-interactive table output
+print a regular table; `--output log` keeps plain logging for unattended runs.
 
 Per-destination state is stored under
 `$XDG_STATE_HOME/worker-health/replay-controller` (default:

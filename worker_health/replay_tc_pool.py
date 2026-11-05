@@ -4,19 +4,21 @@
 import argparse
 import logging
 import sqlite3
-import time
-from contextlib import nullcontext
+import sys
+import threading
 
 import taskcluster
 from replay_tc_task import positive_int, queue_argument, queue_client
 from rich.console import Console
-from rich.live import Live
 from rich.logging import RichHandler
+from rich.text import Text
 from worker_health.replay_controller import (
     ControllerState,
     ReplayController,
+    SchedulingStopped,
     state_path,
 )
+from worker_health.replay_dashboard import LogBuffer, run_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -68,14 +70,8 @@ def parse_args():
     return args
 
 
-def main():
-    args = parse_args()
-    console = Console(stderr=True)
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(message)s",
-        handlers=[RichHandler(console=console, show_time=False, show_path=False)],
-    )
+def run_controller(args, console, stop=None, publish=None):
+    stop = stop or threading.Event()
     try:
         queue = queue_client(authenticated=True)
         with ControllerState(state_path(args.queue)) as state:
@@ -85,48 +81,78 @@ def main():
                 taskcluster.Auth(queue.options),
                 state,
                 args,
+                stop_requested=stop.is_set,
             )
-            display = (
-                Live(
-                    get_renderable=lambda: controller.render(max_rows=max(1, console.height - 10)),
-                    console=console,
-                    refresh_per_second=2,
+            if publish:
+                original_progress = controller.progress
+
+                def progress(message):
+                    original_progress(message)
+                    publish(controller.snapshot())
+
+                controller.progress = progress
+            while not stop.is_set():
+                failed = False
+                try:
+                    controller.tick()
+                except SchedulingStopped:
+                    break
+                except (taskcluster.exceptions.TaskclusterFailure, ValueError, KeyError) as exc:
+                    controller.message = f"Cycle paused: {exc}"
+                    logger.warning("%s", controller.message)
+                    failed = True
+                finally:
+                    controller.refresh_view()
+                if publish:
+                    publish(controller.snapshot())
+                elif args.output == "table":
+                    console.print(controller.render())
+                logger.info(
+                    "Workers=%s outstanding=%s/%s | %s",
+                    controller.workers,
+                    controller.outstanding,
+                    controller.limit,
+                    controller.message,
                 )
-                if args.output == "table" and console.is_terminal
-                else nullcontext()
-            )
-            with display as live:
-                while True:
-                    failed = False
-                    try:
-                        controller.tick()
-                    except (taskcluster.exceptions.TaskclusterFailure, ValueError, KeyError) as exc:
-                        # Never schedule from stale capacity or permissions after a failed API call.
-                        controller.message = f"Cycle paused: {exc}"
-                        logger.warning("%s", controller.message)
-                        failed = True
-                    finally:
-                        controller.refresh_view()
-                    if live:
-                        live.refresh()
-                    elif args.output == "table":
-                        console.print(controller.render())
-                    logger.info(
-                        "Workers=%s outstanding=%s/%s | %s",
-                        controller.workers,
-                        controller.outstanding,
-                        controller.limit,
-                        controller.message,
-                    )
-                    if args.once:
-                        return int(failed)
-                    time.sleep(args.poll_interval)
+                if args.once:
+                    return int(failed)
+                stop.wait(args.poll_interval)
+        return 0
     except KeyboardInterrupt:
         logger.info("Stopped scheduling; submitted tasks keep running. Restart to resume tracking.")
         return 0
     except (OSError, sqlite3.Error, ValueError, taskcluster.exceptions.TaskclusterFailure) as exc:
         logger.error("Controller stopped: %s", exc)
         return 1
+
+
+def main():
+    args = parse_args()
+    console = Console(stderr=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[RichHandler(console=console, show_time=False, show_path=False)],
+    )
+    if args.output != "table" or args.once or not console.is_terminal or not sys.stdin.isatty():
+        return run_controller(args, console)
+    logs = LogBuffer()
+    root = logging.getLogger()
+    previous_handlers = root.handlers[:]
+    previous_level = root.level
+    root.handlers = [logs]
+    root.setLevel(logging.INFO)
+    try:
+        result = run_dashboard(args, logs, lambda stop, publish: run_controller(args, console, stop, publish))
+    finally:
+        root.handlers = previous_handlers
+        root.setLevel(previous_level)
+    if result:
+        for _, _, line in logs.snapshot()[-5:]:
+            console.print(Text(line))
+    else:
+        logger.info("Stopped scheduling; submitted tasks keep running. Restart to resume tracking.")
+    return result
 
 
 if __name__ == "__main__":
