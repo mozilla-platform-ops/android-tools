@@ -169,6 +169,58 @@ task's ID, state, result, worker ID, and URL. JSON results go to stdout;
 submission progress and diagnostics go to stderr. Wait mode exits nonzero if
 any submission fails or any task finishes as failed or exception.
 
+### replay_tc_pool.py
+
+Continuously replay a mix of completed level-1 workloads into another pool:
+
+```bash
+pipenv run python ./replay_tc_pool.py \
+  --from-pool releng-hardware/gecko-t-linux-talos-2404 \
+  --queue releng-hardware/gecko-t-linux-talos-2404-tc-v115
+```
+
+The command submits tasks without an interactive confirmation. To inspect one
+scheduling cycle without submitting, add `--dry-run --once`. Both modes read
+`~/.tc_token` and check the client's current effective scopes.
+
+Defaults count non-quarantined destination workers active within 90 minutes and
+allow one outstanding task per worker. Standalone workers count as one even
+when their API `capacity` field is zero. Pool-wide pending and claimed task
+counts include other submitters' work; locally tracked tasks also provide a
+minimum outstanding count. Queue counts are approximate, so simultaneous
+external submissions can briefly exceed the target. No workers, unavailable
+capacity data, or failed permission checks prevent new submissions.
+
+The controller checks every 60 seconds and submits at most one task per cycle,
+with at least 60 seconds between submission attempts. Configure these defaults
+with `--worker-active-minutes`, `--tasks-per-worker`, `--poll-interval`, and
+`--submit-interval`. Capacity and scopes are checked again after input validation.
+
+Source history is refreshed every 10 minutes (`--source-refresh-minutes`). As
+with the interactive picker, discovery groups workload types by name and scopes,
+uses their latest completed source tasks, and sees bounded recent worker
+history. Types without a successful controller replay are prioritized; ties
+rotate by fewest attempts and oldest attempt. A type has at most one controller
+replay in flight. Once all types have succeeded, the controller continues the
+rotation. Types missing scopes are skipped. Invalid inputs and failed tasks
+receive an exponential retry delay starting at five minutes and capped at one
+hour (`--failure-backoff` sets the initial delay).
+
+The live table shows active workers, outstanding tasks, and per-type successes,
+attempts, and readiness. `--output log` provides cycle summaries for unattended
+runs. Ctrl+C stops scheduling while submitted tasks continue running.
+
+Per-destination state is stored under
+`$XDG_STATE_HOME/worker-health/replay-controller` (default:
+`~/.local/state/worker-health/replay-controller`). It preserves controller
+coverage, backoff, rate limits, and in-flight work across restarts. Coverage
+counts this controller's tasks, not historical replays submitted by other tools.
+Submissions are also recorded in the interactive picker's coverage database.
+Private state files retain exact replay definitions so an uncertain submission
+can be retried with the same task ID rather than creating a duplicate. A local
+lock prevents two controllers sharing this state from targeting the same pool;
+run only one controller per destination, including across machines.
+
 ### replay_tc_task.py
 
 Clone a completed real job under a fresh task ID. The destination defaults to
