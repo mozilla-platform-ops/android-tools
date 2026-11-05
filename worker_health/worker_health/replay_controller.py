@@ -5,12 +5,14 @@ import hashlib
 import json
 import logging
 import os
+import random
 import sqlite3
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import taskcluster
+from create_tc_task import format_elapsed
 from replay_tc_task import (
     check_inputs,
     clone_task,
@@ -170,11 +172,21 @@ class ReplayController:
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.histories = {}
         self.active_types = set()
+        self.active_tasks = {}
+        self.observed_statuses = {}
 
     def refresh_view(self):
         # Rich refreshes in another thread; render only snapshots, never SQLite queries.
         self.histories = {row["key"]: dict(row) for row in self.state.db.execute("SELECT * FROM workloads")}
-        self.active_types = {row["workload"] for row in self.state.active()}
+        self.active_tasks = {
+            row["workload"]: {
+                "state": row["state"],
+                "created": row["created"],
+                "started": self.observed_statuses.get(row["task_id"], {}).get("started"),
+            }
+            for row in self.state.active()
+        }
+        self.active_types = set(self.active_tasks)
 
     def progress(self, message):
         self.message = message
@@ -206,7 +218,10 @@ class ReplayController:
             if state not in (*ACTIVE, *TERMINAL):
                 raise ValueError(f"Unknown task state: {state}")
             self.state.set_status(row, state, now.timestamp(), self.args.failure_backoff)
+            latest_run = status.get("runs", [])[-1] if status.get("runs") else {}
+            self.observed_statuses[row["task_id"]] = {"started": latest_run.get("started")}
             if state in TERMINAL:
+                self.observed_statuses.pop(row["task_id"], None)
                 remember_results(self.args.queue, {row["task_id"]: {"state": state}})
 
     def submit(self, row, now):
@@ -297,7 +312,9 @@ class ReplayController:
                 and not missing_scopes(job.task, self.args.queue, self.granted)
             ):
                 candidates.append((history["successes"] > 0, history["attempts"], history["last_attempt"], key, job))
-        for _, _, _, key, job in sorted(candidates, key=lambda item: item[:4]):
+        # Stable sorting preserves shuffled order among equally ranked workloads.
+        random.shuffle(candidates)
+        for _, _, _, key, job in sorted(candidates, key=lambda item: item[:3]):
             self.progress(f"Checking inputs: {job.name}")
             try:
                 source = self.queue.task(job.task_id)
@@ -346,6 +363,7 @@ class ReplayController:
         table.add_column("Succeeded", justify="right", style="green")
         table.add_column("Attempts", justify="right")
         table.add_column("Status", no_wrap=True)
+        table.add_column("Elapsed", no_wrap=True, justify="right")
         passed = eligible = 0
         now = self.clock().timestamp()
         rows = []
@@ -355,10 +373,24 @@ class ReplayController:
             denied = missing_scopes(job.task, self.args.queue, self.granted)
             eligible += not denied
             passed += bool(history["successes"]) and not denied
+            task = self.active_tasks.get(key)
+            task_state = task["state"] if task else None
+            elapsed = "-"
+            if task:
+                try:
+                    started = (
+                        parse_timestamp(task["started"]).timestamp() if task_state == "running" else task["created"]
+                    )
+                    elapsed = format_elapsed(max(0, now - started))
+                except (TypeError, ValueError, AttributeError):
+                    elapsed = "unknown"
             status = (
                 "missing scopes"
                 if denied
-                else "in flight"
+                else {"running": "running", "pending": "queued", "unscheduled": "waiting", "reserved": "uncertain"}.get(
+                    task_state,
+                    "in flight",
+                )
                 if key in self.active_types
                 else f"retry in {max(0, int(history['retry_after'] - now))}s"
                 if history["retry_after"] > now
@@ -388,6 +420,7 @@ class ReplayController:
                     str(history["successes"]),
                     str(history["attempts"]),
                     Text(status, style=status_style),
+                    Text(elapsed, style="cyan" if active else "dim"),
                 ),
             )
         rows.sort(key=lambda row: row[0])

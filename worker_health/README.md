@@ -200,7 +200,8 @@ Source history is refreshed every 10 minutes (`--source-refresh-minutes`). As
 with the interactive picker, discovery groups workload types by name and scopes,
 uses their latest completed source tasks, and sees bounded recent worker
 history. Types without a successful controller replay are prioritized; ties
-rotate by fewest attempts and oldest attempt. A type has at most one controller
+rotate by fewest attempts and oldest attempt, with equally ranked types shuffled
+for variety in the initial sweep. A type has at most one controller
 replay in flight. Once all types have succeeded, the controller continues the
 rotation. Types missing scopes are skipped. Invalid inputs and failed tasks
 receive an exponential retry delay starting at five minutes and capped at one
@@ -210,7 +211,10 @@ The live table shows active workers, outstanding tasks, and per-type successes,
 attempts, and readiness. A separate Coverage column shows green `passed`, red
 `unsuccessful`, cyan `awaiting result`, or dim `untested`; Status describes
 scheduling readiness independently, so a passed type can still be ready to run
-again. The live table fits the terminal height and prioritizes in-flight types,
+again. In-flight rows show running or queued status and an Elapsed column:
+running time uses the current run's actual start timestamp, while queued time
+is measured from submission. Timers update between API polls, and restarting
+recovers running start timestamps from Taskcluster. The live table fits the terminal height and prioritizes in-flight types,
 types with failures, and covered types. `--output log` provides cycle summaries for unattended
 runs. Ctrl+C stops scheduling while submitted tasks continue running.
 

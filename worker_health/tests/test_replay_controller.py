@@ -181,6 +181,34 @@ def test_fair_rotation_across_restart_and_rate_limit(setup):
     assert instance.state.history(first_key)["successes"] == 1  # never counted twice
 
 
+@pytest.mark.parametrize(
+    "histories,expected",
+    [
+        ([(0, 0, 0), (0, 0, 0), (0, 0, 0)], 1),
+        ([(0, 0, 0), (0, 1, 0), (0, 1, 0)], 0),
+        ([(1, 0, 0), (0, 1, 0), (1, 0, 0)], 1),
+        ([(0, 1, 1), (0, 1, 3), (0, 1, 2)], 0),
+    ],
+)
+def test_shuffling_changes_ties_but_preserves_coverage_attempts_and_age_priority(setup, mocker, histories, expected):
+    instance, jobs = setup
+    for job, (successes, attempts, last_attempt) in zip(jobs, histories):
+        key = controller.workload_key(SOURCE, job)
+        instance.state.ensure_job(key, job.name)
+        with instance.state.db:
+            instance.state.db.execute(
+                "UPDATE workloads SET successes=?, attempts=?, last_attempt=? WHERE key=?",
+                (successes, attempts, last_attempt, key),
+            )
+
+    def rotate(candidates):
+        candidates.append(candidates.pop(0))
+
+    mocker.patch.object(controller.random, "shuffle", side_effect=rotate)
+    instance.tick()
+    assert instance.queue.createTask.call_args.args[1]["extra"]["replay"]["sourceTaskId"] == jobs[expected].task_id
+
+
 def test_one_submission_per_cycle_and_no_duplicate_in_flight_type(setup):
     instance, _ = setup
     instance.args.tasks_per_worker = 5
@@ -306,6 +334,63 @@ def test_render_uses_snapshot_without_cross_thread_sqlite_queries(setup):
     instance.refresh_view()
     with ThreadPoolExecutor(max_workers=1) as executor:
         assert executor.submit(instance.render).result() is not None
+
+
+def test_running_elapsed_uses_latest_run_start_and_recovers_after_restart(setup):
+    from rich.console import Console
+
+    instance, _ = setup
+    instance.tick()
+    instance.clock = lambda: NOW + timedelta(minutes=3)
+    instance.queue.status.return_value = {
+        "status": {
+            "state": "running",
+            "runs": [
+                {"started": (NOW - timedelta(hours=1)).isoformat()},
+                {"started": (NOW + timedelta(minutes=1)).isoformat()},
+            ],
+        },
+    }
+    instance.tick()
+    instance.refresh_view()
+    console = Console(width=160)
+    with console.capture() as capture:
+        console.print(instance.render())
+    assert "00:02:00" in capture.get()
+    instance.clock = lambda: NOW + timedelta(minutes=4)
+    with console.capture() as capture:
+        console.print(instance.render())
+    assert "00:03:00" in capture.get()  # live timer advances without another API poll
+    resumed = controller.ReplayController(
+        instance.queue,
+        instance.manager,
+        instance.auth,
+        instance.state,
+        instance.args,
+        clock=instance.clock,
+    )
+    resumed.tick()
+    resumed.refresh_view()
+    with console.capture() as capture:
+        console.print(resumed.render())
+    assert "00:03:00" in capture.get()
+
+
+@pytest.mark.parametrize("state,expected", [("pending", "00:03:00"), ("running", "unknown")])
+def test_queued_elapsed_and_missing_run_start(setup, state, expected):
+    from rich.console import Console
+
+    instance, _ = setup
+    instance.tick()
+    instance.clock = lambda: NOW + timedelta(minutes=3)
+    instance.queue.status.return_value = {"status": {"state": state}}
+    instance.tick()
+    instance.refresh_view()
+    console = Console(width=160)
+    with console.capture() as capture:
+        console.print(instance.render())
+    assert expected in capture.get()
+    assert ("queued" if state == "pending" else "running") in capture.get()
 
 
 def test_cli_once_dry_run(mocker, tmp_path, capsys):
