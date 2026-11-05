@@ -217,9 +217,9 @@ is measured from submission. Timers update between API polls, and restarting
 recovers running start timestamps from Taskcluster.
 
 Interactive table mode uses a fullscreen dashboard with a fixed summary,
-scrollable task table, and a log pane below it. The table initially prioritizes
-in-flight types, types with failures, and covered types, then preserves row order
-and cursor identity as statuses change. All workloads remain accessible through
+scrollable task table, and a log pane below it. The table continuously prioritizes
+in-flight types, types with failures, and covered types, preserving the selected
+workload's cursor identity as statuses change. All workloads remain accessible through
 scrolling. Scheduling and API calls run independently of keyboard navigation.
 
 - Tab switches between task and log panes; the focused pane is highlighted.

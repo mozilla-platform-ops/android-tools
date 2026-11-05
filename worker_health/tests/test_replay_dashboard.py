@@ -85,7 +85,7 @@ def test_keyboard_aliases_focus_and_quit(mocker):
     assert stop.is_set()
 
 
-def test_task_order_does_not_jump_when_priority_changes(mocker):
+def test_task_priority_updates_preserve_selected_workload(mocker):
     args = SimpleNamespace(from_pool="source/pool", queue="target/pool")
     snapshot = {
         "rows": [
@@ -106,9 +106,10 @@ def test_task_order_does_not_jump_when_priority_changes(mocker):
     screen.getmaxyx.return_value = (30, 120)
     view.draw(screen)
     view.tasks.move("down", 4)
-    snapshot["rows"].reverse()
+    snapshot["rows"][2].update(coverage="awaiting result", status="running")
+    snapshot["rows"] = [snapshot["rows"][2], *snapshot["rows"][:2]]
     view.draw(screen)
-    assert view.order == ["first", "second", "third"]
+    assert view.order == ["third", "first", "second"]
     assert view.tasks.selected == "second"
 
 

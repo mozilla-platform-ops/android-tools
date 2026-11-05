@@ -173,8 +173,9 @@ class Dashboard:
             f"Workers: {snapshot.get('workers', 0)} | Outstanding: {snapshot.get('outstanding', 0)}/{snapshot.get('limit', 0)} | Coverage: {snapshot.get('passed', 0)}/{snapshot.get('eligible', 0)} eligible types",
         )
         by_key = {row["key"]: row for row in snapshot.get("rows", [])}
-        self.order = [key for key in self.order if key in by_key]
-        self.order.extend(key for key in by_key if key not in self.order)
+        # Snapshots already prioritize active and covered workloads. Preserve the
+        # cursor's workload identity, rather than freezing the rows' initial order.
+        self.order = list(by_key)
         self.tasks.sync(self.order, task_height)
         task_style = self.colors.get(3, 0) | curses.A_BOLD if self.focus == 0 else curses.A_DIM
         line(2, f"{'━' * 3} Tasks [{len(self.order)}] {'━' * max(0, width - 20)}", task_style)
