@@ -339,12 +339,16 @@ class ReplayController:
             return  # At most one submission each cycle, even after long preflight checks.
         self.message = "No eligible workload ready (permissions, in-flight work, or backoff)"
 
-    def render(self):
+    def render(self, max_rows=None):
         table = Table(title=f"Continuous replay: {self.args.from_pool} → {self.args.queue}")
-        for column in ("Workload", "Succeeded", "Attempts", "Status"):
-            table.add_column(column)
+        table.add_column("Workload", no_wrap=True, overflow="ellipsis", ratio=1)
+        table.add_column("Coverage", no_wrap=True)
+        table.add_column("Succeeded", justify="right", style="green")
+        table.add_column("Attempts", justify="right")
+        table.add_column("Status", no_wrap=True)
         passed = eligible = 0
         now = self.clock().timestamp()
+        rows = []
         for job in self.jobs:
             key = workload_key(self.args.from_pool, job)
             history = self.histories.get(key, {"successes": 0, "attempts": 0, "retry_after": 0})
@@ -360,12 +364,43 @@ class ReplayController:
                 if history["retry_after"] > now
                 else "ready"
             )
-            table.add_row(Text(job.name), str(history["successes"]), str(history["attempts"]), status)
+            covered = bool(history["successes"])
+            failed = bool(history.get("failures", 0))
+            active = key in self.active_types
+            coverage = (
+                Text("passed", style="bold green")
+                if covered
+                else Text("unsuccessful", style="bold red")
+                if failed
+                else Text("awaiting result", style="cyan")
+                if active
+                else Text("untested", style="dim")
+            )
+            status_style = (
+                "red" if denied else "bold cyan" if active else "yellow" if history["retry_after"] > now else "dim"
+            )
+            priority = 4 if denied else 0 if active else 1 if failed else 2 if covered else 3
+            rows.append(
+                (
+                    priority,
+                    Text(job.name),
+                    coverage,
+                    str(history["successes"]),
+                    str(history["attempts"]),
+                    Text(status, style=status_style),
+                ),
+            )
+        rows.sort(key=lambda row: row[0])
+        visible = rows if max_rows is None else rows[:max_rows]
+        for _, *cells in visible:
+            table.add_row(*cells)
+        if len(visible) < len(rows):
+            table.caption = f"Showing {len(visible)}/{len(rows)} types; active, unsuccessful, and covered types first"
         return Group(
             Text(
                 f"Active workers: {self.workers} | Outstanding: {self.outstanding}/{self.limit} | Coverage: {passed}/{eligible} eligible types",
             ),
             table,
-            Text(self.message),
-            Text("Ctrl+C: stop scheduling; submitted tasks keep running"),
+            Text(self.message, style="cyan"),
+            Text("Ctrl+C: stop scheduling; submitted tasks keep running", style="dim"),
         )

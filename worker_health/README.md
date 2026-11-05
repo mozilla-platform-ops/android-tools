@@ -207,7 +207,11 @@ receive an exponential retry delay starting at five minutes and capped at one
 hour (`--failure-backoff` sets the initial delay).
 
 The live table shows active workers, outstanding tasks, and per-type successes,
-attempts, and readiness. `--output log` provides cycle summaries for unattended
+attempts, and readiness. A separate Coverage column shows green `passed`, red
+`unsuccessful`, cyan `awaiting result`, or dim `untested`; Status describes
+scheduling readiness independently, so a passed type can still be ready to run
+again. The live table fits the terminal height and prioritizes in-flight types,
+types with failures, and covered types. `--output log` provides cycle summaries for unattended
 runs. Ctrl+C stops scheduling while submitted tasks continue running.
 
 Per-destination state is stored under

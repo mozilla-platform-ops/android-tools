@@ -87,7 +87,11 @@ def main():
                 args,
             )
             display = (
-                Live(get_renderable=controller.render, console=console, refresh_per_second=2)
+                Live(
+                    get_renderable=lambda: controller.render(max_rows=max(1, console.height - 10)),
+                    console=console,
+                    refresh_per_second=2,
+                )
                 if args.output == "table" and console.is_terminal
                 else nullcontext()
             )
