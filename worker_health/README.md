@@ -87,6 +87,65 @@ task's ID, state, result, worker ID, and URL. JSON results go to stdout;
 submission progress and diagnostics go to stderr. Wait mode exits nonzero if
 any submission fails or any task finishes as failed or exception.
 
+### replay_tc_task.py
+
+Clone a completed real job under a fresh task ID. The destination defaults to
+the source pool; `--queue` selects another compatible pool. Both task/run URLs
+and worker pool URLs are accepted as well as IDs.
+
+Preview the example Browsertime Google Docs job on the `tc-v115` pool:
+
+```bash
+pipenv run python ./replay_tc_task.py ICHaZTMDTx2YY-fM3qlVXA \
+  --queue releng-hardware/gecko-t-linux-talos-2404-tc-v115 --dry-run
+```
+
+`--dry-run` prints a `DRY RUN` banner to stderr, checks the source and reused
+inputs, then prints a JSON plan with `"dry_run": true`, `"tasks_submitted": 0`,
+and the full proposed task definitions. The listed task IDs have not been
+submitted. To submit two copies with live task status:
+
+```bash
+pipenv run python ./replay_tc_task.py ICHaZTMDTx2YY-fM3qlVXA \
+  --queue releng-hardware/gecko-t-linux-talos-2404-tc-v115 --count 2 --wait
+```
+
+The source must have state `completed`. Its command, environment, mounts,
+runtime limit, scopes, and dependency references are preserved. Dependencies
+are checked for usable states; explicit artifact references in mounts, task
+images, `MOZ_FETCHES`, and Firefox CI artifact URLs are checked for existence,
+expiration, and error artifacts. This does not check external downloads,
+artifacts discovered at runtime, or guarantee that inputs remain available
+until execution.
+
+Clones share a new diagnostic task group with scheduler `-` and project `none`.
+Original routes, tags, and reporting metadata are removed, so these jobs do
+not report into the source Treeherder push. They use lowest priority, zero
+queue retries, a 24-hour deadline, and seven-day task/output artifact retention.
+The operator becomes the task owner, and the source task is linked in the
+description and recorded in `extra.replay`.
+
+Revision environment variables such as `GECKO_HEAD_REV` and
+`MOZ_SOURCE_CHANGESET` remain intact so the workload uses the original source
+revision. They do not attach the replay to a Treeherder push: the standard
+[Treeherder ingestion handler](https://github.com/mozilla/treeherder/blob/master/treeherder/etl/taskcluster_pulse/handler.py)
+requires a `tc-treeherder` route and `extra.treeherder`, both of which are absent
+from the clone. Logs and artifacts can still mention the original revision.
+
+Cross-pool replay preserves the payload and scopes without translating them;
+the destination needs a compatible worker implementation, OS, tools, features,
+and permissions. Submission uses `~/.tc_token` and requires the source payload's
+scopes plus permission to create tasks on the destination with scheduler `-`
+and project `none`. A public preview can run without a token. Selecting a task
+from a particular worker does not target that same host. Pool-history discovery
+is not implemented yet.
+
+`--wait --output log` and `--wait --output json` use the same monitoring formats
+as `create_tc_task.py`. Without `--wait`, JSON output lists submitted task IDs
+and URLs. Diagnostics go to stderr. A run URL selects the task definition;
+artifact references without an explicit run ID still resolve to the latest
+dependency run.
+
 ### fitness.py
 
 Shows each worker's success rate and various concerning conditions like, consecutive failures, lack of work.

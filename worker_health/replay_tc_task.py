@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+"""Clone a completed Firefox CI task as an independent diagnostic task."""
+
+import argparse
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+import getpass
+import json
+import logging
+from pathlib import Path
+import re
+import sys
+from urllib.parse import unquote, urlsplit
+
+import taskcluster
+
+from create_tc_task import TaskMonitor, gen_task_id, wait_for_task_results
+
+
+ROOT_URL = "https://firefox-ci-tc.services.mozilla.com"
+TASK_ID_PATTERN = r"[A-Za-z0-9_-]{22}"
+QUEUE_PATTERN = r"[a-zA-Z0-9_-]{1,38}/[a-z]([-a-z0-9]{0,36}[a-z0-9])?"
+ARTIFACT_URL_PATTERN = re.compile(
+    rf"https?://firefox-ci-tc\.services\.mozilla\.com/api/queue/v1/task/({TASK_ID_PATTERN})"
+    r"(?:/runs/(\d+))?/artifacts/([^\s\"'\\<>]+)",
+)
+
+
+def task_id_argument(value):
+    if value.startswith(("https://", "http://")):
+        url = urlsplit(value)
+        if url.hostname != urlsplit(ROOT_URL).hostname:
+            raise argparse.ArgumentTypeError("Source URL must be a Firefox CI task URL")
+        match = re.fullmatch(rf"/tasks/({TASK_ID_PATTERN})(?:/runs/\d+)?/?", url.path)
+        if not match:
+            raise argparse.ArgumentTypeError("Expected a task URL, optionally ending in /runs/NUMBER")
+        value = match.group(1)
+    if not re.fullmatch(TASK_ID_PATTERN, value):
+        raise argparse.ArgumentTypeError("Expected a 22-character task ID or Firefox CI task URL")
+    return value
+
+
+def queue_argument(value):
+    if value.startswith(("https://", "http://")):
+        url = urlsplit(value)
+        match = re.fullmatch(r"/provisioners/([^/]+)/worker-types/([^/]+)/?", url.path)
+        if url.hostname != urlsplit(ROOT_URL).hostname or not match:
+            raise argparse.ArgumentTypeError("Expected a Firefox CI worker pool URL")
+        value = f"{match.group(1)}/{match.group(2)}"
+    if not re.fullmatch(QUEUE_PATTERN, value):
+        raise argparse.ArgumentTypeError("Expected PROVISIONER/WORKER_TYPE or a Firefox CI worker pool URL")
+    return value
+
+
+def positive_int(value):
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("Must be greater than zero")
+    return number
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Replay a completed Firefox CI task using a new task ID and diagnostic task group.",
+        epilog=(
+            "The source payload and scopes are preserved; destination compatibility must be checked by the operator. "
+            "Original routes, tags, and reporting metadata are removed. Dependencies are reused, not rerun. "
+            "A source URL ending in /runs/N selects the task definition, not a historical run's inputs."
+        ),
+    )
+    parser.add_argument("source_task", type=task_id_argument, help="Completed task ID or Firefox CI task/run URL")
+    parser.add_argument("-q", "--queue", type=queue_argument, help="Destination pool ID or URL (default: source pool)")
+    parser.add_argument("-c", "--count", type=positive_int, default=1, help="Number of clones (default: 1)")
+    parser.add_argument(
+        "-D",
+        "--dry-run",
+        action="store_true",
+        help="Check inputs and print full replay plan as JSON without submitting",
+    )
+    parser.add_argument(
+        "--wait",
+        "--wait-for-completion",
+        action="store_true",
+        help="Wait for submitted tasks to finish",
+    )
+    parser.add_argument(
+        "--output",
+        choices=("table", "log", "json"),
+        default="table",
+        help="Result format (default: table); with --dry-run, the plan is always JSON",
+    )
+    parser.add_argument(
+        "--poll-interval",
+        type=positive_int,
+        default=5,
+        help="Status polling interval in seconds (default: 5)",
+    )
+    return parser.parse_args()
+
+
+def queue_client(authenticated):
+    options = {"rootUrl": ROOT_URL, "timeout": 60}
+    token_file = Path.home() / ".tc_token"
+    if authenticated or token_file.exists():
+        try:
+            credentials = json.loads(token_file.read_text())
+            options["credentials"] = {key: credentials[key] for key in ("clientId", "accessToken")}
+        except (OSError, ValueError, KeyError) as exc:
+            raise ValueError("Cannot read Taskcluster credentials from ~/.tc_token") from exc
+    return taskcluster.Queue(options)
+
+
+def timestamp(value):
+    return value.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def parse_timestamp(value):
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def source_queue(task):
+    return task.get("taskQueueId") or f"{task['provisionerId']}/{task['workerType']}"
+
+
+def clone_task(source, source_id, task_group_id, destination, now):
+    """Copy execution inputs without carrying over the original reporting identity."""
+    expires = timestamp(now + timedelta(days=7))
+    payload = deepcopy(source["payload"])
+    artifacts = payload.get("artifacts", [])
+    for artifact in artifacts.values() if isinstance(artifacts, dict) else artifacts:
+        artifact["expires"] = expires
+
+    metadata = source["metadata"]
+    clone = {
+        "taskQueueId": destination,
+        "schedulerId": "-",
+        "projectId": "none",
+        "taskGroupId": task_group_id,
+        "dependencies": deepcopy(source.get("dependencies", [])),
+        "requires": source.get("requires", "all-completed"),
+        "priority": "lowest",
+        "retries": 0,
+        "routes": [],
+        "scopes": deepcopy(source.get("scopes", [])),
+        "created": timestamp(now),
+        "deadline": timestamp(now + timedelta(days=1)),
+        "expires": expires,
+        "payload": payload,
+        "metadata": {
+            "name": f"Replay: {metadata['name']}",
+            "description": f"Diagnostic replay of [{source_id}]({ROOT_URL}/tasks/{source_id}) from {source_queue(source)}.",
+            "owner": f"{getpass.getuser()}@mozilla.com",
+            "source": metadata["source"],
+        },
+        "extra": {"replay": {"sourceTaskId": source_id, "sourceTaskQueueId": source_queue(source)}},
+    }
+    return clone
+
+
+def artifact_references(payload):
+    """Find structured fetches, mounts, task images, and explicit Firefox CI URLs."""
+    references = set()
+
+    def visit(value):
+        if isinstance(value, dict):
+            if "taskId" in value:
+                name = value.get("artifact")
+                if value.get("type") == "task-image":
+                    name = name or value.get("path")
+                if name:
+                    references.add((value["taskId"], None, name))
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+        elif isinstance(value, str):
+            for match in ARTIFACT_URL_PATTERN.finditer(value):
+                task_id, run_id, name = match.groups()
+                references.add((task_id, int(run_id) if run_id is not None else None, unquote(name.split("?", 1)[0])))
+
+    visit(payload)
+    fetches = payload.get("env", {}).get("MOZ_FETCHES")
+    if fetches:
+        for fetch in json.loads(fetches):
+            references.add((fetch["task"], None, fetch["artifact"]))
+    return references
+
+
+def check_inputs(queue, source, source_id, now):
+    status = queue.status(source_id)["status"]
+    if status["state"] != "completed":
+        raise ValueError(f"Source task must be completed; it is {status['state']}")
+
+    for dependency in source.get("dependencies", []):
+        state = queue.status(dependency)["status"]["state"]
+        allowed = {"completed", "failed", "exception"} if source.get("requires") == "all-resolved" else {"completed"}
+        if state not in allowed:
+            raise ValueError(f"Dependency {dependency} is {state}; cannot reuse it")
+
+    references = artifact_references(source["payload"])
+    inventories = {}
+    for task_id, run_id, name in sorted(references, key=lambda ref: (ref[0], -1 if ref[1] is None else ref[1], ref[2])):
+        key = (task_id, run_id)
+        if key not in inventories:
+            artifacts = []
+            options = {}
+            while True:
+                page = (
+                    queue.listLatestArtifacts(task_id, **options)
+                    if run_id is None
+                    else queue.listArtifacts(task_id, run_id, **options)
+                )
+                artifacts.extend(page["artifacts"])
+                if not page.get("continuationToken"):
+                    break
+                options["continuationToken"] = page["continuationToken"]
+            inventories[key] = {artifact["name"]: artifact for artifact in artifacts}
+        artifact = inventories[key].get(name)
+        if not artifact or artifact.get("storageType") == "error" or parse_timestamp(artifact["expires"]) <= now:
+            raise ValueError(f"Required artifact is missing, expired, or an error: {task_id}/{name}")
+    return len(references)
+
+
+def main():
+    args = parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    if args.dry_run:
+        logging.info("DRY RUN: checking inputs and preparing a preview; no tasks will be submitted")
+    submitted = []
+    try:
+        queue = queue_client(authenticated=not args.dry_run)
+        source = queue.task(args.source_task)
+        now = datetime.now(timezone.utc)
+        artifact_count = check_inputs(queue, source, args.source_task, now)
+        destination = args.queue or source_queue(source)
+        ids = [gen_task_id() for _ in range(args.count)]
+        tasks = [
+            {"task_id": task_id, "task": clone_task(source, args.source_task, ids[0], destination, now)}
+            for task_id in ids
+        ]
+        logging.info(
+            "Replay %s: %s -> %s (%s clone(s), %s artifact references checked)",
+            source["metadata"]["name"],
+            source_queue(source),
+            destination,
+            args.count,
+            artifact_count,
+        )
+        logging.info(
+            "Preserving payload and scopes; using a new group, no reporting routes, lowest priority, and no retries",
+        )
+        if args.dry_run:
+            print(
+                json.dumps(
+                    {
+                        "dry_run": True,
+                        "tasks_submitted": 0,
+                        "source_task_id": args.source_task,
+                        "source_queue": source_queue(source),
+                        "destination_queue": destination,
+                        "artifact_references_checked": artifact_count,
+                        "tasks": tasks,
+                    },
+                    indent=2,
+                ),
+            )
+            logging.info("DRY RUN complete: no tasks submitted; listed task IDs are proposed IDs only")
+            return 0
+
+        submission_failed = False
+        for entry in tasks:
+            try:
+                queue.createTask(entry["task_id"], entry["task"])
+                submitted.append(entry["task_id"])
+                logging.info("Task created: %s/tasks/%s", ROOT_URL, entry["task_id"])
+            except Exception as exc:
+                logging.error("Could not create %s: %s", entry["task_id"], exc)
+                submission_failed = True
+
+        if args.wait and submitted:
+            results = wait_for_task_results(TaskMonitor(queue), submitted, args.poll_interval, args.output)
+            return int(submission_failed or any(result["state"] != "completed" for result in results.values()))
+        if args.output == "json":
+            print(
+                json.dumps(
+                    {"tasks": [{"task_id": task_id, "url": f"{ROOT_URL}/tasks/{task_id}"} for task_id in submitted]},
+                    indent=2,
+                ),
+            )
+        else:
+            for task_id in submitted:
+                print(f"{ROOT_URL}/tasks/{task_id}")
+        return int(submission_failed)
+    except (ValueError, KeyError, taskcluster.exceptions.TaskclusterFailure) as exc:
+        logging.error("Replay failed: %s", exc)
+        if args.output == "json":
+            print(json.dumps({"tasks": [], "error": str(exc)}))
+        return 1
+    except KeyboardInterrupt:
+        logging.info("Stopped monitoring; submitted tasks continue running: %s", ", ".join(submitted) or "none")
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,283 @@
+import argparse
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+import json
+import logging
+from pathlib import Path
+
+import pytest
+
+import replay_tc_task as replay
+
+
+SOURCE_ID = "ICHaZTMDTx2YY-fM3qlVXA"
+SOURCE_QUEUE = "releng-hardware/gecko-t-linux-talos-2404"
+DESTINATION = "releng-hardware/gecko-t-linux-talos-2404-tc-v115"
+CLONE_IDS = ["D7ndxwWdTgmvJWSE40Lizw", "J6DlI0cBTPGzScK1grfKgw"]
+NOW = datetime(2026, 11, 5, tzinfo=timezone.utc)
+
+
+@pytest.fixture
+def source():
+    return json.loads((Path(__file__).parent / "fixtures/replay_browsertime_task.json").read_text())
+
+
+@pytest.fixture
+def queue(mocker, source):
+    queue = mocker.Mock()
+    queue.task.return_value = source
+    queue.status.return_value = {"status": {"state": "completed"}}
+    inventories = {}
+    for task_id, run_id, name in replay.artifact_references(source["payload"]):
+        inventories.setdefault(task_id, []).append(
+            {"name": name, "expires": "2099-01-01T00:00:00Z", "storageType": "object"},
+        )
+    queue.listLatestArtifacts.side_effect = lambda task_id, **kwargs: {"artifacts": inventories[task_id]}
+    mocker.patch.object(replay, "queue_client", return_value=queue)
+    mocker.patch.object(replay, "gen_task_id", side_effect=CLONE_IDS)
+    return queue
+
+
+def run_cli(mocker, *options):
+    mocker.patch("sys.argv", ["replay_tc_task.py", SOURCE_ID, *options])
+    return replay.main()
+
+
+@pytest.mark.parametrize("suffix", ["", "/", "/runs/0", "/runs/3?foo=bar"])
+def test_task_url_argument(suffix):
+    assert replay.task_id_argument(f"{replay.ROOT_URL}/tasks/{SOURCE_ID}{suffix}") == SOURCE_ID
+    assert replay.task_id_argument(SOURCE_ID) == SOURCE_ID
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["short", f"https://example.com/tasks/{SOURCE_ID}", f"{replay.ROOT_URL}/tasks/{SOURCE_ID}/logs"],
+)
+def test_invalid_task_argument(value):
+    with pytest.raises(argparse.ArgumentTypeError):
+        replay.task_id_argument(value)
+
+
+def test_worker_pool_url_argument():
+    assert (
+        replay.queue_argument(
+            f"{replay.ROOT_URL}/provisioners/releng-hardware/worker-types/gecko-t-linux-talos-2404-tc-v115?sortBy=Last%20Active&sortDirection=desc",
+        )
+        == DESTINATION
+    )
+    assert replay.queue_argument(SOURCE_QUEUE) == SOURCE_QUEUE
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["missing-slash", "a/b/c", "a/UPPERCASE", "https://example.com/provisioners/a/worker-types/b"],
+)
+def test_invalid_worker_pool(value):
+    with pytest.raises(argparse.ArgumentTypeError):
+        replay.queue_argument(value)
+
+
+def test_clone_preserves_workload_and_isolates_reporting(source, mocker):
+    original = deepcopy(source)
+    mocker.patch.object(replay.getpass, "getuser", return_value="operator")
+    clone = replay.clone_task(source, SOURCE_ID, CLONE_IDS[0], DESTINATION, NOW)
+
+    assert source == original
+    assert clone["taskQueueId"] == DESTINATION
+    assert "workerType" not in clone and "provisionerId" not in clone
+    assert clone["taskGroupId"] == CLONE_IDS[0]
+    assert clone["schedulerId"] == "-"
+    assert clone["projectId"] == "none"
+    assert clone["routes"] == []
+    assert "treeherder" not in clone["extra"]
+    assert "treeherder-platform" not in clone["extra"]
+    assert clone["payload"]["env"]["GECKO_HEAD_REV"] == source["payload"]["env"]["GECKO_HEAD_REV"]
+    assert clone["payload"]["env"]["MOZ_SOURCE_CHANGESET"] == source["payload"]["env"]["MOZ_SOURCE_CHANGESET"]
+    assert "tags" not in clone
+    assert clone["extra"] == {"replay": {"sourceTaskId": SOURCE_ID, "sourceTaskQueueId": SOURCE_QUEUE}}
+    assert clone["priority"] == "lowest"
+    assert clone["retries"] == 0
+    assert clone["metadata"]["owner"] == "operator@mozilla.com"
+    assert SOURCE_ID in clone["metadata"]["description"]
+    assert clone["scopes"] == source["scopes"]
+    assert clone["dependencies"] == source["dependencies"]
+    assert clone["requires"] == source["requires"]
+    expected_payload = deepcopy(source["payload"])
+    for artifact in expected_payload["artifacts"]:
+        artifact["expires"] = clone["expires"]
+    assert clone["payload"] == expected_payload
+    assert clone["payload"]["maxRunTime"] == 4000
+    assert replay.parse_timestamp(clone["created"]) == NOW
+    assert replay.parse_timestamp(clone["deadline"]) == NOW + timedelta(days=1)
+    assert replay.parse_timestamp(clone["expires"]) == NOW + timedelta(days=7)
+
+
+def test_legacy_queue_and_docker_artifacts(source):
+    source.pop("taskQueueId")
+    source["payload"] = {
+        "image": "ubuntu:24.04",
+        "command": ["echo", "ok"],
+        "artifacts": {"public/out": {"type": "directory", "path": "out", "expires": "2020-01-01T00:00:00Z"}},
+    }
+    assert replay.source_queue(source) == SOURCE_QUEUE
+    clone = replay.clone_task(source, SOURCE_ID, CLONE_IDS[0], SOURCE_QUEUE, NOW)
+    assert clone["payload"]["artifacts"]["public/out"]["expires"] == clone["expires"]
+
+
+def test_real_job_artifact_references_include_decision_task_and_build(source):
+    references = replay.artifact_references(source["payload"])
+    assert len(references) == 19
+    assert ("eJbNe9liQb6Bg0JkftiBnA", None, "public/run-task-hg") in references
+    assert ("dLLPSJ3BSuGnsYyc65uowg", None, "public/build/mozharness.zip") in references
+    assert ("dLLPSJ3BSuGnsYyc65uowg", None, "public/build/target.test_packages.json") in references
+    assert ("Z6UKyPL2T16SHy0XdhNOmQ", None, "public/build/browsertime.tar.zst") in references
+
+
+def test_task_image_and_run_specific_url_references():
+    payload = {
+        "image": {"type": "task-image", "taskId": SOURCE_ID, "path": "public/image.tar.zst"},
+        "env": {
+            "INPUT": f"{replay.ROOT_URL}/api/queue/v1/task/{SOURCE_ID}/runs/0/artifacts/public/file%20name.zip?download=1",
+        },
+    }
+    assert replay.artifact_references(payload) == {
+        (SOURCE_ID, None, "public/image.tar.zst"),
+        (SOURCE_ID, 0, "public/file name.zip"),
+    }
+
+
+def test_preflight_checks_real_job_inputs(queue, source):
+    assert replay.check_inputs(queue, source, SOURCE_ID, NOW) == 19
+    assert queue.status.call_count == 12
+    assert queue.listLatestArtifacts.call_count == 12
+
+
+@pytest.mark.parametrize("state", ["pending", "running", "failed", "exception"])
+def test_source_must_be_completed(queue, source, state):
+    queue.status.return_value = {"status": {"state": state}}
+    with pytest.raises(ValueError, match="Source task must be completed"):
+        replay.check_inputs(queue, source, SOURCE_ID, NOW)
+
+
+def test_unusable_dependency(queue, source):
+    queue.status.side_effect = [{"status": {"state": "completed"}}, {"status": {"state": "failed"}}]
+    with pytest.raises(ValueError, match="Dependency .* is failed"):
+        replay.check_inputs(queue, source, SOURCE_ID, NOW)
+
+
+def test_all_resolved_dependencies_can_have_failed(queue, source):
+    source["requires"] = "all-resolved"
+    queue.status.side_effect = [{"status": {"state": "completed"}}] + [{"status": {"state": "failed"}}] * 11
+    assert replay.check_inputs(queue, source, SOURCE_ID, NOW) == 19
+
+
+@pytest.mark.parametrize(
+    "artifacts",
+    [
+        [],
+        [{"name": "public/input", "expires": "2020-01-01T00:00:00Z"}],
+        [{"name": "public/input", "expires": "2099-01-01T00:00:00Z", "storageType": "error"}],
+    ],
+)
+def test_unusable_artifact_fails_preflight(queue, source, artifacts):
+    source["dependencies"] = []
+    source["payload"] = {"mounts": [{"content": {"taskId": SOURCE_ID, "artifact": "public/input"}}]}
+    queue.listLatestArtifacts.side_effect = None
+    queue.listLatestArtifacts.return_value = {"artifacts": artifacts}
+    with pytest.raises(ValueError, match="Required artifact is missing, expired, or an error"):
+        replay.check_inputs(queue, source, SOURCE_ID, NOW)
+
+
+def test_artifact_pagination_and_explicit_run(queue, source):
+    source["dependencies"] = []
+    source["payload"] = {"command": [f"{replay.ROOT_URL}/api/queue/v1/task/{SOURCE_ID}/runs/0/artifacts/public/input"]}
+    queue.listArtifacts.side_effect = [
+        {"artifacts": [], "continuationToken": "next"},
+        {"artifacts": [{"name": "public/input", "expires": "2099-01-01T00:00:00Z"}]},
+    ]
+    assert replay.check_inputs(queue, source, SOURCE_ID, NOW) == 1
+    queue.listArtifacts.assert_any_call(SOURCE_ID, 0, continuationToken="next")
+
+
+def test_dry_run_is_json_and_never_submits(mocker, queue, capsys, caplog):
+    with caplog.at_level(logging.INFO):
+        assert run_cli(mocker, "-q", DESTINATION, "-c", "2", "--dry-run") == 0
+    plan = json.loads(capsys.readouterr().out)
+    assert plan["dry_run"] is True
+    assert plan["tasks_submitted"] == 0
+    assert "DRY RUN: checking inputs" in caplog.text
+    assert "DRY RUN complete: no tasks submitted" in caplog.text
+    assert plan["source_queue"] == SOURCE_QUEUE
+    assert plan["destination_queue"] == DESTINATION
+    assert plan["artifact_references_checked"] == 19
+    assert [entry["task_id"] for entry in plan["tasks"]] == CLONE_IDS
+    assert all(entry["task"]["taskGroupId"] == CLONE_IDS[0] for entry in plan["tasks"])
+    queue.createTask.assert_not_called()
+    replay.queue_client.assert_called_once_with(authenticated=False)
+
+
+def test_submit_defaults_to_original_pool(mocker, queue, capsys):
+    assert run_cli(mocker, "--output", "json") == 0
+    task_id, definition = queue.createTask.call_args.args
+    assert task_id == CLONE_IDS[0]
+    assert definition["taskQueueId"] == SOURCE_QUEUE
+    assert json.loads(capsys.readouterr().out)["tasks"][0]["task_id"] == task_id
+
+
+def test_cross_pool_submit_waits_with_shared_output(mocker, queue, capsys):
+    assert run_cli(mocker, "-q", DESTINATION, "-c", "2", "--wait", "--output", "json") == 0
+    assert queue.createTask.call_count == 2
+    assert all(call.args[1]["taskQueueId"] == DESTINATION for call in queue.createTask.call_args_list)
+    tasks = json.loads(capsys.readouterr().out)["tasks"]
+    assert [task["task_id"] for task in tasks] == CLONE_IDS
+    assert all(task["state"] == "completed" for task in tasks)
+
+
+def test_partial_submission_failure_still_waits_for_created_tasks(mocker, queue, capsys):
+    queue.createTask.side_effect = [RuntimeError("denied"), {}]
+    assert run_cli(mocker, "-c", "2", "--wait", "--output", "json") == 1
+    tasks = json.loads(capsys.readouterr().out)["tasks"]
+    assert [task["task_id"] for task in tasks] == [CLONE_IDS[1]]
+
+
+def test_all_submissions_fail_with_empty_json_results(mocker, queue, capsys):
+    queue.createTask.side_effect = RuntimeError("denied")
+    assert run_cli(mocker, "-c", "2", "--wait", "--output", "json") == 1
+    assert json.loads(capsys.readouterr().out) == {"tasks": []}
+    assert queue.status.call_count == 12  # Preflight only; there are no clones to poll.
+
+
+@pytest.mark.parametrize("state", ["failed", "exception"])
+def test_replayed_task_failure_returns_nonzero(mocker, queue, capsys, state):
+    queue.status.side_effect = lambda task_id: {
+        "status": {"state": state if task_id in CLONE_IDS else "completed"},
+    }
+    assert run_cli(mocker, "--wait", "--output", "json") == 1
+    assert json.loads(capsys.readouterr().out)["tasks"][0]["state"] == state
+
+
+def test_preflight_failure_submits_nothing(mocker, queue, capsys):
+    queue.status.return_value = {"status": {"state": "running"}}
+    assert run_cli(mocker, "--output", "json") == 1
+    result = json.loads(capsys.readouterr().out)
+    assert result["tasks"] == []
+    assert "Source task must be completed" in result["error"]
+    queue.createTask.assert_not_called()
+
+
+@pytest.mark.parametrize("option", ["--count", "--poll-interval"])
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_nonpositive_arguments_fail_before_network(mocker, queue, option, value):
+    with pytest.raises(SystemExit) as exc:
+        run_cli(mocker, option, value)
+    assert exc.value.code == 2
+    replay.queue_client.assert_not_called()
+
+
+def test_public_preview_without_token(mocker, tmp_path):
+    mocker.patch.object(replay.Path, "home", return_value=tmp_path)
+    factory = mocker.patch.object(replay.taskcluster, "Queue")
+    replay.queue_client(authenticated=False)
+    assert "credentials" not in factory.call_args.args[0]
+    with pytest.raises(ValueError, match="Cannot read Taskcluster credentials"):
+        replay.queue_client(authenticated=True)

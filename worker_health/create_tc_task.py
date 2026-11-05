@@ -100,7 +100,63 @@ def build_payload(payload_format, bash_command, command_timeout_seconds, env, do
     }
 
 
-class TCClient:
+class TaskMonitor:
+    """Monitor tasks using an existing Queue client."""
+
+    def __init__(self, queue_object):
+        self.queue_object = queue_object
+
+    def wait_for_tasks(self, task_ids, poll_interval, progress_callback=None):
+        """Wait for submitted tasks and return their terminal details."""
+        remaining = list(task_ids)
+        last_details = {}
+        task_states = {task_id: {"state": "pending", "worker_id": "-", "result": "-"} for task_id in task_ids}
+        final_details = {}
+
+        while remaining:
+            for task_id in list(remaining):
+                try:
+                    task_status = self.queue_object.status(task_id)["status"]
+                    task_state = task_status["state"]
+                except Exception as e:
+                    logging.warning(f"Unable to get status for {task_id}: {e}")
+                    continue
+
+                runs = task_status.get("runs", [])
+                worker_id = next(
+                    (run.get("workerId") for run in reversed(runs) if run.get("workerId")),
+                    "-",
+                )
+                latest_run = runs[-1] if runs else {}
+                result = (
+                    latest_run.get("result")
+                    or latest_run.get("reasonResolved")
+                    or (task_state if task_state in TERMINAL_TASK_STATES else "-")
+                )
+                task_states[task_id] = {"state": task_state, "result": result, "worker_id": worker_id}
+                changed_ids = []
+                if last_details.get(task_id) != task_states[task_id]:
+                    last_details[task_id] = task_states[task_id].copy()
+                    changed_ids.append(task_id)
+
+                if task_state in TERMINAL_TASK_STATES:
+                    final_details[task_id] = {
+                        "state": task_state,
+                        "result": result,
+                        "worker_id": worker_id,
+                    }
+                    remaining.remove(task_id)
+
+                if changed_ids and progress_callback:
+                    progress_callback(task_states, final_details, changed_ids)
+
+            if remaining:
+                time.sleep(poll_interval)
+
+        return final_details
+
+
+class TCClient(TaskMonitor):
     def __init__(
         self,
         queue,
@@ -177,55 +233,6 @@ class TCClient:
             logging.info(f"[Dry Run] Task ID would be: {task_id}")
 
         return None
-
-    def wait_for_tasks(self, task_ids, poll_interval, progress_callback=None):
-        """Wait for submitted tasks and return their terminal details."""
-        remaining = list(task_ids)
-        last_details = {}
-        task_states = {task_id: {"state": "pending", "worker_id": "-", "result": "-"} for task_id in task_ids}
-        final_details = {}
-
-        while remaining:
-            for task_id in list(remaining):
-                try:
-                    task_status = self.queue_object.status(task_id)["status"]
-                    task_state = task_status["state"]
-                except Exception as e:
-                    logging.warning(f"Unable to get status for {task_id}: {e}")
-                    continue
-
-                runs = task_status.get("runs", [])
-                worker_id = next(
-                    (run.get("workerId") for run in reversed(runs) if run.get("workerId")),
-                    "-",
-                )
-                latest_run = runs[-1] if runs else {}
-                result = (
-                    latest_run.get("result")
-                    or latest_run.get("reasonResolved")
-                    or (task_state if task_state in TERMINAL_TASK_STATES else "-")
-                )
-                task_states[task_id] = {"state": task_state, "result": result, "worker_id": worker_id}
-                changed_ids = []
-                if last_details.get(task_id) != task_states[task_id]:
-                    last_details[task_id] = task_states[task_id].copy()
-                    changed_ids.append(task_id)
-
-                if task_state in TERMINAL_TASK_STATES:
-                    final_details[task_id] = {
-                        "state": task_state,
-                        "result": result,
-                        "worker_id": worker_id,
-                    }
-                    remaining.remove(task_id)
-
-                if changed_ids and progress_callback:
-                    progress_callback(task_states, final_details, changed_ids)
-
-            if remaining:
-                time.sleep(poll_interval)
-
-        return final_details
 
 
 def parse_args():
@@ -606,6 +613,63 @@ def render_summary(final_details):
     return f"Summary: {counts['completed']} completed, {counts['failed']} failed, {counts['exception']} exception"
 
 
+def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
+    """Monitor tasks, render the selected output format, and return final details."""
+    task_states = {task_id: {"state": "pending", "result": "-", "worker_id": "-"} for task_id in task_ids}
+
+    def log_progress(current_states, _final_details, changed_ids):
+        for task_id in changed_ids:
+            details = current_states[task_id]
+            logging.info(
+                f"{details['state']:<9} result={details['result']:<11} "
+                f"worker={details['worker_id']:<18} task={task_id}",
+            )
+
+    interactive_table = output == "table" and is_interactive_terminal()
+    if interactive_table:
+        live = Live(render_task_progress(task_ids, task_states), refresh_per_second=4)
+        with live:
+            final_details = tcclient.wait_for_tasks(
+                task_ids,
+                poll_interval,
+                progress_callback=lambda current_states, _final, _changed: live.update(
+                    render_task_progress(task_ids, current_states),
+                ),
+            )
+            live.update(render_final_table(task_ids, final_details))
+    else:
+        callback = log_progress if output == "log" else None
+        final_details = tcclient.wait_for_tasks(
+            task_ids,
+            poll_interval,
+            progress_callback=callback,
+        )
+
+    if output == "json":
+        print(
+            json.dumps(
+                {
+                    "tasks": [
+                        {
+                            "task_id": task_id,
+                            **final_details[task_id],
+                            "url": _task_url(task_id),
+                        }
+                        for task_id in task_ids
+                    ],
+                },
+                indent=2,
+            ),
+        )
+    elif output == "table":
+        if not interactive_table:
+            Console().print(render_final_table(task_ids, final_details))
+        Console().print(render_summary(final_details))
+    else:
+        logging.info(render_summary(final_details))
+    return final_details
+
+
 def _build_command_from_script(script_path, script_args=None):
     with open(script_path) as f:
         content = f.read().strip()
@@ -715,58 +779,7 @@ def main():
                 if not args.dry_run:
                     sys.exit(1)
             else:
-                task_states = {task_id: {"state": "pending", "result": "-", "worker_id": "-"} for task_id in task_ids}
-
-                def log_progress(current_states, _final_details, changed_ids):
-                    for task_id in changed_ids:
-                        details = current_states[task_id]
-                        logging.info(
-                            f"{details['state']:<9} result={details['result']:<11} "
-                            f"worker={details['worker_id']:<18} task={task_id}",
-                        )
-
-                interactive_table = args.output == "table" and is_interactive_terminal()
-                if interactive_table:
-                    live = Live(render_task_progress(task_ids, task_states), refresh_per_second=4)
-                    with live:
-                        final_details = tcclient.wait_for_tasks(
-                            task_ids,
-                            args.poll_interval,
-                            progress_callback=lambda current_states, _final, _changed: live.update(
-                                render_task_progress(task_ids, current_states),
-                            ),
-                        )
-                        live.update(render_final_table(task_ids, final_details))
-                else:
-                    callback = log_progress if args.output == "log" else None
-                    final_details = tcclient.wait_for_tasks(
-                        task_ids,
-                        args.poll_interval,
-                        progress_callback=callback,
-                    )
-
-                if args.output == "json":
-                    print(
-                        json.dumps(
-                            {
-                                "tasks": [
-                                    {
-                                        "task_id": task_id,
-                                        **final_details[task_id],
-                                        "url": _task_url(task_id),
-                                    }
-                                    for task_id in task_ids
-                                ],
-                            },
-                            indent=2,
-                        ),
-                    )
-                elif args.output == "table":
-                    if not interactive_table:
-                        Console().print(render_final_table(task_ids, final_details))
-                    Console().print(render_summary(final_details))
-                else:
-                    logging.info(render_summary(final_details))
+                final_details = wait_for_task_results(tcclient, task_ids, args.poll_interval, args.output)
 
                 if len(task_ids) != args.count or any(
                     details["state"] != "completed" for details in final_details.values()
