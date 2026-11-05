@@ -18,9 +18,10 @@ from rich.logging import RichHandler
 from rich.text import Text
 from rich.prompt import Confirm
 
-from create_tc_task import TaskMonitor, gen_task_id, wait_for_task_results
+from create_tc_task import TaskMonitor, format_elapsed, gen_task_id, wait_for_task_results
 from worker_health.replay_picker import RefreshPicker, discover_jobs, level_one_problem, missing_scopes, pick_job
 from worker_health.replay_cache import load_discovery, save_discovery
+from worker_health.monitor_keys import MonitoringStopped
 
 
 ROOT_URL = "https://firefox-ci-tc.services.mozilla.com"
@@ -246,11 +247,18 @@ def artifact_references(payload):
     return references
 
 
-def check_inputs(queue, source, source_id, now):
+def source_runtime(status):
+    last_run = next((run for run in reversed(status.get("runs", [])) if run.get("state") == "completed"), {})
+    if last_run.get("started") and last_run.get("resolved"):
+        return max(0, (parse_timestamp(last_run["resolved"]) - parse_timestamp(last_run["started"])).total_seconds())
+    return None
+
+
+def check_inputs(queue, source, source_id, now, status=None):
     problem = level_one_problem(source)
     if problem:
         raise ValueError(f"Replay requires a level-1 source: {problem}")
-    status = queue.status(source_id)["status"]
+    status = status if status is not None else queue.status(source_id)["status"]
     if status["state"] != "completed":
         raise ValueError(f"Source task must be completed; it is {status['state']}")
 
@@ -351,7 +359,9 @@ def main():
         if args.from_pool and source_queue(source) != args.from_pool:
             raise ValueError("Selected task does not belong to the requested source pool")
         now = datetime.now(timezone.utc)
-        artifact_count = check_inputs(queue, source, args.source_task, now)
+        source_status = queue.status(args.source_task)["status"]
+        artifact_count = check_inputs(queue, source, args.source_task, now, status=source_status)
+        expected_runtime = source_runtime(source_status)
         destination = args.queue or source_queue(source)
         if args.from_pool and not args.dry_run:
             granted = taskcluster.Auth(queue.options).currentScopes()["scopes"]
@@ -419,7 +429,18 @@ def main():
                 submission_failed = True
 
         if args.wait and submitted:
-            results = wait_for_task_results(TaskMonitor(queue), submitted, args.poll_interval, args.output)
+            if expected_runtime is not None:
+                logging.info(
+                    "Last source run took %s; ETA estimates exclude queue time",
+                    format_elapsed(expected_runtime),
+                )
+            results = wait_for_task_results(
+                TaskMonitor(queue),
+                submitted,
+                args.poll_interval,
+                args.output,
+                expected_runtime=expected_runtime,
+            )
             return int(submission_failed or any(result["state"] != "completed" for result in results.values()))
         if args.output == "json":
             print(
@@ -437,6 +458,12 @@ def main():
         if args.output == "json":
             print(json.dumps({"tasks": [], "error": str(exc)}))
         return 1
+    except MonitoringStopped:
+        logging.info(
+            "Stopped watching; tasks continue running: %s",
+            ", ".join(f"{ROOT_URL}/tasks/{task_id}" for task_id in submitted),
+        )
+        return 0
     except KeyboardInterrupt:
         logging.info("Stopped monitoring; submitted tasks continue running: %s", ", ".join(submitted) or "none")
         return 130

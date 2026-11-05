@@ -141,6 +141,9 @@ The live table shows elapsed time as `HH:MM:SS`, refreshed while waiting even
 when task status does not change. This measures time since monitoring began,
 including time pending in the queue. The final table and log summary retain the
 elapsed time; wait-mode JSON adds a top-level `elapsed_seconds` value.
+In a terminal, the live table footer offers Q or Escape to stop watching without
+cancelling tasks. Ctrl+C also exits monitoring. Single-key input is enabled only
+for the interactive table, and terminal settings are restored when it closes.
 
 Use `--wait --output log` for status updates in logs, or
 `--wait --output json` for a JSON object containing a `tasks` list with each
@@ -218,9 +221,16 @@ two copies of the selected task. `--dry-run` opens the picker and prints the
 selected task's preview without submitting.
 
 Picker submissions wait for results by default. Use `--no-wait` to return
-immediately after submission, or press Ctrl+C during monitoring to exit while
+immediately after submission, or press Q, Escape, or Ctrl+C during monitoring to exit while
 the submitted jobs continue running. Explicit task-ID invocations still require
 `--wait` to enable monitoring.
+
+Replay monitoring shows an approximate ETA based on the source task's last
+completed run. It counts down from each replay's actual run start, excluding
+queue time. Pending tasks show the expected runtime once running, and runs
+that exceed the estimate show how far over they are. No estimate is shown when
+the source lacks completed-run timestamps. Wait-mode JSON includes
+`expected_runtime_seconds` when available; log updates include the estimate.
 
 Discovery reads recent history from every worker in the pool (currently up to
 20 tasks per worker), deduplicates task IDs, and keeps completed level-1 jobs.

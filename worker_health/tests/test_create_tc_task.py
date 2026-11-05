@@ -251,3 +251,33 @@ def test_json_wait_reports_elapsed_seconds(mocker, cli_client, capsys):
     mocker.patch.object(create_tc_task.time, "monotonic", side_effect=[100.0, 165.5])
     create_tc_task.wait_for_task_results(cli_client, ["task-1"], output="json")
     assert json.loads(capsys.readouterr().out)["elapsed_seconds"] == 65.5
+
+
+@pytest.mark.parametrize(
+    "state, started, now, expected",
+    [
+        ("pending", None, 1000, "~00:08:00 once running"),
+        ("running", "1970-01-01T00:16:40Z", 1060, "~00:07:00 left"),
+        ("running", "1970-01-01T00:16:40Z", 1500, "over estimate by 00:00:20"),
+        ("running", None, 1000, "awaiting start time"),
+        ("completed", None, 1000, "finished"),
+    ],
+)
+def test_eta_uses_actual_run_start(state, started, now, expected):
+    assert create_tc_task.eta_label({"state": state, "started": started}, 480, now) == expected
+
+
+def test_monitor_provides_latest_run_start_for_eta(mocker):
+    client = create_tc_task.TaskMonitor(mocker.Mock())
+    client.queue_object.status.return_value = {
+        "status": {
+            "state": "completed",
+            "runs": [
+                {"started": "2026-11-05T01:00:00Z", "workerId": "old"},
+                {"started": "2026-11-05T02:00:00Z", "workerId": "new"},
+            ],
+        },
+    }
+    updates = mocker.Mock()
+    client.wait_for_tasks(["task-1"], 1, updates)
+    assert updates.call_args.args[0]["task-1"]["started"] == "2026-11-05T02:00:00Z"

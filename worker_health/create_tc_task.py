@@ -41,6 +41,7 @@ import alive_progress
 import taskcluster
 import math
 from rich.table import Table
+from worker_health.monitor_keys import MonitorKeys, MonitoringStopped
 
 DEFAULT_COMMAND_TIMEOUT = 70
 DEFAULT_COMMAND_TIMEOUT_BUFFER = 10
@@ -133,7 +134,12 @@ class TaskMonitor:
                     or latest_run.get("reasonResolved")
                     or (task_state if task_state in TERMINAL_TASK_STATES else "-")
                 )
-                task_states[task_id] = {"state": task_state, "result": result, "worker_id": worker_id}
+                task_states[task_id] = {
+                    "state": task_state,
+                    "result": result,
+                    "worker_id": worker_id,
+                    "started": latest_run.get("started"),
+                }
                 changed_ids = []
                 if last_details.get(task_id) != task_states[task_id]:
                     last_details[task_id] = task_states[task_id].copy()
@@ -578,7 +584,24 @@ def format_elapsed(seconds):
     return f"{seconds // 3600:02d}:{seconds // 60 % 60:02d}:{seconds % 60:02d}"
 
 
-def render_task_progress(task_ids, task_states, elapsed_seconds=0):
+def eta_label(details, expected_runtime, now):
+    if expected_runtime is None:
+        return "unknown"
+    if details["state"] in TERMINAL_TASK_STATES:
+        return "finished"
+    if details["state"] != "running":
+        return f"~{format_elapsed(expected_runtime)} once running"
+    if not details.get("started"):
+        return "awaiting start time"
+    try:
+        started = datetime.datetime.fromisoformat(details["started"].replace("Z", "+00:00")).timestamp()
+    except (ValueError, TypeError):
+        return "unknown"
+    remaining = expected_runtime - max(0, now - started)
+    return f"~{format_elapsed(remaining)} left" if remaining > 0 else f"over estimate by {format_elapsed(-remaining)}"
+
+
+def render_task_progress(task_ids, task_states, elapsed_seconds=0, expected_runtime=None, can_quit=False):
     table = Table(
         title=f"Waiting for tasks ({sum(state['state'] in TERMINAL_TASK_STATES for state in task_states.values())}/{len(task_ids)} finished) | Elapsed {format_elapsed(elapsed_seconds)}",
     )
@@ -586,9 +609,15 @@ def render_task_progress(task_ids, task_states, elapsed_seconds=0):
     table.add_column("Task ID")
     table.add_column("Status")
     table.add_column("Worker")
+    if expected_runtime is not None:
+        table.add_column("ETA (last run)")
+    table.caption = "Q / Esc: stop watching; tasks keep running | Ctrl+C: exit" if can_quit else None
     for index, task_id in enumerate(task_ids, start=1):
         details = task_states[task_id]
-        table.add_row(str(index), _task_id_text(task_id), _task_state_text(details["state"]), details["worker_id"])
+        row = [str(index), _task_id_text(task_id), _task_state_text(details["state"]), details["worker_id"]]
+        if expected_runtime is not None:
+            row.append(eta_label(details, expected_runtime, time.time()))
+        table.add_row(*row)
     return table
 
 
@@ -618,7 +647,7 @@ def render_summary(final_details):
     return f"Summary: {counts['completed']} completed, {counts['failed']} failed, {counts['exception']} exception"
 
 
-def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
+def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table", expected_runtime=None):
     """Monitor tasks, render the selected output format, and return final details."""
     task_states = {task_id: {"state": "pending", "result": "-", "worker_id": "-"} for task_id in task_ids}
     started = time.monotonic()
@@ -628,7 +657,8 @@ def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
             details = current_states[task_id]
             logging.info(
                 f"{details['state']:<9} result={details['result']:<11} "
-                f"worker={details['worker_id']:<18} task={task_id} elapsed={format_elapsed(time.monotonic() - started)}",
+                f"worker={details['worker_id']:<18} task={task_id} elapsed={format_elapsed(time.monotonic() - started)}"
+                + (f" eta={eta_label(details, expected_runtime, time.time())}" if expected_runtime is not None else ""),
             )
 
     interactive_table = output == "table" and is_interactive_terminal()
@@ -643,11 +673,13 @@ def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
                     task_ids,
                     task_states,
                     time.monotonic() - started,
+                    expected_runtime,
+                    sys.stdin.isatty(),
                 )
             )
 
         live = Live(get_renderable=current_table, refresh_per_second=4)
-        with live:
+        with MonitorKeys(enabled=True), live:
             final_details = tcclient.wait_for_tasks(
                 task_ids,
                 poll_interval,
@@ -669,6 +701,7 @@ def wait_for_task_results(tcclient, task_ids, poll_interval=5, output="table"):
         print(
             json.dumps(
                 {
+                    **({"expected_runtime_seconds": expected_runtime} if expected_runtime is not None else {}),
                     "elapsed_seconds": elapsed_seconds,
                     "tasks": [
                         {
@@ -800,7 +833,14 @@ def main():
                 if not args.dry_run:
                     sys.exit(1)
             else:
-                final_details = wait_for_task_results(tcclient, task_ids, args.poll_interval, args.output)
+                try:
+                    final_details = wait_for_task_results(tcclient, task_ids, args.poll_interval, args.output)
+                except MonitoringStopped:
+                    logging.info(
+                        "Stopped watching; tasks continue running: %s",
+                        ", ".join(_task_url(task_id) for task_id in task_ids),
+                    )
+                    return
 
                 if len(task_ids) != args.count or any(
                     details["state"] != "completed" for details in final_details.values()

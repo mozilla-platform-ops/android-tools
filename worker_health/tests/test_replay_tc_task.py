@@ -429,6 +429,30 @@ def test_ctrl_c_leaves_submitted_jobs_running(mocker, queue, source):
     queue.cancelTask.assert_not_called()
 
 
+def test_q_leaves_submitted_jobs_running_and_returns_success(mocker, queue, source):
+    run_picker(mocker, source, confirm=True)
+    mocker.patch.object(replay, "wait_for_task_results", side_effect=replay.MonitoringStopped)
+    assert replay.main() == 0
+    queue.createTask.assert_called_once()
+    queue.cancelTask.assert_not_called()
+
+
+def test_latest_completed_source_runtime_is_used(mocker, queue, source):
+    run_picker(mocker, source, confirm=True)
+    queue.status.return_value = {
+        "status": {
+            "state": "completed",
+            "runs": [
+                {"state": "completed", "started": "2026-11-05T01:00:00Z", "resolved": "2026-11-05T01:10:00Z"},
+                {"state": "completed", "started": "2026-11-05T02:00:00Z", "resolved": "2026-11-05T02:05:00Z"},
+            ],
+        },
+    }
+    monitor = mocker.patch.object(replay, "wait_for_task_results", return_value={CLONE_IDS[0]: {"state": "completed"}})
+    assert replay.main() == 0
+    assert monitor.call_args.kwargs["expected_runtime"] == 300
+
+
 def test_explicit_level_three_source_rejected(mocker, queue, source, capsys):
     source["payload"]["env"]["MOZ_SCM_LEVEL"] = "3"
     assert run_cli(mocker, "--output", "json") == 1
