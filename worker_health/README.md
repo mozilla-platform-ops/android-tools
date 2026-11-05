@@ -79,6 +79,29 @@ and secret permissions are needed for jobs that request them; granting secret
 access alone does not authorize cache use. These scopes covered all payload
 requirements in a sample of 62 level-1 jobs from the source Talos pool.
 
+The
+[`cli-tools` client](https://firefox-ci-tc.services.mozilla.com/auth/clients/mozilla-auth0%2Fad%7CMozilla-LDAP%7Caerickson%2Fcli-tools)
+also has these workload permissions:
+
+```text
+secrets:get:project/releng/gecko/build/level-1/*
+queue:get-artifact:project/gecko/*
+```
+
+The first covers level-1 build-related secrets, including
+`conditioned-profiles`, which lives outside the perftest secret namespace. The
+second covers private Gecko artifact namespaces requested by some workloads,
+including `project/gecko/talos-pdfs/*`. Artifact namespaces are not inherently
+SCM-level-specific; this grant covers matching Gecko artifacts across levels.
+Replay's level-1 source checks still apply. The client has no level-3 secret or
+cache grants.
+
+Together with its existing `queue:create-task:*`, `queue:scheduler-id:*`,
+`generic-worker:cache:gecko-level-1-*`, and
+`secrets:get:project/perftest/gecko/level-1/*`, these grants cover submission,
+level-1 caches, both known level-1 secret namespaces, and private Gecko
+artifacts. New workloads may still request permissions in other namespaces.
+
 Keep this client limited to level 1. Do not grant level-3 secret or cache scopes,
 or broader wildcards that include level 3. Select a completed level-1 source
 task, such as one from try. The tool preserves source scopes and resource
@@ -87,14 +110,9 @@ or cache names, and sources without an explicit level-1 marker. Wildcard source
 scopes that cover level-3 perftest secrets or Gecko caches are also rejected.
 There is no level-3 override or automatic downgrade.
 
-Other workloads may request additional scopes, including access to private
-artifacts. Add only the specific scope required by the chosen level-1 workload.
-For example, conditioned-profile workloads can additionally require
-`secrets:get:project/releng/gecko/build/level-1/*`. The perftest secret wildcard
-does not cover this separate namespace. Keep wildcard prefixes inside each
-`level-1/` subtree to retain the level-1 boundary.
-The `queue:get-artifact:project/gecko/talos-pdfs/*` scope seen on level-3 jobs
-was not needed for the sampled level-1 jobs.
+Keep secret wildcard prefixes inside each `level-1/` subtree to retain the
+level-1 boundary. Use the missing-scope details in the picker to identify
+additional permissions requested by a chosen level-1 workload.
 
 A public `--dry-run` can run without a token; an existing token is used when
 available. A successful preview checks task state and explicit artifact inputs,
@@ -253,6 +271,39 @@ scope snapshots. Use `--cache-minutes N` to change the lifetime or
 or Ctrl+R inside the picker, to fetch fresh worker history and client scopes.
 The filter is preserved on Ctrl+R. Effective client scopes and selected task
 inputs are checked live before submission, including when history is cached.
+
+When `--queue` differs from `--from-pool`, the picker adds target coverage in
+the style of `tcw`'s history badges. `★ N` counts distinct successful tasks
+observed for that test name on the destination. Jobs with no successes show
+`running`, `queued`, `failed`, `exception`, or `unseen`; unavailable or incomplete
+history can show `unknown`. The header summarizes how many source job types
+have succeeded on the target, and the details show target outcomes and the
+latest observed target task ID and worker. Type `unseen` to find coverage gaps,
+`passed` to show successful workloads, or combine these with a test-name filter.
+Same-pool picker mode omits target coverage.
+Successful target workloads are green, queued or running workloads are yellow,
+and failures are red. Unseen or unknown jobs use the terminal's normal color.
+Missing-permission rows remain dimmed; terminals without
+color support retain the textual badges and labels.
+
+Coverage matches the full test name, recognizing the tool's `Replay: ` prefix;
+it covers job types across revisions and cache-scope variants, rather than
+proving an identical source revision ran. Only level-1 jobs are counted. An
+`unseen` badge means no matching run has been observed locally or in recent
+worker history. It does not prove the job has never run, and a pool's existing
+coverage does not establish coverage of a newly deployed worker image.
+
+Observed outcomes persist in a private SQLite database at
+`$XDG_STATE_HOME/worker-health/replay-coverage.sqlite3` (default:
+`~/.local/state/worker-health/replay-coverage.sqlite3`), so known successes survive
+the worker-history window. Copy submissions are recorded as queued and count
+as successes only after completion is observed. Pending local submissions are
+rechecked on the next target scan even if absent from worker history. The
+database contains task IDs, names, pools, states, workers, and timestamps; it
+contains no credentials or task payloads. Target scans use the same
+`--cache-minutes` lifetime and refresh controls; disabling scan caching retains
+the persistent observation history. New submissions and monitored results
+invalidate the target scan cache.
 
 The picker lists recent observed workloads, not the complete pool history.
 Workers whose history is unavailable are reported and skipped. TODO: integrate

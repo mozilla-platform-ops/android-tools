@@ -96,8 +96,8 @@ def batch_results(method, ids, key):
             options["continuationToken"] = page["continuationToken"]
 
 
-def discover_jobs(queue, manager, pool, progress=lambda message: None):
-    """Collect every worker's bounded history, deduplicate IDs, and group workloads."""
+def pool_task_ids(manager, pool, progress=lambda message: None):
+    """Return task IDs observed in every worker's bounded history."""
     # TODO: Add Pool Classifier history as another source of task IDs.
     provisioner, worker_type = pool.split("/", 1)
     workers = {}
@@ -124,6 +124,12 @@ def discover_jobs(queue, manager, pool, progress=lambda message: None):
                 unavailable += 1
                 logging.warning("Could not read history for %s/%s: %s", *futures[future], exc)
             progress(f"Reading worker history: {index}/{len(workers)} workers; {len(ids)} unique task IDs")
+    return ids, len(workers), unavailable
+
+
+def discover_jobs(queue, manager, pool, progress=lambda message: None):
+    """Collect every worker's bounded history, deduplicate IDs, and group workloads."""
+    ids, workers, unavailable = pool_task_ids(manager, pool, progress)
 
     progress(f"Checking status of {len(ids)} observed tasks")
     statuses = {
@@ -165,37 +171,52 @@ def discover_jobs(queue, manager, pool, progress=lambda message: None):
             grouped[key] = job
     return Discovery(
         sorted(grouped.values(), key=lambda job: job.completed, reverse=True),
-        len(workers),
+        workers,
         len(ids),
         eligible,
         unavailable,
     )
 
 
-def filtered_jobs(jobs, query):
+def filtered_jobs(jobs, query, coverage=None):
     words = query.casefold().split()
-    return [job for job in jobs if all(word in f"{job.name} {job.task_id} {job.worker}".casefold() for word in words)]
+
+    def searchable(job):
+        target = coverage.search_terms(job.task) if coverage is not None else ""
+        return f"{job.name} {job.task_id} {job.worker} {target}".casefold()
+
+    return [job for job in jobs if all(word in searchable(job) for word in words)]
 
 
 def runtime_label(seconds):
     return "-" if seconds is None else f"{int(seconds) // 60}m {int(seconds) % 60:02d}s"
 
 
-def pick_job(discovery, source_pool, destination, query="", granted=None, preview=False):
+def pick_job(discovery, source_pool, destination, query="", granted=None, preview=False, coverage=None):
     """Run the curses picker; cancellation returns None without submitting anything."""
     # TODO: Support selecting multiple workloads in one picker session.
     try:
-        return curses.wrapper(_picker_screen, discovery, source_pool, destination, query, granted, preview)
+        return curses.wrapper(_picker_screen, discovery, source_pool, destination, query, granted, preview, coverage)
     except curses.error as exc:
         raise ValueError("Cannot open terminal picker; use a task ID or a supported terminal") from exc
 
 
-def _picker_screen(screen, discovery, source_pool, destination, query, granted=None, preview=False):
+def _picker_screen(screen, discovery, source_pool, destination, query, granted=None, preview=False, coverage=None):
     try:
         curses.curs_set(0)
     except curses.error:
         pass
     screen.keypad(True)
+    target_colors = {}
+    try:
+        if curses.has_colors():
+            curses.start_color()
+            curses.use_default_colors()
+            for index, color in enumerate((curses.COLOR_GREEN, curses.COLOR_YELLOW, curses.COLOR_RED), 1):
+                curses.init_pair(index, color, -1)
+                target_colors[index] = curses.color_pair(index)
+    except curses.error:
+        pass
     selected = 0
     blocked = False
     permissions = (
@@ -221,11 +242,20 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
             if screen.getch() in (27, 3):
                 return None
             continue
-        jobs = filtered_jobs(discovery.jobs, query)
+        jobs = filtered_jobs(discovery.jobs, query, coverage)
         selected = min(selected, max(0, len(jobs) - 1))
         missing = permissions.get(jobs[selected].task_id, []) if jobs else []
-        details_height = min(8, 3 + len(missing))
-        page_size = max(1, height - 9 - details_height)
+        details = []
+        list_start = 7 if coverage is not None else 6
+        if jobs:
+            job = jobs[selected]
+            details = [job.name, f"Task: {job.task_id}  Worker: {job.worker}"]
+            details.extend("Missing: " + scope for scope in missing)
+            if coverage is not None:
+                details.extend(coverage.details(job.task))
+            details.append("Secrets: " + (", ".join(job.secrets) or "none"))
+        details_height = min(10, len(details), max(3, height - list_start - 3))
+        page_size = max(1, height - list_start - 3 - details_height)
         top = (selected // page_size) * page_size
         line(0, "Replay a completed level-1 job", curses.A_BOLD)
         line(1, f"From: {source_pool}")
@@ -235,28 +265,55 @@ def _picker_screen(screen, discovery, source_pool, destination, query, granted=N
             f"{'Cached' if discovery.cached_at is not None else 'Recent'} worker history (~20/worker): {discovery.workers} workers, {discovery.task_ids} IDs, {discovery.eligible_tasks} eligible runs",
             curses.A_DIM,
         )
-        line(4, f"Filter: {query}   ({len(jobs)}/{len(discovery.jobs)} workloads)", curses.A_BOLD)
-        line(5, "  Runtime  Access    Runs  Completed UTC         Workload", curses.A_UNDERLINE)
-        for row, job in enumerate(jobs[top : top + page_size], 6):
-            index = top + row - 6
+        if coverage is not None:
+            line(4, coverage.summary(discovery.jobs), curses.A_BOLD)
+        line(list_start - 2, f"Filter: {query}   ({len(jobs)}/{len(discovery.jobs)} workloads)", curses.A_BOLD)
+        line(
+            list_start - 1,
+            "  Runtime  Access    Runs  "
+            + ("Target     " if coverage is not None else "")
+            + "Completed UTC         Workload",
+            curses.A_UNDERLINE,
+        )
+        for row, job in enumerate(jobs[top : top + page_size], list_start):
+            index = top + row - list_start
             denied = permissions.get(job.task_id, [])
             access = f"need {len(denied)}" if denied else "ready" if granted is not None else "unknown"
-            label = f"{'>' if index == selected else ' '} {runtime_label(job.seconds):>7}  {access:>8} {job.observed:>4}  {job.completed[:19].replace('T', ' ')}  {job.name}"
+            target = f"{coverage.badge(job.task):<10} " if coverage is not None else ""
+            label = f"{'>' if index == selected else ' '} {runtime_label(job.seconds):>7}  {access:>8} {job.observed:>4}  {target}{job.completed[:19].replace('T', ' ')}  {job.name}"
             style = curses.A_REVERSE if index == selected else 0
+            if coverage is not None:
+                badge = coverage.badge(job.task)
+                color = (
+                    1
+                    if coverage.passed(job.task)
+                    else 3
+                    if badge in {"failed", "exception"}
+                    else 2
+                    if badge in {"running", "queued"}
+                    else 0
+                )
+                style |= target_colors.get(color, 0)
             if denied and not preview:
                 style |= curses.A_DIM
             line(row, label, style)
         if not jobs:
-            line(6, "No matching jobs. Backspace to change the filter.")
+            line(list_start, "No matching jobs. Backspace to change the filter.")
         if jobs:
             job = jobs[selected]
             detail_start = height - details_height - 2
-            line(detail_start, job.name, curses.A_BOLD)
-            line(detail_start + 1, f"Task: {job.task_id}  Worker: {job.worker}")
-            line(detail_start + 2, "Secrets: " + (", ".join(job.secrets) or "none"), curses.A_DIM)
-            for index, scope in enumerate(missing[: details_height - 3], detail_start + 3):
-                line(index, "Missing: " + scope, curses.A_BOLD)
-        line(height - 2, "Arrows / PgUp / PgDn: move | Type: filter | Backspace: erase")
+            for index, text in enumerate(details[:details_height], detail_start):
+                line(
+                    index,
+                    text,
+                    curses.A_BOLD if text.startswith("Missing:") or index == detail_start else curses.A_DIM,
+                )
+        line(
+            height - 2,
+            "Arrows / PgUp / PgDn: move | Type: filter"
+            + (" (unseen / passed)" if coverage is not None else "")
+            + " | Backspace: erase",
+        )
         footer = (
             "Selection disabled: client lacks scopes. Choose another job or Ctrl+R to refresh."
             if blocked

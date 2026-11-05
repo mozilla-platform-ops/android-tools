@@ -228,3 +228,33 @@ def test_picker_ctrl_r_returns_refresh_request_with_filter(mocker):
     screen.getmaxyx.return_value = (24, 120)
     screen.get_wch.return_value = "\x12"
     assert _picker_screen(screen, Discovery([job()], 1, 1, 1, 0), POOL, POOL, "pdf") == RefreshPicker("pdf")
+
+
+def test_copy_picker_shows_target_badges_and_filters_unseen_jobs(mocker):
+    from worker_health.replay_coverage import TargetCoverage
+
+    jobs = [job("a", "talos"), job("b", "pdf")]
+    coverage = TargetCoverage(
+        {
+            "talos": [
+                {
+                    "passed": 1,
+                    "state": "completed",
+                    "task_id": "copy",
+                    "worker": "target-host",
+                    "observed": "2026-11-05T00:00:00Z",
+                },
+            ],
+        },
+    )
+    assert filtered_jobs(jobs, "passed", coverage) == [jobs[0]]
+    assert filtered_jobs(jobs, "unseen", coverage) == [jobs[1]]
+    screen = mocker.Mock()
+    screen.getmaxyx.return_value = (30, 180)
+    screen.get_wch.return_value = "\x1b"
+    assert _picker_screen(screen, Discovery(jobs, 2, 40, 4, 0), POOL, "other/pool", "", coverage=coverage) is None
+    text = "\n".join(call.args[2] for call in screen.addnstr.call_args_list)
+    assert "★ 1" in text
+    assert "unseen" in text
+    assert "Target: 1/2 job types succeeded" in text
+    assert "Last target: copy" in text

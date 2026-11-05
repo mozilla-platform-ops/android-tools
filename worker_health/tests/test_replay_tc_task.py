@@ -46,6 +46,9 @@ def queue(mocker, source):
         )
     queue.listLatestArtifacts.side_effect = lambda task_id, **kwargs: {"artifacts": inventories[task_id]}
     mocker.patch.object(replay, "queue_client", return_value=queue)
+    mocker.patch.object(replay, "remember_submission")
+    mocker.patch.object(replay, "remember_results")
+    mocker.patch.object(replay, "target_coverage", return_value=None)
     mocker.patch.object(replay, "gen_task_id", side_effect=CLONE_IDS)
     return queue
 
@@ -329,6 +332,24 @@ def test_picker_submit_requires_confirmation(mocker, queue, source, capsys):
     assert all(call.args[1]["taskQueueId"] == DESTINATION for call in queue.createTask.call_args_list)
     replay.Confirm.ask.assert_called_once()
     assert len(json.loads(capsys.readouterr().out)["tasks"]) == 2
+    replay.remember_submission.assert_any_call(DESTINATION, CLONE_IDS[0], source)
+    replay.remember_results.assert_called_once()
+
+
+def test_target_coverage_is_only_fetched_for_copy_mode(mocker, queue, source):
+    run_picker(mocker, source)
+    assert replay.main() == 0
+    replay.target_coverage.assert_not_called()
+
+
+def test_copy_mode_passes_target_coverage_to_picker(mocker, queue, source):
+    run_picker(mocker, source, options=["-q", DESTINATION, "--refresh"])
+    sentinel = mocker.Mock()
+    replay.target_coverage.return_value = sentinel
+    assert replay.main() == 0
+    assert replay.target_coverage.call_args.args[2] == DESTINATION
+    assert replay.target_coverage.call_args.kwargs["refresh"] is True
+    assert replay.pick_job.call_args.kwargs["coverage"] is sentinel
 
 
 def test_picker_declining_confirmation_submits_nothing(mocker, queue, source):

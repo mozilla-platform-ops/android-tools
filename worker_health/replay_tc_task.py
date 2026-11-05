@@ -22,6 +22,7 @@ from create_tc_task import TaskMonitor, format_elapsed, gen_task_id, wait_for_ta
 from worker_health.replay_picker import RefreshPicker, discover_jobs, level_one_problem, missing_scopes, pick_job
 from worker_health.replay_cache import load_discovery, save_discovery
 from worker_health.monitor_keys import MonitoringStopped
+from worker_health.replay_coverage import remember_results, remember_submission, target_coverage
 
 
 ROOT_URL = "https://firefox-ci-tc.services.mozilla.com"
@@ -335,6 +336,17 @@ def main():
                     if queue.options.get("credentials")
                     else None
                 )
+                coverage = None
+                if args.queue and args.queue != args.from_pool:
+                    with console.status("Reading target coverage") as status:
+                        coverage = target_coverage(
+                            queue,
+                            taskcluster.WorkerManager(queue.options),
+                            args.queue,
+                            minutes=args.cache_minutes,
+                            refresh=refresh,
+                            progress=lambda message: status.update(Text("Target: " + message)),
+                        )
                 selected = pick_job(
                     discovery,
                     args.from_pool,
@@ -342,6 +354,7 @@ def main():
                     query,
                     granted,
                     preview=args.dry_run,
+                    coverage=coverage,
                 )
                 if isinstance(selected, RefreshPicker):
                     refresh = True
@@ -423,6 +436,8 @@ def main():
             try:
                 queue.createTask(entry["task_id"], entry["task"])
                 submitted.append(entry["task_id"])
+                if destination != source_queue(source):
+                    remember_submission(destination, entry["task_id"], source)
                 logging.info("Task created: %s/tasks/%s", ROOT_URL, entry["task_id"])
             except Exception as exc:
                 logging.error("Could not create %s: %s", entry["task_id"], exc)
@@ -441,6 +456,8 @@ def main():
                 args.output,
                 expected_runtime=expected_runtime,
             )
+            if destination != source_queue(source):
+                remember_results(destination, results)
             return int(submission_failed or any(result["state"] != "completed" for result in results.values()))
         if args.output == "json":
             print(
