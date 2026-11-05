@@ -611,7 +611,7 @@ def render_task_progress(task_ids, task_states, elapsed_seconds=0, expected_runt
     table.add_column("Worker")
     if expected_runtime is not None:
         table.add_column("ETA (last run)")
-    table.caption = "Q / Esc: stop watching; tasks keep running | Ctrl+C: exit" if can_quit else None
+    table.caption = "Q / Esc / Ctrl+C: stop watching; tasks keep running" if can_quit else None
     for index, task_id in enumerate(task_ids, start=1):
         details = task_states[task_id]
         row = [str(index), _task_id_text(task_id), _task_state_text(details["state"]), details["worker_id"]]
