@@ -220,6 +220,13 @@ class TCClient:
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Create a Taskcluster task using the Taskcluster Python client library.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Example: two tasks that sleep for five minutes, printing a counter each second:\n"
+            "  pipenv run python ./create_tc_task.py -q PROVISIONER/WORKER_TYPE -c 2 --command-timeout 310\n\n"
+            "The counter appears in each task's live log. Omit --bash-command and --script-file\n"
+            "to use it. Add --wait to monitor task status in the CLI."
+        ),
     )
     parser.add_argument(
         "--queue",
@@ -234,8 +241,8 @@ def parse_args():
         "-b",
         default=None,
         help=(
-            "Command to run in the task "
-            f"(default: print once per second for --command-timeout minus {DEFAULT_COMMAND_TIMEOUT_BUFFER}s)"
+            "Replace the default sleep loop and per-second counter with this command "
+            "(for example, 'sleep 300' sleeps silently for five minutes)"
         ),
     )
     cmd_group.add_argument(
@@ -254,7 +261,11 @@ def parse_args():
         "-t",
         type=int,
         default=DEFAULT_COMMAND_TIMEOUT,
-        help=f"Command timeout in seconds (default: {DEFAULT_COMMAND_TIMEOUT})",
+        help=(
+            f"Maximum task runtime in seconds (default: {DEFAULT_COMMAND_TIMEOUT}). "
+            f"The default sleep loop runs for this value minus {DEFAULT_COMMAND_TIMEOUT_BUFFER}s; "
+            "use 310 for a five-minute counter. Custom commands must finish within this timeout."
+        ),
     )
     parser.add_argument(
         "--payload-format",

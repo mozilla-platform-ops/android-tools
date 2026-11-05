@@ -54,6 +54,28 @@ queue:quarantine-worker:*
 
 ## overview
 
+### create_tc_task.py
+
+Submit test tasks to a Taskcluster worker queue. By default, each task sleeps
+for 60 seconds and prints an increasing counter once per second in its live log.
+
+For two tasks that each sleep for five minutes with the counter:
+
+```bash
+pipenv run python ./create_tc_task.py \
+  -q releng-hardware/gecko-t-linux-talos-2404-tc-v115 \
+  -c 2 --command-timeout 310
+```
+
+The default loop runs for `--command-timeout` minus a 10-second buffer, so
+`310` gives 300 seconds of sleep. `--bash-command` or `--script-file` replaces
+that loop; for example, `--bash-command 'sleep 300' --command-timeout 330`
+sleeps silently for five minutes with a 30-second timeout buffer.
+
+Add `--wait` to monitor task status in the CLI; the per-second counter appears
+in the task's live log. Use `pipenv run python ./create_tc_task.py --help` for
+all options.
+
 ### fitness.py
 
 Shows each worker's success rate and various concerning conditions like, consecutive failures, lack of work.
