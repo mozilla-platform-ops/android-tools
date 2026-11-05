@@ -20,7 +20,7 @@ def test_task_cursor_follows_identity_when_rows_change():
     assert cursor.selected == "b"
 
 
-def test_log_follow_pauses_and_preserves_cursor_until_end():
+def test_log_follow_resumes_when_scrolling_to_newest_line():
     cursor = PaneCursor(follow=True)
     cursor.sync(range(1, 11), 3)
     assert cursor.selected == 10 and cursor.top == 7
@@ -28,10 +28,14 @@ def test_log_follow_pauses_and_preserves_cursor_until_end():
     cursor.sync(range(1, 15), 3)
     assert cursor.selected == 9 and not cursor.follow
     assert 14 - cursor.seen == 4
-    cursor.move("end", 3, logs=True)
+    for _ in range(5):
+        cursor.move("down", 3, logs=True)
     assert cursor.selected == 14 and cursor.follow and cursor.seen == 14
     cursor.sync(range(1, 16), 3)
     assert cursor.selected == 15
+    cursor.move("up", 3, logs=True)
+    cursor.move("page_down", 3, logs=True)
+    assert cursor.follow and cursor.selected == 15
 
 
 def test_page_movement_and_resize_keep_cursor_visible():

@@ -79,9 +79,6 @@ class PaneCursor:
         index = self.keys.index(self.selected)
         if command == "end":
             index = len(self.keys) - 1
-            if logs:
-                self.follow = True
-                self.seen = self.keys[-1]
         else:
             if logs:
                 if self.follow:
@@ -93,6 +90,9 @@ class PaneCursor:
                 else index + {"up": -1, "down": 1, "page_up": -height, "page_down": height}[command]
             )
         self.selected = self.keys[max(0, min(index, len(self.keys) - 1))]
+        if logs and command in ("down", "page_down", "end") and self.selected == self.keys[-1]:
+            self.follow = True
+            self.seen = self.keys[-1]
         self.ensure_visible(height)
 
 

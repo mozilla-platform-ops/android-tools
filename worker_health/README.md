@@ -228,8 +228,9 @@ Both pane headers show the visible row range and total, with `↑ earlier` and
 - Up/Down moves the cursor one row and scrolls as needed.
 - Page Up/Left and Page Down/Right move one screen.
 - Home/End jumps to the first/last row.
-- Logs follow new messages until you scroll back. End resumes following; a new
-  lines counter shows arrivals while paused. The log buffer retains 2,000 lines.
+- Logs follow new messages until you scroll back. Scrolling down to the newest
+  line resumes following; End jumps there immediately and resumes following.
+  A new lines counter shows arrivals while paused. The log buffer retains 2,000 lines.
 - Q or Ctrl+C exits and restores the terminal. Submitted tasks keep running;
   an already-issued API request may complete after exit.
 
