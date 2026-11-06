@@ -24,7 +24,32 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Credentials and likely required scopes:
+  Reads clientId and accessToken from ~/.tc_token, including with --dry-run.
+
+  Submission scopes (replace DESTINATION with the pool passed to --queue):
+    queue:create-task:lowest:DESTINATION
+    queue:create-task:project:none
+    queue:scheduler-id:-
+
+  Example destination scope:
+    queue:create-task:lowest:releng-hardware/gecko-t-linux-talos-2404-tc-v115
+
+  Common level-1 Talos/Browsertime source scopes (workload dependent):
+    secrets:get:project/perftest/gecko/level-1/*
+    secrets:get:project/releng/gecko/build/level-1/*
+    generic-worker:cache:gecko-level-1-*
+    queue:get-artifact:project/gecko/*
+
+  Effective client scopes must also cover every scope requested by each source
+  task. Jobs with missing scopes are skipped. Broader existing grants can cover
+  the submission scopes above. The artifact wildcard spans SCM levels; replay
+  still accepts only level-1 sources. See README.md, Replay client scopes.
+""",
+    )
     parser.add_argument("--from-pool", required=True, type=queue_argument, help="Source pool ID or worker pool URL")
     parser.add_argument(
         "-q",
